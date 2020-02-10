@@ -39,19 +39,19 @@ cmake_force:
 SHELL = /bin/sh
 
 # The CMake executable.
-CMAKE_COMMAND = /Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake
+CMAKE_COMMAND = /home/alex/clion-2019.3.3/bin/cmake/linux/bin/cmake
 
 # The command to remove a file.
-RM = /Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E remove -f
+RM = /home/alex/clion-2019.3.3/bin/cmake/linux/bin/cmake -E remove -f
 
 # Escaping for special characters.
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /Users/Alex/three-phase-protocol-implementation
+CMAKE_SOURCE_DIR = /home/alex/three-phase-protocol-implementation
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /Users/Alex/three-phase-protocol-implementation/cmake-build-debug
+CMAKE_BINARY_DIR = /home/alex/three-phase-protocol-implementation/cmake-build-debug
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -59,7 +59,7 @@ CMAKE_BINARY_DIR = /Users/Alex/three-phase-protocol-implementation/cmake-build-d
 # Special rule for the target rebuild_cache
 rebuild_cache:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake to regenerate build system..."
-	/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
+	/home/alex/clion-2019.3.3/bin/cmake/linux/bin/cmake -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
 .PHONY : rebuild_cache
 
 # Special rule for the target rebuild_cache
@@ -70,7 +70,7 @@ rebuild_cache/fast: rebuild_cache
 # Special rule for the target edit_cache
 edit_cache:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "No interactive CMake dialog available..."
-	/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E echo No\ interactive\ CMake\ dialog\ available.
+	/home/alex/clion-2019.3.3/bin/cmake/linux/bin/cmake -E echo No\ interactive\ CMake\ dialog\ available.
 .PHONY : edit_cache
 
 # Special rule for the target edit_cache
@@ -80,9 +80,9 @@ edit_cache/fast: edit_cache
 
 # The main all target
 all: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/Alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles /Users/Alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles/progress.marks
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles /home/alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles/progress.marks
 	$(MAKE) -f CMakeFiles/Makefile2 all
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/Alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
@@ -111,44 +111,152 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named three_phase_protocol_implementation
+# Target rules for targets named threePP
 
 # Build rule for target.
-three_phase_protocol_implementation: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 three_phase_protocol_implementation
-.PHONY : three_phase_protocol_implementation
+threePP: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 threePP
+.PHONY : threePP
 
 # fast build rule for target.
-three_phase_protocol_implementation/fast:
-	$(MAKE) -f CMakeFiles/three_phase_protocol_implementation.dir/build.make CMakeFiles/three_phase_protocol_implementation.dir/build
-.PHONY : three_phase_protocol_implementation/fast
+threePP/fast:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/build
+.PHONY : threePP/fast
 
-main.o: main.cpp.o
+src/network/node.o: src/network/node.cpp.o
 
-.PHONY : main.o
+.PHONY : src/network/node.o
 
 # target to build an object file
-main.cpp.o:
-	$(MAKE) -f CMakeFiles/three_phase_protocol_implementation.dir/build.make CMakeFiles/three_phase_protocol_implementation.dir/main.cpp.o
-.PHONY : main.cpp.o
+src/network/node.cpp.o:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/network/node.cpp.o
+.PHONY : src/network/node.cpp.o
 
-main.i: main.cpp.i
+src/network/node.i: src/network/node.cpp.i
 
-.PHONY : main.i
+.PHONY : src/network/node.i
 
 # target to preprocess a source file
-main.cpp.i:
-	$(MAKE) -f CMakeFiles/three_phase_protocol_implementation.dir/build.make CMakeFiles/three_phase_protocol_implementation.dir/main.cpp.i
-.PHONY : main.cpp.i
+src/network/node.cpp.i:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/network/node.cpp.i
+.PHONY : src/network/node.cpp.i
 
-main.s: main.cpp.s
+src/network/node.s: src/network/node.cpp.s
 
-.PHONY : main.s
+.PHONY : src/network/node.s
 
 # target to generate assembly for a file
-main.cpp.s:
-	$(MAKE) -f CMakeFiles/three_phase_protocol_implementation.dir/build.make CMakeFiles/three_phase_protocol_implementation.dir/main.cpp.s
-.PHONY : main.cpp.s
+src/network/node.cpp.s:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/network/node.cpp.s
+.PHONY : src/network/node.cpp.s
+
+src/network/p2p_connection.o: src/network/p2p_connection.cpp.o
+
+.PHONY : src/network/p2p_connection.o
+
+# target to build an object file
+src/network/p2p_connection.cpp.o:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/network/p2p_connection.cpp.o
+.PHONY : src/network/p2p_connection.cpp.o
+
+src/network/p2p_connection.i: src/network/p2p_connection.cpp.i
+
+.PHONY : src/network/p2p_connection.i
+
+# target to preprocess a source file
+src/network/p2p_connection.cpp.i:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/network/p2p_connection.cpp.i
+.PHONY : src/network/p2p_connection.cpp.i
+
+src/network/p2p_connection.s: src/network/p2p_connection.cpp.s
+
+.PHONY : src/network/p2p_connection.s
+
+# target to generate assembly for a file
+src/network/p2p_connection.cpp.s:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/network/p2p_connection.cpp.s
+.PHONY : src/network/p2p_connection.cpp.s
+
+src/network/peer.o: src/network/peer.cpp.o
+
+.PHONY : src/network/peer.o
+
+# target to build an object file
+src/network/peer.cpp.o:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/network/peer.cpp.o
+.PHONY : src/network/peer.cpp.o
+
+src/network/peer.i: src/network/peer.cpp.i
+
+.PHONY : src/network/peer.i
+
+# target to preprocess a source file
+src/network/peer.cpp.i:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/network/peer.cpp.i
+.PHONY : src/network/peer.cpp.i
+
+src/network/peer.s: src/network/peer.cpp.s
+
+.PHONY : src/network/peer.s
+
+# target to generate assembly for a file
+src/network/peer.cpp.s:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/network/peer.cpp.s
+.PHONY : src/network/peer.cpp.s
+
+src/network/peer_handler.o: src/network/peer_handler.cpp.o
+
+.PHONY : src/network/peer_handler.o
+
+# target to build an object file
+src/network/peer_handler.cpp.o:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/network/peer_handler.cpp.o
+.PHONY : src/network/peer_handler.cpp.o
+
+src/network/peer_handler.i: src/network/peer_handler.cpp.i
+
+.PHONY : src/network/peer_handler.i
+
+# target to preprocess a source file
+src/network/peer_handler.cpp.i:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/network/peer_handler.cpp.i
+.PHONY : src/network/peer_handler.cpp.i
+
+src/network/peer_handler.s: src/network/peer_handler.cpp.s
+
+.PHONY : src/network/peer_handler.s
+
+# target to generate assembly for a file
+src/network/peer_handler.cpp.s:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/network/peer_handler.cpp.s
+.PHONY : src/network/peer_handler.cpp.s
+
+src/test/test.o: src/test/test.cpp.o
+
+.PHONY : src/test/test.o
+
+# target to build an object file
+src/test/test.cpp.o:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/test/test.cpp.o
+.PHONY : src/test/test.cpp.o
+
+src/test/test.i: src/test/test.cpp.i
+
+.PHONY : src/test/test.i
+
+# target to preprocess a source file
+src/test/test.cpp.i:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/test/test.cpp.i
+.PHONY : src/test/test.cpp.i
+
+src/test/test.s: src/test/test.cpp.s
+
+.PHONY : src/test/test.s
+
+# target to generate assembly for a file
+src/test/test.cpp.s:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/test/test.cpp.s
+.PHONY : src/test/test.cpp.s
 
 # Help Target
 help:
@@ -157,11 +265,23 @@ help:
 	@echo "... clean"
 	@echo "... depend"
 	@echo "... rebuild_cache"
+	@echo "... threePP"
 	@echo "... edit_cache"
-	@echo "... three_phase_protocol_implementation"
-	@echo "... main.o"
-	@echo "... main.i"
-	@echo "... main.s"
+	@echo "... src/network/node.o"
+	@echo "... src/network/node.i"
+	@echo "... src/network/node.s"
+	@echo "... src/network/p2p_connection.o"
+	@echo "... src/network/p2p_connection.i"
+	@echo "... src/network/p2p_connection.s"
+	@echo "... src/network/peer.o"
+	@echo "... src/network/peer.i"
+	@echo "... src/network/peer.s"
+	@echo "... src/network/peer_handler.o"
+	@echo "... src/network/peer_handler.i"
+	@echo "... src/network/peer_handler.s"
+	@echo "... src/test/test.o"
+	@echo "... src/test/test.i"
+	@echo "... src/test/test.s"
 .PHONY : help
 
 
