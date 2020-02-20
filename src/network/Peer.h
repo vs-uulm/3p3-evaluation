@@ -6,7 +6,7 @@
 #define THREEPP_PEER_H
 
 
-class peer {
+class Peer {
 
 };
 

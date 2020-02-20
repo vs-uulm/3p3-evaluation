@@ -1,0 +1,10 @@
+#ifndef THREEPP_NETWORKMANAGER_H
+#define THREEPP_NETWORKMANAGER_H
+
+
+class NetworkManager {
+
+};
+
+
+#endif //THREEPP_NETWORKMANAGER_H
