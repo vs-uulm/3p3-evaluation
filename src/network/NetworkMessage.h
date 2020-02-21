@@ -1,20 +1,20 @@
 #ifndef THREEPP_NETWORKMESSAGE_H
 #define THREEPP_NETWORKMESSAGE_H
 
-#include <unitypes.h>
+#include <memory>
 
 class NetworkMessage {
 public:
     NetworkMessage();
-    NetworkMessage(int msg_type, uint16_t msg_len, uint8_t* payload);
-    ~NetworkMessage();
+    NetworkMessage(uint32_t header, std::unique_ptr<uint8_t> body);
 
-    void add_type(int msg_type);
-    void add_payload();
+    int add_body(std::unique_ptr<uint8_t> body);
+    uint8_t* get_header();
+    uint8_t* get_body();
+
 private:
-    int msg_type_;
-    uint16_t msg_len_;
-    uint8_t* payload_;
+    uint8_t header_[4];
+    std::unique_ptr<uint8_t> body_;
 };
 
 

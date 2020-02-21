@@ -123,113 +123,194 @@ threePP/fast:
 	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/build
 .PHONY : threePP/fast
 
-src/network/node.o: src/network/node.cpp.o
+src/datastruct/MessageBuffer.o: src/datastruct/MessageBuffer.cpp.o
 
-.PHONY : src/network/node.o
-
-# target to build an object file
-src/network/node.cpp.o:
-	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/network/node.cpp.o
-.PHONY : src/network/node.cpp.o
-
-src/network/node.i: src/network/node.cpp.i
-
-.PHONY : src/network/node.i
-
-# target to preprocess a source file
-src/network/node.cpp.i:
-	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/network/node.cpp.i
-.PHONY : src/network/node.cpp.i
-
-src/network/node.s: src/network/node.cpp.s
-
-.PHONY : src/network/node.s
-
-# target to generate assembly for a file
-src/network/node.cpp.s:
-	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/network/node.cpp.s
-.PHONY : src/network/node.cpp.s
-
-src/network/p2p_connection.o: src/network/p2p_connection.cpp.o
-
-.PHONY : src/network/p2p_connection.o
+.PHONY : src/datastruct/MessageBuffer.o
 
 # target to build an object file
-src/network/p2p_connection.cpp.o:
-	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/network/p2p_connection.cpp.o
-.PHONY : src/network/p2p_connection.cpp.o
+src/datastruct/MessageBuffer.cpp.o:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/datastruct/MessageBuffer.cpp.o
+.PHONY : src/datastruct/MessageBuffer.cpp.o
 
-src/network/p2p_connection.i: src/network/p2p_connection.cpp.i
+src/datastruct/MessageBuffer.i: src/datastruct/MessageBuffer.cpp.i
 
-.PHONY : src/network/p2p_connection.i
+.PHONY : src/datastruct/MessageBuffer.i
 
 # target to preprocess a source file
-src/network/p2p_connection.cpp.i:
-	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/network/p2p_connection.cpp.i
-.PHONY : src/network/p2p_connection.cpp.i
+src/datastruct/MessageBuffer.cpp.i:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/datastruct/MessageBuffer.cpp.i
+.PHONY : src/datastruct/MessageBuffer.cpp.i
 
-src/network/p2p_connection.s: src/network/p2p_connection.cpp.s
+src/datastruct/MessageBuffer.s: src/datastruct/MessageBuffer.cpp.s
 
-.PHONY : src/network/p2p_connection.s
+.PHONY : src/datastruct/MessageBuffer.s
 
 # target to generate assembly for a file
-src/network/p2p_connection.cpp.s:
-	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/network/p2p_connection.cpp.s
-.PHONY : src/network/p2p_connection.cpp.s
+src/datastruct/MessageBuffer.cpp.s:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/datastruct/MessageBuffer.cpp.s
+.PHONY : src/datastruct/MessageBuffer.cpp.s
 
-src/network/peer.o: src/network/peer.cpp.o
+src/datastruct/MessageQueue.o: src/datastruct/MessageQueue.cpp.o
 
-.PHONY : src/network/peer.o
+.PHONY : src/datastruct/MessageQueue.o
 
 # target to build an object file
-src/network/peer.cpp.o:
-	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/network/peer.cpp.o
-.PHONY : src/network/peer.cpp.o
+src/datastruct/MessageQueue.cpp.o:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/datastruct/MessageQueue.cpp.o
+.PHONY : src/datastruct/MessageQueue.cpp.o
 
-src/network/peer.i: src/network/peer.cpp.i
+src/datastruct/MessageQueue.i: src/datastruct/MessageQueue.cpp.i
 
-.PHONY : src/network/peer.i
+.PHONY : src/datastruct/MessageQueue.i
 
 # target to preprocess a source file
-src/network/peer.cpp.i:
-	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/network/peer.cpp.i
-.PHONY : src/network/peer.cpp.i
+src/datastruct/MessageQueue.cpp.i:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/datastruct/MessageQueue.cpp.i
+.PHONY : src/datastruct/MessageQueue.cpp.i
 
-src/network/peer.s: src/network/peer.cpp.s
+src/datastruct/MessageQueue.s: src/datastruct/MessageQueue.cpp.s
 
-.PHONY : src/network/peer.s
+.PHONY : src/datastruct/MessageQueue.s
 
 # target to generate assembly for a file
-src/network/peer.cpp.s:
-	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/network/peer.cpp.s
-.PHONY : src/network/peer.cpp.s
+src/datastruct/MessageQueue.cpp.s:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/datastruct/MessageQueue.cpp.s
+.PHONY : src/datastruct/MessageQueue.cpp.s
 
-src/network/peer_handler.o: src/network/peer_handler.cpp.o
+src/network/NetworkManager.o: src/network/NetworkManager.cpp.o
 
-.PHONY : src/network/peer_handler.o
+.PHONY : src/network/NetworkManager.o
 
 # target to build an object file
-src/network/peer_handler.cpp.o:
-	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/network/peer_handler.cpp.o
-.PHONY : src/network/peer_handler.cpp.o
+src/network/NetworkManager.cpp.o:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/network/NetworkManager.cpp.o
+.PHONY : src/network/NetworkManager.cpp.o
 
-src/network/peer_handler.i: src/network/peer_handler.cpp.i
+src/network/NetworkManager.i: src/network/NetworkManager.cpp.i
 
-.PHONY : src/network/peer_handler.i
+.PHONY : src/network/NetworkManager.i
 
 # target to preprocess a source file
-src/network/peer_handler.cpp.i:
-	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/network/peer_handler.cpp.i
-.PHONY : src/network/peer_handler.cpp.i
+src/network/NetworkManager.cpp.i:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/network/NetworkManager.cpp.i
+.PHONY : src/network/NetworkManager.cpp.i
 
-src/network/peer_handler.s: src/network/peer_handler.cpp.s
+src/network/NetworkManager.s: src/network/NetworkManager.cpp.s
 
-.PHONY : src/network/peer_handler.s
+.PHONY : src/network/NetworkManager.s
 
 # target to generate assembly for a file
-src/network/peer_handler.cpp.s:
-	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/network/peer_handler.cpp.s
-.PHONY : src/network/peer_handler.cpp.s
+src/network/NetworkManager.cpp.s:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/network/NetworkManager.cpp.s
+.PHONY : src/network/NetworkManager.cpp.s
+
+src/network/NetworkMessage.o: src/network/NetworkMessage.cpp.o
+
+.PHONY : src/network/NetworkMessage.o
+
+# target to build an object file
+src/network/NetworkMessage.cpp.o:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/network/NetworkMessage.cpp.o
+.PHONY : src/network/NetworkMessage.cpp.o
+
+src/network/NetworkMessage.i: src/network/NetworkMessage.cpp.i
+
+.PHONY : src/network/NetworkMessage.i
+
+# target to preprocess a source file
+src/network/NetworkMessage.cpp.i:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/network/NetworkMessage.cpp.i
+.PHONY : src/network/NetworkMessage.cpp.i
+
+src/network/NetworkMessage.s: src/network/NetworkMessage.cpp.s
+
+.PHONY : src/network/NetworkMessage.s
+
+# target to generate assembly for a file
+src/network/NetworkMessage.cpp.s:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/network/NetworkMessage.cpp.s
+.PHONY : src/network/NetworkMessage.cpp.s
+
+src/network/Node.o: src/network/Node.cpp.o
+
+.PHONY : src/network/Node.o
+
+# target to build an object file
+src/network/Node.cpp.o:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/network/Node.cpp.o
+.PHONY : src/network/Node.cpp.o
+
+src/network/Node.i: src/network/Node.cpp.i
+
+.PHONY : src/network/Node.i
+
+# target to preprocess a source file
+src/network/Node.cpp.i:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/network/Node.cpp.i
+.PHONY : src/network/Node.cpp.i
+
+src/network/Node.s: src/network/Node.cpp.s
+
+.PHONY : src/network/Node.s
+
+# target to generate assembly for a file
+src/network/Node.cpp.s:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/network/Node.cpp.s
+.PHONY : src/network/Node.cpp.s
+
+src/network/P2PConnection.o: src/network/P2PConnection.cpp.o
+
+.PHONY : src/network/P2PConnection.o
+
+# target to build an object file
+src/network/P2PConnection.cpp.o:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/network/P2PConnection.cpp.o
+.PHONY : src/network/P2PConnection.cpp.o
+
+src/network/P2PConnection.i: src/network/P2PConnection.cpp.i
+
+.PHONY : src/network/P2PConnection.i
+
+# target to preprocess a source file
+src/network/P2PConnection.cpp.i:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/network/P2PConnection.cpp.i
+.PHONY : src/network/P2PConnection.cpp.i
+
+src/network/P2PConnection.s: src/network/P2PConnection.cpp.s
+
+.PHONY : src/network/P2PConnection.s
+
+# target to generate assembly for a file
+src/network/P2PConnection.cpp.s:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/network/P2PConnection.cpp.s
+.PHONY : src/network/P2PConnection.cpp.s
+
+src/network/Peer.o: src/network/Peer.cpp.o
+
+.PHONY : src/network/Peer.o
+
+# target to build an object file
+src/network/Peer.cpp.o:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/network/Peer.cpp.o
+.PHONY : src/network/Peer.cpp.o
+
+src/network/Peer.i: src/network/Peer.cpp.i
+
+.PHONY : src/network/Peer.i
+
+# target to preprocess a source file
+src/network/Peer.cpp.i:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/network/Peer.cpp.i
+.PHONY : src/network/Peer.cpp.i
+
+src/network/Peer.s: src/network/Peer.cpp.s
+
+.PHONY : src/network/Peer.s
+
+# target to generate assembly for a file
+src/network/Peer.cpp.s:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/network/Peer.cpp.s
+.PHONY : src/network/Peer.cpp.s
 
 src/test/test.o: src/test/test.cpp.o
 
@@ -267,18 +348,27 @@ help:
 	@echo "... rebuild_cache"
 	@echo "... threePP"
 	@echo "... edit_cache"
-	@echo "... src/network/node.o"
-	@echo "... src/network/node.i"
-	@echo "... src/network/node.s"
-	@echo "... src/network/p2p_connection.o"
-	@echo "... src/network/p2p_connection.i"
-	@echo "... src/network/p2p_connection.s"
-	@echo "... src/network/peer.o"
-	@echo "... src/network/peer.i"
-	@echo "... src/network/peer.s"
-	@echo "... src/network/peer_handler.o"
-	@echo "... src/network/peer_handler.i"
-	@echo "... src/network/peer_handler.s"
+	@echo "... src/datastruct/MessageBuffer.o"
+	@echo "... src/datastruct/MessageBuffer.i"
+	@echo "... src/datastruct/MessageBuffer.s"
+	@echo "... src/datastruct/MessageQueue.o"
+	@echo "... src/datastruct/MessageQueue.i"
+	@echo "... src/datastruct/MessageQueue.s"
+	@echo "... src/network/NetworkManager.o"
+	@echo "... src/network/NetworkManager.i"
+	@echo "... src/network/NetworkManager.s"
+	@echo "... src/network/NetworkMessage.o"
+	@echo "... src/network/NetworkMessage.i"
+	@echo "... src/network/NetworkMessage.s"
+	@echo "... src/network/Node.o"
+	@echo "... src/network/Node.i"
+	@echo "... src/network/Node.s"
+	@echo "... src/network/P2PConnection.o"
+	@echo "... src/network/P2PConnection.i"
+	@echo "... src/network/P2PConnection.s"
+	@echo "... src/network/Peer.o"
+	@echo "... src/network/Peer.i"
+	@echo "... src/network/Peer.s"
 	@echo "... src/test/test.o"
 	@echo "... src/test/test.i"
 	@echo "... src/test/test.s"

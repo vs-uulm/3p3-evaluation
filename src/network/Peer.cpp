@@ -1,5 +1,11 @@
-//
-// Created by alex on 07.02.20.
-//
-
 #include "Peer.h"
+
+/*
+ * Peer(std::shared_ptr<Node> node_);
+   Peer(std::shared_ptr<Node> node_, std::shared_ptr<P2PConnection> connection_);
+ *
+
+Peer::Peer(std::shared_ptr<Node> node_) {
+
+}
+*/

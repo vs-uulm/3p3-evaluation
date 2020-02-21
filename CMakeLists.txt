@@ -11,7 +11,10 @@ add_executable(
         src/network/Node.cpp
         src/network/Peer.cpp
         src/network/P2PConnection.cpp
-        src/network/NetworkMessage.cpp src/network/NetworkMessage.h src/network/NetworkManager.cpp src/network/NetworkManager.h)
+        src/network/NetworkMessage.cpp
+        src/network/NetworkManager.cpp
+        src/datastruct/MessageQueue.cpp
+        src/datastruct/MessageBuffer.cpp src/datastruct/MessageBuffer.h src/threePP/ProtocolPhase.h)
 
 target_link_libraries(
         threePP
