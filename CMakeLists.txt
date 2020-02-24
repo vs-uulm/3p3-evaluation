@@ -14,7 +14,9 @@ add_executable(
         src/network/NetworkMessage.cpp
         src/network/NetworkManager.cpp
         src/datastruct/MessageQueue.cpp
-        src/datastruct/MessageBuffer.cpp src/datastruct/MessageBuffer.h src/threePP/ProtocolPhase.h)
+        src/datastruct/MessageBuffer.cpp
+        src/network/MessageHandler.cpp
+)
 
 target_link_libraries(
         threePP

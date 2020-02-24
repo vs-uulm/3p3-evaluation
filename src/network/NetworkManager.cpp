@@ -4,7 +4,7 @@
 #include <iostream>
 
 NetworkManager::NetworkManager(io_context& io_context_, uint16_t port)
-: io_context_(io_context_), ssl_context_(ssl::context::sslv23),
+: con_ctr(0), io_context_(io_context_), ssl_context_(ssl::context::sslv23),
   acceptor_(io_context_, tcp::endpoint(tcp::v4(), port)) {
 
     ssl_context_.set_options(ssl::context::default_workarounds |
@@ -34,8 +34,12 @@ void NetworkManager::accept_handler(const boost::system::error_code& e, std::sha
 
 }
 
-void NetworkManager::broadcast(const std::string &msg) {
+void NetworkManager::add_neighbor(const Node &node) {
+    // TODO async_accept
+}
+
+void NetworkManager::broadcast(std::shared_ptr<NetworkMessage>& message) {
     for(auto connection : connections) {
-        connection->send_data(msg);
+        connection->send_data(message);
     }
 }

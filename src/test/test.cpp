@@ -7,7 +7,6 @@
 #include "../network/NetworkMessage.h"
 #include "../network/NetworkManager.h"
 
-std::queue<std::shared_ptr<NetworkMessage>> msg_queue;
 std::list<std::shared_ptr<P2PConnection>> p2p_connections;
 
 void connect_task() {
@@ -19,15 +18,16 @@ void connect_task() {
                              ssl::context::no_sslv2 |
                              ssl::context::no_sslv3);
 
+    std::queue<std::shared_ptr<NetworkMessage>> msg_queue;
     auto connection = std::make_shared<P2PConnection>(io_context_, ssl_context_, port, ip_address, msg_queue);
 
     // keep the connection alive
     p2p_connections.push_back(connection);
 
     std::string msg = "Msg!";
-    connection->send_data(msg);
+    //connection->send_data(msg);
 
-    connection->read_data();
+    //connection->read_data();
 }
 
 int main() {
@@ -40,16 +40,14 @@ int main() {
         io_context_.run();
     }).detach();
 
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-
-
     std::thread client1(connect_task);
     std::thread client2(connect_task);
     std::thread client3(connect_task);
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
     std::string msg = "Test Message";
-    networkManager.broadcast(msg);
+
+    //networkManager.broadcast(msg);
     client1.join();
     client2.join();
     client3.join();

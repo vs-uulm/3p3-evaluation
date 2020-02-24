@@ -14,9 +14,11 @@ typedef ssl::stream<tcp::socket> ssl_socket;
 
 class P2PConnection : public boost::enable_shared_from_this<P2PConnection> {
 public:
-    P2PConnection(io_context& io_context_, ssl::context& ssl_context_, std::queue<std::shared_ptr<NetworkMessage>>& msg_queue);
+    P2PConnection(io_context& io_context_, ssl::context& ssl_context_,
+            std::queue<std::shared_ptr<NetworkMessage>>& msg_queue);
 
-    P2PConnection(io_context& io_context_, ssl::context& ssl_context_, uint16_t port, ip::address ip_address, std::queue<std::shared_ptr<NetworkMessage>>& msg_queue);
+    P2PConnection(io_context& io_context_, ssl::context& ssl_context_, uint16_t port,
+            ip::address ip_address, std::queue<std::shared_ptr<NetworkMessage>>& msg_queue);
 
     ~P2PConnection();
 
@@ -28,15 +30,16 @@ public:
 
     void async_read();
 
-    void read_handler(const boost::system::error_code& e, std::shared_ptr<NetworkMessage> msg);
+    void read_header(const boost::system::error_code& e, std::shared_ptr<NetworkMessage> msg);
 
-    void send_data(const std::string& data);
+    void read_body(const boost::system::error_code& e, std::shared_ptr<NetworkMessage> msg);
 
-    void read_data();
+    void send_data(std::shared_ptr<NetworkMessage>& message);
 
 private:
-    std::queue<std::shared_ptr<NetworkMessage>>& msg_queue;
     ssl_socket ssl_socket_;
+
+    std::queue<std::shared_ptr<NetworkMessage>>& msg_queue;
 };
 
 
