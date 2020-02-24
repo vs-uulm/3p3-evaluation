@@ -8,12 +8,10 @@
 
 class Peer : public Node {
 public:
-    Peer(std::shared_ptr<Node> node_);
-    Peer(std::shared_ptr<Node> node_, std::shared_ptr<P2PConnection> connection_);
+    Peer(Node& node_);
 
 private:
     EVP_PKEY* public_key;
-    std::shared_ptr<P2PConnection> connection;
 };
 
 

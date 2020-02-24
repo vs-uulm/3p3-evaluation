@@ -2,23 +2,21 @@
 #define THREEPP_NETWORKMESSAGE_H
 
 #include <memory>
+#include <vector>
 
 class NetworkMessage {
 public:
     NetworkMessage();
 
-    NetworkMessage(uint8_t msg_type, uint32_t body_len, std::unique_ptr<uint8_t> body);
+    NetworkMessage(uint8_t msg_type, std::vector<uint8_t>& body);
 
-    uint8_t* header();
+    std::vector<uint8_t>& header();
 
-    uint8_t* body();
+    std::vector<uint8_t>& body();
 
-    uint32_t body_len();
-
-private:
-    uint8_t header_[4];
-    uint32_t body_len_;
-    std::unique_ptr<uint8_t> body_;
+protected:
+    std::vector<uint8_t> header_;
+    std::vector<uint8_t> body_;
 };
 
 

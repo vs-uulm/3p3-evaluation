@@ -12,7 +12,6 @@ NetworkManager::NetworkManager(io_context& io_context_, uint16_t port)
                              ssl::context::no_sslv3);
     ssl_context_.use_private_key_file("../cert/private.pem", ssl::context::pem);
     ssl_context_.use_certificate_chain_file("../cert/server_cert.pem");
-
     start_accept();
 }
 
@@ -40,6 +39,6 @@ void NetworkManager::add_neighbor(const Node &node) {
 
 void NetworkManager::broadcast(std::shared_ptr<NetworkMessage>& message) {
     for(auto connection : connections) {
-        connection->send_data(message);
+        //connection->send_data(message);
     }
 }

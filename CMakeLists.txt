@@ -16,6 +16,7 @@ add_executable(
         src/datastruct/MessageQueue.cpp
         src/datastruct/MessageBuffer.cpp
         src/network/MessageHandler.cpp
+        src/network/ReceivedMessage.cpp
 )
 
 target_link_libraries(

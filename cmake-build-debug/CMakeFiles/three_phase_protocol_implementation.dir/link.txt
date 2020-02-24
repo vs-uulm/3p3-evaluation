@@ -1,1 +1,0 @@
-/usr/bin/c++  -g   CMakeFiles/three_phase_protocol_implementation.dir/main.cpp.o  -o three_phase_protocol_implementation 
