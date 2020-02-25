@@ -14,7 +14,7 @@ class NetworkManager {
 public:
     NetworkManager(io_context& io_context_, uint16_t port_);
 
-    void add_neighbor(const Node& node);
+    int add_neighbor(const Node& node);
 
     void broadcast(NetworkMessage& message);
 

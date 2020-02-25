@@ -18,7 +18,7 @@ add_executable(
         src/network/MessageHandler.cpp
         src/network/ReceivedMessage.cpp
         src/crypto/Utils.cpp
-)
+        src/test/TestData.h)
 
 target_link_libraries(
         threePP

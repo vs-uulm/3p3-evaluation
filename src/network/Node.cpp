@@ -8,14 +8,14 @@ Node::Node(const Node& other)
 : nodeID_(other.nodeID_), port_(other.port_), ip_address_(other.ip_address_) {}
 
 
-uint32_t Node::nodeID() {
+uint32_t const Node::nodeID() const {
     return nodeID_;
 }
 
-uint16_t Node::port() {
+uint16_t const Node::port() const {
     return port_;
 }
 
-ip::address Node::ip_address() {
+ip::address const Node::ip_address() const {
     return ip_address_;
 }

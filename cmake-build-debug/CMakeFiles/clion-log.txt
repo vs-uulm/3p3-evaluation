@@ -1,4 +1,4 @@
-/home/alex/clion-2019.3.3/bin/cmake/linux/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" /home/alex/three-phase-protocol-implementation
+/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" /Users/Alex/three-phase-protocol-implementation
 -- Configuring done
 -- Generating done
--- Build files have been written to: /home/alex/three-phase-protocol-implementation/cmake-build-debug
+-- Build files have been written to: /Users/Alex/three-phase-protocol-implementation/cmake-build-debug

@@ -18,22 +18,21 @@ public:
     P2PConnection(io_context& io_context_, ssl::context& ssl_context_,
             std::queue<std::shared_ptr<ReceivedMessage>>& msg_queue);
 
-    P2PConnection(io_context& io_context_, ssl::context& ssl_context_, uint16_t port,
-            ip::address ip_address, std::queue<std::shared_ptr<ReceivedMessage>>& msg_queue);
-
     ~P2PConnection();
 
-    ssl_socket& socket();
+    int connect(ip::address ip_address, uint16_t port);
 
-    void connect(ip::address ip_address, uint16_t port);
+    void disconnect();
 
     void async_handshake();
 
     void send_msg(NetworkMessage& msg);
 
-private:
-    void connect_handler(const boost::system::error_code& e);
+    bool is_open();
 
+    ssl_socket& socket();
+
+private:
     void handshake_handler(const boost::system::error_code& e);
 
     void async_read();
@@ -41,6 +40,8 @@ private:
     void read_header(const boost::system::error_code& e, std::shared_ptr<ReceivedMessage> msg);
 
     void read_body(const boost::system::error_code& e, std::shared_ptr<ReceivedMessage> msg);
+
+    bool is_open_;
 
     uint32_t peerID;
 
