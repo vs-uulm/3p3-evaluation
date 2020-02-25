@@ -1,21 +1,21 @@
 #include "Node.h"
 
-Node::Node(uint32_t nodeID_, uint16_t port_, const std::string& ip_address_)
-: nodeID(nodeID_), port(port_), ip_address(ip::address::from_string(ip_address_)){}
+Node::Node(uint32_t nodeID, uint16_t port, const std::string& ip_address)
+: nodeID_(nodeID), port_(port), ip_address_(ip::address::from_string(ip_address)){}
 
 
 Node::Node(const Node& other)
-: nodeID(other.nodeID), port(other.port), ip_address(other.ip_address) {}
+: nodeID_(other.nodeID_), port_(other.port_), ip_address_(other.ip_address_) {}
 
 
-uint32_t Node::get_ID() {
-    return nodeID;
+uint32_t Node::nodeID() {
+    return nodeID_;
 }
 
-uint16_t Node::get_port() {
-    return port;
+uint16_t Node::port() {
+    return port_;
 }
 
-ip::address Node::get_ip() {
-    return ip_address;
+ip::address Node::ip_address() {
+    return ip_address_;
 }

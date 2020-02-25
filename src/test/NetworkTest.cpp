@@ -8,7 +8,7 @@
 #include "../network/NetworkMessage.h"
 #include "../network/NetworkManager.h"
 
-std::unordered_map<int, std::shared_ptr<Node>> Nodes;
+std::vector<Node> Nodes;
 
 void connect_task() {
     uint16_t port = 7777;
@@ -22,61 +22,61 @@ void connect_task() {
     std::queue<std::shared_ptr<ReceivedMessage>> msg_queue;
 
     // use a raw pointer to keep the connection alive
-    P2PConnection* connection = new P2PConnection(io_context_, ssl_context_, port, ip_address, msg_queue);
+    //P2PConnection* connection = new P2PConnection(io_context_, ssl_context_, port, ip_address, msg_queue);
+    P2PConnection* connection = new P2PConnection(io_context_, ssl_context_, msg_queue);
+    connection->connect(ip_address, port);
+    std::thread io_thread([&io_context_](){
+        io_context_.run();
+    });
     std::string msg = "Client Message!";
     std::vector<uint8_t> msgVector(msg.begin(), msg.end());
     NetworkMessage networkMessage(0, msgVector);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
     connection->send_msg(networkMessage);
     std::cout << "Client msg sent" << std::endl;
     //connection->read_data();
+
+    io_thread.join();
 }
 
 void instance(int ID) {
-    io_context* io_context_ = new io_context;
-    uint16_t port = Nodes[ID]->get_port();
-    NetworkManager* networkManager = new NetworkManager(*io_context_, port);
-    // Run the io_service
+    io_context io_context_;
+    uint16_t port = Nodes[ID].port();
+    NetworkManager networkManager(io_context_, port);
 
-    std::thread([&io_context_](){
-        std::cout << "IO Service running" << std::endl;
-        io_context_->run();
-    }).detach();
+    // Run the io_service
+    std::thread io_thread([&io_context_](){
+        io_context_.run();
+    });
+    // do stuff
+
+
+
+    io_thread.join();
 }
 
 int main() {
-    /*
-    std::string testMsg = "This is a test message";
-    std::vector<uint8_t> msgVector(testMsg.begin(), testMsg.end());
+    Node node1(0, 7777, "127.0.0.1");
+    Node node2(1, 8888, "127.0.0.1");
+    Node node3(2, 9999, "127.0.0.1");
 
-    std::vector<uint8_t> testHeader;
-    NetworkMessage msg;
-    //networkMessage.header() = testHeader;
-    // TODO fix this
-    msg.header().shrink_to_fit();
-    std::cout << "Standard Size: " << msg.header().size() << std::endl;
-    msg.header().resize(10);
-    std::cout << "Resized: " << msg.header().size() << std::endl;
-     */
-    /*
-    std::shared_ptr<Node> node1 = std::make_shared<Node>(0, 7777, "127.0.0.1");
-    std::shared_ptr<Node> node2 = std::make_shared<Node>(1, 8888, "127.0.0.1");
-    std::shared_ptr<Node> node3 = std::make_shared<Node>(2, 9999, "127.0.0.1");
+    Nodes.push_back(std::move(node1));
+    Nodes.push_back(std::move(node2));
+    Nodes.push_back(std::move(node3));
 
-    Nodes.insert({0, std::move(node1)});
-    Nodes.insert({1, std::move(node2)});
-    Nodes.insert({2, std::move(node3)});
-
-    std::thread instance1(instance, 0);
-    instance1.detach();
-    std::this_thread::sleep_for(std::chrono::seconds(1));
+    //std::thread instance1(instance, 0);
+    //std::this_thread::sleep_for(std::chrono::seconds(1));
     std::thread client1(connect_task);
     //std::thread instance2(instance, 1);
     //std::thread instance3(instance, 2);
-    client1.join();
     //instance1.join();
+    client1.join();
+
+    // TODO verify correct working of process_raw_public_key
     //instance2.join();
     //instance3.join();
-    */
+
+    /*
     io_context io_context_;
     uint16_t port = 7777;
     NetworkManager networkManager(io_context_, port);
@@ -97,5 +97,6 @@ int main() {
     client1.join();
     //client2.join();
     //client3.join();
+     */
     return 0;
 }

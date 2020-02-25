@@ -39,19 +39,19 @@ cmake_force:
 SHELL = /bin/sh
 
 # The CMake executable.
-CMAKE_COMMAND = /Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake
+CMAKE_COMMAND = /home/alex/clion-2019.3.3/bin/cmake/linux/bin/cmake
 
 # The command to remove a file.
-RM = /Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E remove -f
+RM = /home/alex/clion-2019.3.3/bin/cmake/linux/bin/cmake -E remove -f
 
 # Escaping for special characters.
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /Users/Alex/three-phase-protocol-implementation
+CMAKE_SOURCE_DIR = /home/alex/three-phase-protocol-implementation
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /Users/Alex/three-phase-protocol-implementation/cmake-build-debug
+CMAKE_BINARY_DIR = /home/alex/three-phase-protocol-implementation/cmake-build-debug
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -59,7 +59,7 @@ CMAKE_BINARY_DIR = /Users/Alex/three-phase-protocol-implementation/cmake-build-d
 # Special rule for the target rebuild_cache
 rebuild_cache:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake to regenerate build system..."
-	/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
+	/home/alex/clion-2019.3.3/bin/cmake/linux/bin/cmake -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
 .PHONY : rebuild_cache
 
 # Special rule for the target rebuild_cache
@@ -70,7 +70,7 @@ rebuild_cache/fast: rebuild_cache
 # Special rule for the target edit_cache
 edit_cache:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "No interactive CMake dialog available..."
-	/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E echo No\ interactive\ CMake\ dialog\ available.
+	/home/alex/clion-2019.3.3/bin/cmake/linux/bin/cmake -E echo No\ interactive\ CMake\ dialog\ available.
 .PHONY : edit_cache
 
 # Special rule for the target edit_cache
@@ -80,9 +80,9 @@ edit_cache/fast: edit_cache
 
 # The main all target
 all: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/Alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles /Users/Alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles/progress.marks
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles /home/alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles/progress.marks
 	$(MAKE) -f CMakeFiles/Makefile2 all
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/Alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
@@ -122,6 +122,33 @@ threePP: cmake_check_build_system
 threePP/fast:
 	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/build
 .PHONY : threePP/fast
+
+src/crypto/Utils.o: src/crypto/Utils.cpp.o
+
+.PHONY : src/crypto/Utils.o
+
+# target to build an object file
+src/crypto/Utils.cpp.o:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/crypto/Utils.cpp.o
+.PHONY : src/crypto/Utils.cpp.o
+
+src/crypto/Utils.i: src/crypto/Utils.cpp.i
+
+.PHONY : src/crypto/Utils.i
+
+# target to preprocess a source file
+src/crypto/Utils.cpp.i:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/crypto/Utils.cpp.i
+.PHONY : src/crypto/Utils.cpp.i
+
+src/crypto/Utils.s: src/crypto/Utils.cpp.s
+
+.PHONY : src/crypto/Utils.s
+
+# target to generate assembly for a file
+src/crypto/Utils.cpp.s:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/crypto/Utils.cpp.s
+.PHONY : src/crypto/Utils.cpp.s
 
 src/datastruct/MessageBuffer.o: src/datastruct/MessageBuffer.cpp.o
 
@@ -366,32 +393,32 @@ src/network/ReceivedMessage.cpp.s:
 	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/network/ReceivedMessage.cpp.s
 .PHONY : src/network/ReceivedMessage.cpp.s
 
-src/test/test.o: src/test/test.cpp.o
+src/test/NetworkTest.o: src/test/NetworkTest.cpp.o
 
-.PHONY : src/test/test.o
+.PHONY : src/test/NetworkTest.o
 
 # target to build an object file
-src/test/test.cpp.o:
-	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/test/test.cpp.o
-.PHONY : src/test/test.cpp.o
+src/test/NetworkTest.cpp.o:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/test/NetworkTest.cpp.o
+.PHONY : src/test/NetworkTest.cpp.o
 
-src/test/test.i: src/test/test.cpp.i
+src/test/NetworkTest.i: src/test/NetworkTest.cpp.i
 
-.PHONY : src/test/test.i
+.PHONY : src/test/NetworkTest.i
 
 # target to preprocess a source file
-src/test/test.cpp.i:
-	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/test/test.cpp.i
-.PHONY : src/test/test.cpp.i
+src/test/NetworkTest.cpp.i:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/test/NetworkTest.cpp.i
+.PHONY : src/test/NetworkTest.cpp.i
 
-src/test/test.s: src/test/test.cpp.s
+src/test/NetworkTest.s: src/test/NetworkTest.cpp.s
 
-.PHONY : src/test/test.s
+.PHONY : src/test/NetworkTest.s
 
 # target to generate assembly for a file
-src/test/test.cpp.s:
-	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/test/test.cpp.s
-.PHONY : src/test/test.cpp.s
+src/test/NetworkTest.cpp.s:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/test/NetworkTest.cpp.s
+.PHONY : src/test/NetworkTest.cpp.s
 
 # Help Target
 help:
@@ -400,8 +427,11 @@ help:
 	@echo "... clean"
 	@echo "... depend"
 	@echo "... rebuild_cache"
-	@echo "... edit_cache"
 	@echo "... threePP"
+	@echo "... edit_cache"
+	@echo "... src/crypto/Utils.o"
+	@echo "... src/crypto/Utils.i"
+	@echo "... src/crypto/Utils.s"
 	@echo "... src/datastruct/MessageBuffer.o"
 	@echo "... src/datastruct/MessageBuffer.i"
 	@echo "... src/datastruct/MessageBuffer.s"
@@ -429,9 +459,9 @@ help:
 	@echo "... src/network/ReceivedMessage.o"
 	@echo "... src/network/ReceivedMessage.i"
 	@echo "... src/network/ReceivedMessage.s"
-	@echo "... src/test/test.o"
-	@echo "... src/test/test.i"
-	@echo "... src/test/test.s"
+	@echo "... src/test/NetworkTest.o"
+	@echo "... src/test/NetworkTest.i"
+	@echo "... src/test/NetworkTest.s"
 .PHONY : help
 
 

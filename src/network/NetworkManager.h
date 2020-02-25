@@ -16,11 +16,11 @@ public:
 
     void add_neighbor(const Node& node);
 
-    void broadcast(std::shared_ptr<NetworkMessage>& message);
+    void broadcast(NetworkMessage& message);
 
-    void broadcast_DC(std::shared_ptr<NetworkMessage>& message);
+    void broadcast_DC(NetworkMessage& message);
 
-    void broadcast_eta(std::shared_ptr<NetworkMessage>& message, uint8_t eta);
+    void broadcast_eta(NetworkMessage& message, uint8_t eta);
 
 private:
     void start_accept();

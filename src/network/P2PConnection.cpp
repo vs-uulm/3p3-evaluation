@@ -15,6 +15,7 @@ P2PConnection::P2PConnection(io_context& io_context_, ssl::context& ssl_context_
         ip::address ip_address, std::queue<std::shared_ptr<ReceivedMessage>>& msg_queue)
         : ssl_socket_(io_context_, ssl_context_), msg_queue(msg_queue) {
 
+    // TODO use separate connect method
     ssl_socket_.lowest_layer().connect(tcp::endpoint(ip_address, port));
     ssl_socket_.handshake(ssl::stream_base::client);
 }
@@ -28,6 +29,24 @@ P2PConnection::~P2PConnection() {
         } catch(std::exception& e) {
             std::cout << "Could not properly shut down connection" << std::endl;
         }
+    }
+}
+
+void P2PConnection::connect(ip::address ip_address, uint16_t port) {
+    ssl_socket_.lowest_layer().async_connect(tcp::endpoint(ip_address, port),
+            boost::bind(&P2PConnection::connect_handler,
+                    this,
+                    placeholders::error));
+}
+
+void P2PConnection::connect_handler(const boost::system::error_code &e) {
+    std::cout << "Connect Handler" << std::endl;
+    if(e) {
+        std::cout << "Error: " << e.message() << std::endl;
+    } else {
+        std::cout << "Performing Handshake" << std::endl;
+        ssl_socket_.handshake(ssl::stream_base::client);
+        std::cout << "Finished Handshake" << std::endl;
     }
 }
 
@@ -46,37 +65,35 @@ void P2PConnection::handshake_handler(const boost::system::error_code& e) {
 }
 
 void P2PConnection::async_read() {
-    std::shared_ptr<ReceivedMessage> msg = std::make_shared<ReceivedMessage>(peer_ID);
+    std::shared_ptr<ReceivedMessage> received_msg = std::make_shared<ReceivedMessage>(peerID);
     boost::asio::async_read(ssl_socket_,
-                            boost::asio::buffer(msg->header()),
+                            boost::asio::buffer(received_msg->header()),
                             boost::bind(&P2PConnection::read_header,
                                     this,
                                     boost::asio::placeholders::error,
-                                    msg));
-
-
+                                    received_msg));
 }
 
-void P2PConnection::read_header(const boost::system::error_code& e, std::shared_ptr<ReceivedMessage> msg) {
+void P2PConnection::read_header(const boost::system::error_code& e, std::shared_ptr<ReceivedMessage> received_msg) {
     if(e) {
         std::cout << "Read Error: " << e.message() << std::endl;
     } else {
-        msg->resize_body();
+        received_msg->resize_body();
         boost::asio::async_read(ssl_socket_,
-                                boost::asio::buffer(msg->body()),
+                                boost::asio::buffer(received_msg->body()),
                                 boost::bind(&P2PConnection::read_body,
                                             this,
                                             boost::asio::placeholders::error,
-                                            msg));
+                                            received_msg));
     }
 }
 
-void P2PConnection::read_body(const boost::system::error_code& e, std::shared_ptr<ReceivedMessage> msg) {
+void P2PConnection::read_body(const boost::system::error_code& e, std::shared_ptr<ReceivedMessage> received_msg) {
     if(e) {
         std::cout << "Read Error: " << e.message() << std::endl;
     } else {
-        msg_queue.push(msg);
-        std::string msgString(msg->body().begin(), msg->body().end());
+        msg_queue.push(received_msg);
+        std::string msgString(received_msg->body().begin(), received_msg->body().end());
         std::cout << msgString << std::endl;
         async_read();
     }

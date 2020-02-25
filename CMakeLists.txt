@@ -7,7 +7,7 @@ include_directories(/usr/local/include)
 
 add_executable(
         threePP
-        src/test/test.cpp
+        src/test/NetworkTest.cpp
         src/network/Node.cpp
         src/network/Peer.cpp
         src/network/P2PConnection.cpp
@@ -17,6 +17,7 @@ add_executable(
         src/datastruct/MessageBuffer.cpp
         src/network/MessageHandler.cpp
         src/network/ReceivedMessage.cpp
+        src/crypto/Utils.cpp
 )
 
 target_link_libraries(
