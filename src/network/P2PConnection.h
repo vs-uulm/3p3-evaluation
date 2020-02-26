@@ -5,8 +5,8 @@
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 #include <boost/enable_shared_from_this.hpp>
-#include "NetworkMessage.h"
-#include "ReceivedMessage.h"
+#include "../datastruct/NetworkMessage.h"
+#include "../datastruct/ReceivedMessage.h"
 
 using namespace boost::asio;
 using ip::tcp;

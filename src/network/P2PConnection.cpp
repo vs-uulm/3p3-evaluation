@@ -56,7 +56,6 @@ void P2PConnection::handshake_handler(const boost::system::error_code& e) {
 }
 
 void P2PConnection::async_read() {
-    std::cout << "Async Read" << std::endl;
     std::shared_ptr<ReceivedMessage> received_msg = std::make_shared<ReceivedMessage>(peerID);
     boost::asio::async_read(ssl_socket_,
                             boost::asio::buffer(received_msg->header()),
@@ -67,9 +66,7 @@ void P2PConnection::async_read() {
 }
 
 void P2PConnection::read_header(const boost::system::error_code& e, std::shared_ptr<ReceivedMessage> received_msg) {
-    std::cout << "Read Header" << std::endl;
     if(e) {
-        std::cout << "Socket: " << (ssl_socket_.lowest_layer().is_open() ? "Yes" : "No") << std::endl;
         std::cerr << "Read Error: " << e.message() << std::endl;
     } else {
         received_msg->resize_body();

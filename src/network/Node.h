@@ -12,11 +12,11 @@ public:
 
     Node(const Node& other);
 
-    uint32_t const nodeID() const;
+    uint32_t nodeID() const;
 
-    uint16_t const port() const;
+    uint16_t port() const;
 
-    ip::address const ip_address() const;
+    ip::address ip_address() const;
 private:
     uint32_t nodeID_;
 

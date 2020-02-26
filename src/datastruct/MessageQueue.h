@@ -2,11 +2,23 @@
 #define THREEPP_MESSAGEQUEUE_H
 
 #include <cstdint>
-#include <list>
+#include <queue>
+#include <mutex>
+
+#include "NetworkMessage.h"
+
+typedef std::shared_ptr<NetworkMessage> msg_ptr;
 
 class MessageQueue {
+public:
+    void push(msg_ptr);
 
+    msg_ptr pop();
+
+private:
+    std::mutex mutex_;
+
+    std::queue<msg_ptr> msg_queue_;
 };
-
 
 #endif //THREEPP_MESSAGEQUEUE_H

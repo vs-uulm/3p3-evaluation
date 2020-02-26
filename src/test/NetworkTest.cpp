@@ -5,14 +5,17 @@
 
 #include "../crypto/Utils.h"
 #include "../network/P2PConnection.h"
-#include "../network/NetworkMessage.h"
+#include "../datastruct/NetworkMessage.h"
 #include "../network/NetworkManager.h"
 
 #include "TestData.h"
+#include "../network/Peer.h"
+#include "../datastruct/MessageQueue.h"
 
 std::vector<Node> Nodes;
 
-void connect_task() {
+/*
+void client_task() {
     uint16_t port = 7777;
     ip::address ip_address = ip::address::from_string("127.0.0.1");
     io_context io_context_;
@@ -46,77 +49,78 @@ void connect_task() {
 
     io_thread.join();
 }
+*/
 
 void instance(int ID) {
+    std::unordered_map<int, std::shared_ptr<Peer>> Peers;
     io_context network_io_context_;
     uint16_t port = Nodes[ID].port();
-    NetworkManager* networkManager = new NetworkManager(network_io_context_, port);
+    NetworkManager networkManager(network_io_context_, port);
 
     // Run the io_service
+
     std::thread network_io_thread([&network_io_context_](){
         network_io_context_.run();
-        std::cout << "Finished" << std::endl;
     });
 
+
+    // Adding nodes
     for(const Node& node : Nodes) {
         if(node.nodeID() < ID) {
-            int result = networkManager->add_neighbor(node);
-            std::cout << "Result: " << result << std::endl;
+            networkManager.add_neighbor(node);
         }
     }
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+    // Wait until all nodes are connected
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
     std::string server_msg = "Hello from ID " + std::to_string(ID);
     std::vector<uint8_t> msgVector(server_msg.begin(), server_msg.end());
     NetworkMessage networkMessage(0, msgVector);
-    std::cout << "Broadcasting" << std::endl;
-    networkManager->broadcast(networkMessage);
+
+    networkManager.broadcast(networkMessage);
 
     network_io_thread.join();
 }
 
 int main() {
+    std::string msg_body = "Test Message";
+    std::vector<uint8_t> testData(msg_body.begin(), msg_body.end());
+    NetworkMessage msg1(0, testData);
+    NetworkMessage msg2(1, testData);
+    NetworkMessage msg3(2, testData);
+
+    MessageQueue msg_queue;
+    msg_queue.push(std::make_shared<NetworkMessage>(msg2));
+    auto msg_ptr = msg_queue.pop();
+    if(msg_ptr != nullptr) {
+        std::string result(msg_ptr->body().begin(), msg_ptr->body().end());
+        std::cout << result << std::endl;
+    }
+    /*
     Node node1(0, 7777, "127.0.0.1");
     Node node2(1, 8888, "127.0.0.1");
     Node node3(2, 9999, "127.0.0.1");
 
     Nodes.push_back(std::move(node1));
     Nodes.push_back(std::move(node2));
-    //Nodes.push_back(std::move(node3));
+    Nodes.push_back(std::move(node3));
 
     std::thread instance1(instance, 0);
-    //std::thread instance2(instance, 1);
-    //std::thread instance3(instance, 2);
-    std::thread client1(connect_task);
-    //std::thread client2(connect_task);
-    //std::thread client3(connect_task);
+    std::thread instance2(instance, 1);
+    std::thread instance3(instance, 2);
+
     instance1.join();
-    client1.join();
-    //client2.join();
-    //client3.join();
-    //instance2.join();
-    //instance3.join();
+    instance2.join();
+    instance3.join();
+     */
 
-    /*
-    io_context io_context_;
-    uint16_t port = 7777;
-    NetworkManager networkManager(io_context_, port);
-
-    // Run the io_service
-    std::thread([&io_context_](){
-        io_context_.run();
-    }).detach();
-
-    std::thread client1(connect_task);
+    //std::thread client1(connect_task);
     //std::thread client2(connect_task);
     //std::thread client3(connect_task);
 
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-    std::string msg = "Test Message";
-
-    //networkManager.broadcast(msg);
-    client1.join();
+    //client1.join();
     //client2.join();
     //client3.join();
-     */
+
     return 0;
 }
