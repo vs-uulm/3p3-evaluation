@@ -7,6 +7,7 @@
 #include <boost/enable_shared_from_this.hpp>
 #include "../datastruct/NetworkMessage.h"
 #include "../datastruct/ReceivedMessage.h"
+#include "../datastruct/MessageQueue.h"
 
 using namespace boost::asio;
 using ip::tcp;
@@ -15,8 +16,7 @@ typedef ssl::stream<tcp::socket> ssl_socket;
 
 class P2PConnection {
 public:
-    P2PConnection(io_context& io_context_, ssl::context& ssl_context_,
-            std::queue<std::shared_ptr<ReceivedMessage>>& msg_queue);
+    P2PConnection(io_context& io_context_, ssl::context& ssl_context_, MessageQueue& msg_queue);
 
     ~P2PConnection();
 
@@ -47,7 +47,7 @@ private:
 
     ssl_socket ssl_socket_;
 
-    std::queue<std::shared_ptr<ReceivedMessage>>& msg_queue;
+    MessageQueue& msg_queue;
 };
 
 

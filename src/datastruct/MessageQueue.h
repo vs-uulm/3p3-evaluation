@@ -17,7 +17,7 @@ public:
 
 private:
     std::mutex mutex_;
-
+    std::condition_variable cond_var_;
     std::queue<msg_ptr> msg_queue_;
 };
 

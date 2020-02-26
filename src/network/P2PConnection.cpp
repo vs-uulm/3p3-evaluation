@@ -5,7 +5,7 @@
 #include <boost/bind.hpp>
 
 P2PConnection::P2PConnection(io_context& io_context_, ssl::context& ssl_context_,
-        std::queue<std::shared_ptr<ReceivedMessage>>& msg_queue)
+        MessageQueue& msg_queue)
         : is_open_(false), ssl_socket_(io_context_, ssl_context_), msg_queue(msg_queue) {
 
 }
@@ -84,8 +84,6 @@ void P2PConnection::read_body(const boost::system::error_code& e, std::shared_pt
         std::cerr << "Read Error: " << e.message() << std::endl;
     } else {
         msg_queue.push(received_msg);
-        std::string msgString(received_msg->body().begin(), received_msg->body().end());
-        std::cout << msgString << std::endl;
         async_read();
     }
 }

@@ -12,7 +12,7 @@ using namespace boost::asio;
 
 class NetworkManager {
 public:
-    NetworkManager(io_context& io_context_, uint16_t port_);
+    NetworkManager(io_context& io_context_, uint16_t port_, MessageQueue& msg_queue);
 
     int add_neighbor(const Node& node);
 
@@ -35,7 +35,7 @@ private:
 
     tcp::acceptor acceptor_;
 
-    std::queue<std::shared_ptr<ReceivedMessage>> msg_queue_;
+    MessageQueue& msg_queue_;
 
     std::list<std::shared_ptr<P2PConnection>> connections_;
 };
