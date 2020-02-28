@@ -7,6 +7,7 @@
 #include "P2PConnection.h"
 #include "../datastruct/NetworkMessage.h"
 #include "Node.h"
+#include "../datastruct/MessageBuffer.h"
 
 using namespace boost::asio;
 
@@ -36,6 +37,8 @@ private:
     tcp::acceptor acceptor_;
 
     MessageQueue& msg_queue_;
+
+    MessageBuffer msg_buffer_;
 
     std::list<std::shared_ptr<P2PConnection>> connections_;
 };

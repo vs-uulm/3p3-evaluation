@@ -30,6 +30,8 @@ public:
 
     bool is_open();
 
+    uint32_t connectionID();
+
     ssl_socket& socket();
 
 private:
@@ -43,7 +45,7 @@ private:
 
     bool is_open_;
 
-    uint32_t peerID;
+    uint32_t connectionID_;
 
     ssl_socket ssl_socket_;
 

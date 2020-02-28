@@ -5,7 +5,7 @@
 
 NetworkManager::NetworkManager(io_context& io_context, uint16_t port, MessageQueue& msg_queue)
 : con_ctr(0), io_context_(io_context), ssl_context_(ssl::context::sslv23), msg_queue_(msg_queue),
-  acceptor_(io_context, tcp::endpoint(tcp::v4(), port)) {
+  msg_buffer_(100), acceptor_(io_context, tcp::endpoint(tcp::v4(), port)) {
 
     ssl_context_.set_options(ssl::context::default_workarounds |
                              ssl::context::no_sslv2 |
@@ -46,10 +46,10 @@ int NetworkManager::add_neighbor(const Node &node) {
     return retry_count;
 }
 
-void NetworkManager::broadcast(NetworkMessage& message) {
+void NetworkManager::broadcast(NetworkMessage& msg) {
     for(auto connection : connections_) {
         if(connection->is_open()) {
-            connection->send_msg(message);
+            connection->send_msg(msg);
         }
     }
 }

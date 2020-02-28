@@ -6,8 +6,7 @@
 
 P2PConnection::P2PConnection(io_context& io_context_, ssl::context& ssl_context_,
         MessageQueue& msg_queue)
-        : is_open_(false), ssl_socket_(io_context_, ssl_context_), msg_queue(msg_queue) {
-
+        : is_open_(false), connectionID_(0), ssl_socket_(io_context_, ssl_context_), msg_queue(msg_queue) {
 }
 
 P2PConnection::~P2PConnection() {
@@ -56,7 +55,7 @@ void P2PConnection::handshake_handler(const boost::system::error_code& e) {
 }
 
 void P2PConnection::async_read() {
-    std::shared_ptr<ReceivedMessage> received_msg = std::make_shared<ReceivedMessage>(peerID);
+    auto received_msg = std::make_shared<ReceivedMessage>(connectionID_);
     boost::asio::async_read(ssl_socket_,
                             boost::asio::buffer(received_msg->header()),
                             boost::bind(&P2PConnection::read_header,
@@ -96,6 +95,10 @@ void P2PConnection::send_msg(NetworkMessage& msg) {
 
 ssl_socket& P2PConnection::socket() {
     return ssl_socket_;
+}
+
+uint32_t P2PConnection::connectionID() {
+    return connectionID_;
 }
 
 bool P2PConnection::is_open() {

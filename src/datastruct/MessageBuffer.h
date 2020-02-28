@@ -2,20 +2,23 @@
 #define THREEPP_MESSAGEBUFFER_H
 
 #include <cstdint>
-#include <list>
+#include <deque>
 #include <memory>
 
-#include "../network/Peer.h"
-#include "../threePP/ProtocolPhase.h"
-
-struct BufferedMessage {
-    ProtocolPhase phase;
-    uint8_t msg_hash[32];
-    std::list<std::shared_ptr<Peer>> senders;
-};
+#include "BufferedMessage.h"
 
 class MessageBuffer {
+public:
+    MessageBuffer(size_t max_size);
 
+    void add(ReceivedMessage& msg);
+
+    std::shared_ptr<BufferedMessage> contains(NetworkMessage& msg);
+
+private:
+    size_t max_size_;
+
+    std::deque<std::shared_ptr<BufferedMessage>> message_buffer_;
 };
 
 

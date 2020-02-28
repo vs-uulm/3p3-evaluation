@@ -48,3 +48,23 @@ EVP_PKEY* utils::process_raw_public_key(std::vector<uint8_t>& raw_ec_pkey) {
     EVP_PKEY_assign_EC_KEY(evp_pkey, ec_key);
     return evp_pkey;
 }
+
+std::vector<uint8_t> utils::sha256(std::vector<uint8_t>& data) {
+    EVP_MD_CTX* md_ctx = EVP_MD_CTX_new();
+    int result = EVP_DigestInit_ex(md_ctx, EVP_sha256(), NULL);
+    if(result < 1)
+        std::cerr << "Error: DigestInit" << std::endl;
+
+    result = EVP_DigestUpdate(md_ctx, data.data(), data.size());
+    if(result < 1)
+        std::cerr << "Error: DigestUpdate" << std::endl;
+
+    uint32_t len;
+    std::vector<uint8_t> hash(EVP_MD_size(EVP_sha256()));
+    result = EVP_DigestFinal_ex(md_ctx, hash.data(), &len);
+    if(result < 1)
+        std::cerr << "Error: DigestFinal" << std::endl;
+
+    EVP_MD_CTX_free(md_ctx);
+    return hash;
+}
