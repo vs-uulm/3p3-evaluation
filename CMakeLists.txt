@@ -27,3 +27,29 @@ target_link_libraries(
         -lcrypto
         -lssl
 )
+
+add_executable(
+        cryptoTest
+        src/test/CryptoTest.cpp
+        src/threePP/DCNetwork.cpp
+)
+
+target_link_libraries(
+        cryptoTest
+        -L/usr/local/lib
+        -pthread
+        -lcryptopp
+)
+
+add_executable(
+        DCNetworkTest
+        src/test/DCNetworkTest.cpp
+        src/threePP/DCNetwork.cpp
+)
+
+target_link_libraries(
+        DCNetworkTest
+        -L/usr/local/lib
+        -pthread
+        -lcryptopp
+)

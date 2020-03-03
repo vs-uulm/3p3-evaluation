@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <openssl/evp.h>
+#include <cryptopp/integer.h>
 
 namespace utils {
     void seed_PRNG();

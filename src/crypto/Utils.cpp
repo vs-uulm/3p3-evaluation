@@ -68,3 +68,4 @@ std::vector<uint8_t> utils::sha256(std::vector<uint8_t>& data) {
     EVP_MD_CTX_free(md_ctx);
     return hash;
 }
+
