@@ -5,7 +5,7 @@
 #include <boost/bind.hpp>
 
 P2PConnection::P2PConnection(io_context& io_context_, ssl::context& ssl_context_,
-        MessageQueue& msg_queue)
+        MessageQueue<NetworkMessage>& msg_queue)
         : is_open_(false), connectionID_(0), ssl_socket_(io_context_, ssl_context_), msg_queue(msg_queue) {
 }
 

@@ -14,7 +14,7 @@ std::vector<Node> Nodes;
 std::mutex cout_mutex;
 
 void instance(int ID) {
-    MessageQueue msg_queue;
+    MessageQueue<NetworkMessage> msg_queue;
     std::unordered_map<int, std::shared_ptr<Peer>> Peers;
     io_context network_io_context_;
     uint16_t port = Nodes[ID].port();
@@ -56,65 +56,6 @@ void instance(int ID) {
 }
 
 int main() {
-
-    /*
-    MessageBuffer buffer(3);
-
-    std::vector<uint8_t> body1 = {0,0,0,1};
-    std::vector<uint8_t> body2 = {0,0,0,2};
-    std::vector<uint8_t> body3 = {0,0,0,3};
-    std::vector<uint8_t> body4 = {0,0,0,4};
-    std::vector<uint8_t> body5 = {0,0,0,5};
-
-    ReceivedMessage msg1(1);
-    ReceivedMessage msg2(2);
-    ReceivedMessage msg3(3);
-    ReceivedMessage msg4(4);
-    ReceivedMessage msg5(5);
-
-    msg1.header()[3] = 4;
-    msg1.resize_body();
-    msg1.body() = body1;
-
-    msg2.header()[3] = 4;
-    msg2.resize_body();
-    msg2.body() = body2;
-
-    msg3.header()[3] = 4;
-    msg3.resize_body();
-    msg3.body() = body3;
-
-    msg4.header()[3] = 4;
-    msg4.resize_body();
-    msg4.body() = body5;
-
-    msg5.header()[3] = 4;
-    msg5.resize_body();
-    msg5.body() = body5;
-
-    buffer.add(msg1);
-    buffer.add(msg2);
-    buffer.add(msg3);
-    buffer.add(msg4);
-    buffer.add(msg5);
-
-
-    std::shared_ptr<BufferedMessage> buff_msg = buffer.contains(msg3);
-    std::cout << "Sender List: " << buff_msg->sender_list().size() << std::endl;
-    if(buff_msg)
-        std::cout << "msg1 found" << std::endl;
-    else
-        std::cout << "msg1 not found" << std::endl;
-
-    buff_msg = buffer.contains(msg3);
-    std::cout << "Sender List: " << buff_msg->sender_list().size() << std::endl;
-    if(buff_msg)
-        std::cout << "msg3 found" << std::endl;
-    else
-        std::cout << "msg3 not found" << std::endl;
-
-    */
-
     std::list<std::thread> threads;
     for(int i=0; i<10; i++) {
         Node node(i, 5555 + i, "127.0.0.1");

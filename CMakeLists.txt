@@ -13,7 +13,6 @@ add_executable(
         src/network/P2PConnection.cpp
         src/datastruct/NetworkMessage.cpp
         src/network/NetworkManager.cpp
-        src/datastruct/MessageQueue.cpp
         src/datastruct/MessageBuffer.cpp
         src/network/MessageHandler.cpp
         src/datastruct/ReceivedMessage.cpp

@@ -3,8 +3,8 @@
 #include <boost/bind.hpp>
 #include <iostream>
 
-NetworkManager::NetworkManager(io_context& io_context, uint16_t port, MessageQueue& msg_queue)
-: con_ctr(0), io_context_(io_context), ssl_context_(ssl::context::sslv23), msg_queue_(msg_queue),
+NetworkManager::NetworkManager(io_context& io_context, uint16_t port, MessageQueue<NetworkMessage>& msg_queue)
+: connection_counter(0), io_context_(io_context), ssl_context_(ssl::context::sslv23), msg_queue_(msg_queue),
   msg_buffer_(100), acceptor_(io_context, tcp::endpoint(tcp::v4(), port)) {
 
     ssl_context_.set_options(ssl::context::default_workarounds |

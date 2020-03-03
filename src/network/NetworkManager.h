@@ -13,9 +13,11 @@ using namespace boost::asio;
 
 class NetworkManager {
 public:
-    NetworkManager(io_context& io_context_, uint16_t port_, MessageQueue& msg_queue);
+    NetworkManager(io_context& io_context_, uint16_t port_, MessageQueue<NetworkMessage>& msg_queue);
 
     int add_neighbor(const Node& node);
+
+    void send_msg(NetworkMessage& msg, uint32_t connectionID);
 
     void broadcast(NetworkMessage& message);
 
@@ -23,12 +25,14 @@ public:
 
     void broadcast_eta(NetworkMessage& message, uint8_t eta);
 
+    void flood_and_prune(NetworkMessage& message);
+
 private:
     void start_accept();
 
     void accept_handler(const boost::system::error_code& e, std::shared_ptr<P2PConnection> connection);
 
-    int con_ctr;
+    int connection_counter;
 
     io_context& io_context_;
 
@@ -36,9 +40,9 @@ private:
 
     tcp::acceptor acceptor_;
 
-    MessageQueue& msg_queue_;
-
     MessageBuffer msg_buffer_;
+
+    MessageQueue<NetworkMessage>& msg_queue_;
 
     std::list<std::shared_ptr<P2PConnection>> connections_;
 };

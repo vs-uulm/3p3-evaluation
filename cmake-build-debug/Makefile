@@ -39,19 +39,19 @@ cmake_force:
 SHELL = /bin/sh
 
 # The CMake executable.
-CMAKE_COMMAND = /Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake
+CMAKE_COMMAND = /home/alex/clion-2019.3.3/bin/cmake/linux/bin/cmake
 
 # The command to remove a file.
-RM = /Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E remove -f
+RM = /home/alex/clion-2019.3.3/bin/cmake/linux/bin/cmake -E remove -f
 
 # Escaping for special characters.
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /Users/Alex/three-phase-protocol-implementation
+CMAKE_SOURCE_DIR = /home/alex/three-phase-protocol-implementation
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /Users/Alex/three-phase-protocol-implementation/cmake-build-debug
+CMAKE_BINARY_DIR = /home/alex/three-phase-protocol-implementation/cmake-build-debug
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -59,7 +59,7 @@ CMAKE_BINARY_DIR = /Users/Alex/three-phase-protocol-implementation/cmake-build-d
 # Special rule for the target rebuild_cache
 rebuild_cache:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake to regenerate build system..."
-	/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
+	/home/alex/clion-2019.3.3/bin/cmake/linux/bin/cmake -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
 .PHONY : rebuild_cache
 
 # Special rule for the target rebuild_cache
@@ -70,7 +70,7 @@ rebuild_cache/fast: rebuild_cache
 # Special rule for the target edit_cache
 edit_cache:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "No interactive CMake dialog available..."
-	/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E echo No\ interactive\ CMake\ dialog\ available.
+	/home/alex/clion-2019.3.3/bin/cmake/linux/bin/cmake -E echo No\ interactive\ CMake\ dialog\ available.
 .PHONY : edit_cache
 
 # Special rule for the target edit_cache
@@ -80,9 +80,9 @@ edit_cache/fast: edit_cache
 
 # The main all target
 all: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/Alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles /Users/Alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles/progress.marks
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles /home/alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles/progress.marks
 	$(MAKE) -f CMakeFiles/Makefile2 all
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/Alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
@@ -203,33 +203,6 @@ src/datastruct/MessageBuffer.s: src/datastruct/MessageBuffer.cpp.s
 src/datastruct/MessageBuffer.cpp.s:
 	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/datastruct/MessageBuffer.cpp.s
 .PHONY : src/datastruct/MessageBuffer.cpp.s
-
-src/datastruct/MessageQueue.o: src/datastruct/MessageQueue.cpp.o
-
-.PHONY : src/datastruct/MessageQueue.o
-
-# target to build an object file
-src/datastruct/MessageQueue.cpp.o:
-	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/datastruct/MessageQueue.cpp.o
-.PHONY : src/datastruct/MessageQueue.cpp.o
-
-src/datastruct/MessageQueue.i: src/datastruct/MessageQueue.cpp.i
-
-.PHONY : src/datastruct/MessageQueue.i
-
-# target to preprocess a source file
-src/datastruct/MessageQueue.cpp.i:
-	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/datastruct/MessageQueue.cpp.i
-.PHONY : src/datastruct/MessageQueue.cpp.i
-
-src/datastruct/MessageQueue.s: src/datastruct/MessageQueue.cpp.s
-
-.PHONY : src/datastruct/MessageQueue.s
-
-# target to generate assembly for a file
-src/datastruct/MessageQueue.cpp.s:
-	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/datastruct/MessageQueue.cpp.s
-.PHONY : src/datastruct/MessageQueue.cpp.s
 
 src/datastruct/NetworkMessage.o: src/datastruct/NetworkMessage.cpp.o
 
@@ -454,8 +427,8 @@ help:
 	@echo "... clean"
 	@echo "... depend"
 	@echo "... rebuild_cache"
-	@echo "... edit_cache"
 	@echo "... threePP"
+	@echo "... edit_cache"
 	@echo "... src/crypto/Utils.o"
 	@echo "... src/crypto/Utils.i"
 	@echo "... src/crypto/Utils.s"
@@ -465,9 +438,6 @@ help:
 	@echo "... src/datastruct/MessageBuffer.o"
 	@echo "... src/datastruct/MessageBuffer.i"
 	@echo "... src/datastruct/MessageBuffer.s"
-	@echo "... src/datastruct/MessageQueue.o"
-	@echo "... src/datastruct/MessageQueue.i"
-	@echo "... src/datastruct/MessageQueue.s"
 	@echo "... src/datastruct/NetworkMessage.o"
 	@echo "... src/datastruct/NetworkMessage.i"
 	@echo "... src/datastruct/NetworkMessage.s"

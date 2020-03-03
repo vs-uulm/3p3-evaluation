@@ -16,7 +16,7 @@ typedef ssl::stream<tcp::socket> ssl_socket;
 
 class P2PConnection {
 public:
-    P2PConnection(io_context& io_context_, ssl::context& ssl_context_, MessageQueue& msg_queue);
+    P2PConnection(io_context& io_context_, ssl::context& ssl_context_, MessageQueue<NetworkMessage>& msg_queue);
 
     ~P2PConnection();
 
@@ -49,7 +49,7 @@ private:
 
     ssl_socket ssl_socket_;
 
-    MessageQueue& msg_queue;
+    MessageQueue<NetworkMessage>& msg_queue;
 };
 
 

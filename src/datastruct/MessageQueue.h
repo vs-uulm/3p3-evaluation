@@ -4,21 +4,35 @@
 #include <cstdint>
 #include <queue>
 #include <mutex>
+#include <condition_variable>
 
-#include "NetworkMessage.h"
 
-typedef std::shared_ptr<NetworkMessage> msg_ptr;
-
+template<class T>
 class MessageQueue {
 public:
-    void push(msg_ptr);
+    void push(std::shared_ptr<T> msg) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        msg_queue_.push(msg);
+        // notify the consumer thread
+        cond_var_.notify_one();
+    }
 
-    msg_ptr pop();
+    std::shared_ptr<T> pop() {
+        std::unique_lock<std::mutex> lock(mutex_);
+        cond_var_.wait(lock, [&](){
+            // deal with spurious wakeup
+            return !msg_queue_.empty();
+        });
+        std::shared_ptr<T> msg = msg_queue_.front();
+        msg_queue_.pop();
+        lock.unlock();
+        return msg;
+    }
 
 private:
     std::mutex mutex_;
     std::condition_variable cond_var_;
-    std::queue<msg_ptr> msg_queue_;
+    std::queue<std::shared_ptr<T>> msg_queue_;
 };
 
 #endif //THREEPP_MESSAGEQUEUE_H

@@ -1,6 +1,8 @@
 #include "BufferedMessage.h"
 #include "../crypto/Utils.h"
 
+#include <algorithm>
+
 BufferedMessage::BufferedMessage(ReceivedMessage& msg) : msg_hash_(utils::sha256(msg.body())) {
     sender_list_.push_back(msg.sender_ID());
 }
