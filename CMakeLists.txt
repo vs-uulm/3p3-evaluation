@@ -26,6 +26,7 @@ target_link_libraries(
         -pthread
         -lcrypto
         -lssl
+        -lcryptopp
 )
 
 add_executable(

@@ -19,7 +19,7 @@ const EC_Point H(CryptoPP::Integer("a3cf0a4b6e1d9146c73e9a82e4bfdc37ee1587bc2bf3
 
 class DCNetwork {
 public:
-    DCNetwork(MessageQueue<std::vector<uint8_t>>& send_queue, MessageQueue<ReceivedMessage>& receive_queue);
+    DCNetwork();
 
     void add_member(uint32_t connectionID);
 
@@ -30,9 +30,6 @@ public:
 private:
     size_t k;
     std::list<uint32_t> members;
-
-    MessageQueue<std::vector<uint8_t>>& send_queue_;
-    MessageQueue<ReceivedMessage>& receive_queue_;
 
     CryptoPP::AutoSeededRandomPool PRNG;
     CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> ec_group;

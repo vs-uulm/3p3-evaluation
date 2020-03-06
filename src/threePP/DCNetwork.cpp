@@ -3,8 +3,7 @@
 
 #include <iostream>
 
-DCNetwork::DCNetwork(MessageQueue<std::vector<uint8_t>>& send_queue, MessageQueue<ReceivedMessage>& receive_queue)
-: k(0), send_queue_(send_queue), receive_queue_(receive_queue) {
+DCNetwork::DCNetwork() : k(0) {
 
     ec_group.Initialize(CryptoPP::ASN1::secp256k1());
     bool G_test = ec_group.ValidateElement(3, G, nullptr);

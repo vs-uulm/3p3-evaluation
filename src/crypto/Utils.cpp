@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <openssl/ec.h>
+#include <cryptopp/sha.h>
 
 void utils::seed_PRNG() {
     FILE* fp = fopen("/dev/urandom", "r");
@@ -50,22 +51,11 @@ EVP_PKEY* utils::process_raw_public_key(std::vector<uint8_t>& raw_ec_pkey) {
 }
 
 std::vector<uint8_t> utils::sha256(std::vector<uint8_t>& data) {
-    EVP_MD_CTX* md_ctx = EVP_MD_CTX_new();
-    int result = EVP_DigestInit_ex(md_ctx, EVP_sha256(), NULL);
-    if(result < 1)
-        std::cerr << "Error: DigestInit" << std::endl;
+    CryptoPP::SHA256 sha256;
 
-    result = EVP_DigestUpdate(md_ctx, data.data(), data.size());
-    if(result < 1)
-        std::cerr << "Error: DigestUpdate" << std::endl;
-
-    uint32_t len;
-    std::vector<uint8_t> hash(EVP_MD_size(EVP_sha256()));
-    result = EVP_DigestFinal_ex(md_ctx, hash.data(), &len);
-    if(result < 1)
-        std::cerr << "Error: DigestFinal" << std::endl;
-
-    EVP_MD_CTX_free(md_ctx);
+    std::vector<uint8_t> hash;
+    sha256.Update(reinterpret_cast<CryptoPP::byte*>(data.data()), data.size());
+    hash.resize(sha256.DigestSize());
+    sha256.Final(reinterpret_cast<CryptoPP::byte*>(hash.data()));
     return hash;
 }
-
