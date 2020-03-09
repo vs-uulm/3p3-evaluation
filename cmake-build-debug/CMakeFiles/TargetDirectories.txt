@@ -1,5 +1,5 @@
-/Users/Alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles/DCNetworkTest.dir
-/Users/Alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles/rebuild_cache.dir
-/Users/Alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles/edit_cache.dir
-/Users/Alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles/cryptoTest.dir
-/Users/Alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles/threePP.dir
+/home/alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/home/alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles/edit_cache.dir
+/home/alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles/DCNetworkTest.dir
+/home/alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles/threePP.dir
+/home/alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles/cryptoTest.dir

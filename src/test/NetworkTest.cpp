@@ -8,7 +8,6 @@
 #include "../network/P2PConnection.h"
 #include "../network/NetworkManager.h"
 #include "../network/Peer.h"
-#include "../datastruct/MessageBuffer.h"
 
 std::vector<Node> Nodes;
 std::mutex cout_mutex;

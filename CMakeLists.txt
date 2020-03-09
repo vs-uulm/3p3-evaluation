@@ -32,7 +32,7 @@ target_link_libraries(
 add_executable(
         cryptoTest
         src/test/CryptoTest.cpp
-        src/threePP/DCNetwork.cpp
+        src/threePP/DC_Network.cpp
 )
 
 target_link_libraries(
@@ -45,7 +45,7 @@ target_link_libraries(
 add_executable(
         DCNetworkTest
         src/test/DCNetworkTest.cpp
-        src/threePP/DCNetwork.cpp
+        src/threePP/DC_Network.cpp
 )
 
 target_link_libraries(

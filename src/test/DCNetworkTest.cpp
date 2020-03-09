@@ -1,11 +1,11 @@
 #include <iostream>
-#include "../threePP/DCNetwork.h"
+#include "../threePP/DC_Network.h"
 
 int main() {
-    MessageQueue<std::vector<uint8_t>> send_queue;
-    MessageQueue<ReceivedMessage> receive_queue;
+    DC_Network DC_network(32);
 
-    DCNetwork DCNet(send_queue, receive_queue);
+    std::string msg = "This is a test message";
+    DC_network.send_msg(msg);
 
     return 0;
 

@@ -39,19 +39,19 @@ cmake_force:
 SHELL = /bin/sh
 
 # The CMake executable.
-CMAKE_COMMAND = /Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake
+CMAKE_COMMAND = /home/alex/clion-2019.3.3/bin/cmake/linux/bin/cmake
 
 # The command to remove a file.
-RM = /Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E remove -f
+RM = /home/alex/clion-2019.3.3/bin/cmake/linux/bin/cmake -E remove -f
 
 # Escaping for special characters.
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /Users/Alex/three-phase-protocol-implementation
+CMAKE_SOURCE_DIR = /home/alex/three-phase-protocol-implementation
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /Users/Alex/three-phase-protocol-implementation/cmake-build-debug
+CMAKE_BINARY_DIR = /home/alex/three-phase-protocol-implementation/cmake-build-debug
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -59,7 +59,7 @@ CMAKE_BINARY_DIR = /Users/Alex/three-phase-protocol-implementation/cmake-build-d
 # Special rule for the target rebuild_cache
 rebuild_cache:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake to regenerate build system..."
-	/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
+	/home/alex/clion-2019.3.3/bin/cmake/linux/bin/cmake -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
 .PHONY : rebuild_cache
 
 # Special rule for the target rebuild_cache
@@ -70,7 +70,7 @@ rebuild_cache/fast: rebuild_cache
 # Special rule for the target edit_cache
 edit_cache:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "No interactive CMake dialog available..."
-	/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E echo No\ interactive\ CMake\ dialog\ available.
+	/home/alex/clion-2019.3.3/bin/cmake/linux/bin/cmake -E echo No\ interactive\ CMake\ dialog\ available.
 .PHONY : edit_cache
 
 # Special rule for the target edit_cache
@@ -80,9 +80,9 @@ edit_cache/fast: edit_cache
 
 # The main all target
 all: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/Alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles /Users/Alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles/progress.marks
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles /home/alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles/progress.marks
 	$(MAKE) -f CMakeFiles/Makefile2 all
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/Alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
@@ -124,19 +124,6 @@ DCNetworkTest/fast:
 .PHONY : DCNetworkTest/fast
 
 #=============================================================================
-# Target rules for targets named cryptoTest
-
-# Build rule for target.
-cryptoTest: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 cryptoTest
-.PHONY : cryptoTest
-
-# fast build rule for target.
-cryptoTest/fast:
-	$(MAKE) -f CMakeFiles/cryptoTest.dir/build.make CMakeFiles/cryptoTest.dir/build
-.PHONY : cryptoTest/fast
-
-#=============================================================================
 # Target rules for targets named threePP
 
 # Build rule for target.
@@ -148,6 +135,19 @@ threePP: cmake_check_build_system
 threePP/fast:
 	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/build
 .PHONY : threePP/fast
+
+#=============================================================================
+# Target rules for targets named cryptoTest
+
+# Build rule for target.
+cryptoTest: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 cryptoTest
+.PHONY : cryptoTest
+
+# fast build rule for target.
+cryptoTest/fast:
+	$(MAKE) -f CMakeFiles/cryptoTest.dir/build.make CMakeFiles/cryptoTest.dir/build
+.PHONY : cryptoTest/fast
 
 src/crypto/Utils.o: src/crypto/Utils.cpp.o
 
@@ -500,35 +500,35 @@ src/test/NetworkTest.cpp.s:
 	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/test/NetworkTest.cpp.s
 .PHONY : src/test/NetworkTest.cpp.s
 
-src/threePP/DCNetwork.o: src/threePP/DCNetwork.cpp.o
+src/threePP/DC_Network.o: src/threePP/DC_Network.cpp.o
 
-.PHONY : src/threePP/DCNetwork.o
+.PHONY : src/threePP/DC_Network.o
 
 # target to build an object file
-src/threePP/DCNetwork.cpp.o:
-	$(MAKE) -f CMakeFiles/DCNetworkTest.dir/build.make CMakeFiles/DCNetworkTest.dir/src/threePP/DCNetwork.cpp.o
-	$(MAKE) -f CMakeFiles/cryptoTest.dir/build.make CMakeFiles/cryptoTest.dir/src/threePP/DCNetwork.cpp.o
-.PHONY : src/threePP/DCNetwork.cpp.o
+src/threePP/DC_Network.cpp.o:
+	$(MAKE) -f CMakeFiles/DCNetworkTest.dir/build.make CMakeFiles/DCNetworkTest.dir/src/threePP/DC_Network.cpp.o
+	$(MAKE) -f CMakeFiles/cryptoTest.dir/build.make CMakeFiles/cryptoTest.dir/src/threePP/DC_Network.cpp.o
+.PHONY : src/threePP/DC_Network.cpp.o
 
-src/threePP/DCNetwork.i: src/threePP/DCNetwork.cpp.i
+src/threePP/DC_Network.i: src/threePP/DC_Network.cpp.i
 
-.PHONY : src/threePP/DCNetwork.i
+.PHONY : src/threePP/DC_Network.i
 
 # target to preprocess a source file
-src/threePP/DCNetwork.cpp.i:
-	$(MAKE) -f CMakeFiles/DCNetworkTest.dir/build.make CMakeFiles/DCNetworkTest.dir/src/threePP/DCNetwork.cpp.i
-	$(MAKE) -f CMakeFiles/cryptoTest.dir/build.make CMakeFiles/cryptoTest.dir/src/threePP/DCNetwork.cpp.i
-.PHONY : src/threePP/DCNetwork.cpp.i
+src/threePP/DC_Network.cpp.i:
+	$(MAKE) -f CMakeFiles/DCNetworkTest.dir/build.make CMakeFiles/DCNetworkTest.dir/src/threePP/DC_Network.cpp.i
+	$(MAKE) -f CMakeFiles/cryptoTest.dir/build.make CMakeFiles/cryptoTest.dir/src/threePP/DC_Network.cpp.i
+.PHONY : src/threePP/DC_Network.cpp.i
 
-src/threePP/DCNetwork.s: src/threePP/DCNetwork.cpp.s
+src/threePP/DC_Network.s: src/threePP/DC_Network.cpp.s
 
-.PHONY : src/threePP/DCNetwork.s
+.PHONY : src/threePP/DC_Network.s
 
 # target to generate assembly for a file
-src/threePP/DCNetwork.cpp.s:
-	$(MAKE) -f CMakeFiles/DCNetworkTest.dir/build.make CMakeFiles/DCNetworkTest.dir/src/threePP/DCNetwork.cpp.s
-	$(MAKE) -f CMakeFiles/cryptoTest.dir/build.make CMakeFiles/cryptoTest.dir/src/threePP/DCNetwork.cpp.s
-.PHONY : src/threePP/DCNetwork.cpp.s
+src/threePP/DC_Network.cpp.s:
+	$(MAKE) -f CMakeFiles/DCNetworkTest.dir/build.make CMakeFiles/DCNetworkTest.dir/src/threePP/DC_Network.cpp.s
+	$(MAKE) -f CMakeFiles/cryptoTest.dir/build.make CMakeFiles/cryptoTest.dir/src/threePP/DC_Network.cpp.s
+.PHONY : src/threePP/DC_Network.cpp.s
 
 # Help Target
 help:
@@ -536,11 +536,11 @@ help:
 	@echo "... all (the default if no target is provided)"
 	@echo "... clean"
 	@echo "... depend"
-	@echo "... DCNetworkTest"
 	@echo "... rebuild_cache"
 	@echo "... edit_cache"
-	@echo "... cryptoTest"
+	@echo "... DCNetworkTest"
 	@echo "... threePP"
+	@echo "... cryptoTest"
 	@echo "... src/crypto/Utils.o"
 	@echo "... src/crypto/Utils.i"
 	@echo "... src/crypto/Utils.s"
@@ -580,9 +580,9 @@ help:
 	@echo "... src/test/NetworkTest.o"
 	@echo "... src/test/NetworkTest.i"
 	@echo "... src/test/NetworkTest.s"
-	@echo "... src/threePP/DCNetwork.o"
-	@echo "... src/threePP/DCNetwork.i"
-	@echo "... src/threePP/DCNetwork.s"
+	@echo "... src/threePP/DC_Network.o"
+	@echo "... src/threePP/DC_Network.i"
+	@echo "... src/threePP/DC_Network.s"
 .PHONY : help
 
 
