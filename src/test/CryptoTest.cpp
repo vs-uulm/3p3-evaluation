@@ -10,10 +10,18 @@
  * required for the EC Pedersen Commitments */
 int main() {
     CryptoPP::AutoSeededRandomPool PRNG;
-    CryptoPP::OID curveID = CryptoPP::ASN1::secp256k1();
 
     CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> ec_group;
     ec_group.Initialize(CryptoPP::ASN1::secp256k1());
+
+    CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> ec_group_r1;
+    ec_group_r1.Initialize(CryptoPP::ASN1::secp256r1());
+
+    CryptoPP::Integer maximum_k1 = ec_group.GetMaxExponent();
+    std::cout << "Maximum K1:  " << std::hex << maximum_k1 << std::endl;
+
+    CryptoPP::Integer maximum_r1 = ec_group_r1.GetMaxExponent();
+    std::cout << "Maximum R1:  " << std::hex << maximum_r1 << std::endl;
 
     CryptoPP::Integer seed(PRNG, CryptoPP::Integer::One(), ec_group.GetMaxExponent());
     CryptoPP::ECPPoint G = ec_group.ExponentiateBase(seed);

@@ -13,13 +13,14 @@ std::vector<Node> Nodes;
 std::mutex cout_mutex;
 
 void instance(int ID) {
-    MessageQueue<NetworkMessage> msg_queue;
+    MessageQueue<ReceivedMessage> inbox;
     std::unordered_map<int, std::shared_ptr<Peer>> Peers;
     io_context network_io_context_;
     uint16_t port = Nodes[ID].port();
-    NetworkManager networkManager(network_io_context_, port, msg_queue);
 
-    // Run the io_service
+    NetworkManager networkManager(network_io_context_, port, inbox);
+
+    // Run the io_context
     std::thread network_io_thread([&network_io_context_](){
         network_io_context_.run();
     });
@@ -27,18 +28,28 @@ void instance(int ID) {
     // Add neighbors
     for(const Node& node : Nodes) {
         if(node.nodeID() < ID) {
-            networkManager.add_neighbor(node);
+            networkManager.addNeighbor(ID, node);
         }
     }
 
     // simulate the protocol
     std::thread message_handler([&](){
         while(true) {
-            auto msg = msg_queue.pop();
-            std::string body(msg->body().begin(), msg->body().end());
-            {
-                std::lock_guard<std::mutex> lock(cout_mutex);
-                std::cout << "Instance " << ID << ": " << body << std::endl;
+            auto msg = inbox.pop();
+            if(msg->header()[0] == 0) {
+                uint32_t nodeID = *(msg->body().data());
+                {
+                    std::lock_guard<std::mutex> lock(cout_mutex);
+                    std::cout << "Received hello message from Instance: " << nodeID
+                              << " through connection: " << msg->connectionID() << std::endl;
+                }
+            }
+            else {
+                std::string body(msg->body().begin(), msg->body().end());
+                {
+                    std::lock_guard<std::mutex> lock(cout_mutex);
+                    std::cout << "Instance " << ID << ": " << body << std::endl;
+                }
             }
         }
     });
@@ -49,7 +60,7 @@ void instance(int ID) {
     std::vector<uint8_t> msgVector(server_msg.begin(), server_msg.end());
     NetworkMessage networkMessage(0, msgVector);
 
-    networkManager.broadcast(networkMessage);
+    //networkManager.initFaP(networkMessage);
     message_handler.join();
     network_io_thread.join();
 }

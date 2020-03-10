@@ -18,7 +18,8 @@ add_executable(
         src/datastruct/ReceivedMessage.cpp
         src/crypto/Utils.cpp
         src/datastruct/BufferedMessage.cpp
-)
+        src/dc/DCNetworkState.h
+        src/dc/ReadyState.cpp src/datastruct/DirectMessage.cpp src/datastruct/DirectMessage.h)
 
 target_link_libraries(
         threePP
@@ -32,8 +33,8 @@ target_link_libraries(
 add_executable(
         cryptoTest
         src/test/CryptoTest.cpp
-        src/threePP/DC_Network.cpp
-)
+        src/threePP/DCNetwork.cpp
+        src/dc/ReadyState.cpp src/dc/InitState.cpp src/dc/InitState.h)
 
 target_link_libraries(
         cryptoTest
@@ -45,8 +46,8 @@ target_link_libraries(
 add_executable(
         DCNetworkTest
         src/test/DCNetworkTest.cpp
-        src/threePP/DC_Network.cpp
-)
+        src/threePP/DCNetwork.cpp
+        src/dc/ReadyState.cpp src/datastruct/DirectMessage.cpp src/datastruct/DirectMessage.h)
 
 target_link_libraries(
         DCNetworkTest

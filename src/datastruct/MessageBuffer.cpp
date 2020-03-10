@@ -20,7 +20,7 @@ void MessageBuffer::add(ReceivedMessage& msg) {
     // Check if the message has already been received from a different sender
     for(auto it = message_buffer_.begin(); it != message_buffer_.end(); it++) {
         if ((*it)->msg_hash() == body_hash) {
-            (*it)->sender_list().push_back(msg.sender_ID());
+            (*it)->sender_list().push_back(msg.connectionID());
             return;
         }
     }

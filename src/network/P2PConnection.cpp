@@ -4,10 +4,8 @@
 
 #include <boost/bind.hpp>
 
-P2PConnection::P2PConnection(io_context& io_context_, ssl::context& ssl_context_,
-        MessageQueue<NetworkMessage>& msg_queue)
-        : is_open_(false), connectionID_(0), ssl_socket_(io_context_, ssl_context_), msg_queue(msg_queue) {
-}
+P2PConnection::P2PConnection(uint32_t connectionID, io_context& io_context_, ssl::context& ssl_context_, MessageQueue<ReceivedMessage>& inbox)
+: connectionID_(connectionID), is_open_(false), ssl_socket_(io_context_, ssl_context_), inbox_(inbox) {}
 
 P2PConnection::~P2PConnection() {
     disconnect();
@@ -68,7 +66,7 @@ void P2PConnection::read_header(const boost::system::error_code& e, std::shared_
     if(e) {
         std::cerr << "Read Error: " << e.message() << std::endl;
     } else {
-        received_msg->resize_body();
+        received_msg->resizeBody();
         boost::asio::async_read(ssl_socket_,
                                 boost::asio::buffer(received_msg->body()),
                                 boost::bind(&P2PConnection::read_body,
@@ -82,7 +80,7 @@ void P2PConnection::read_body(const boost::system::error_code& e, std::shared_pt
     if(e) {
         std::cerr << "Read Error: " << e.message() << std::endl;
     } else {
-        msg_queue.push(received_msg);
+        inbox_.push(received_msg);
         async_read();
     }
 }
@@ -95,10 +93,6 @@ void P2PConnection::send_msg(NetworkMessage& msg) {
 
 ssl_socket& P2PConnection::socket() {
     return ssl_socket_;
-}
-
-uint32_t P2PConnection::connectionID() {
-    return connectionID_;
 }
 
 bool P2PConnection::is_open() {

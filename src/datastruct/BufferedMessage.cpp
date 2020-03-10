@@ -4,7 +4,7 @@
 #include <algorithm>
 
 BufferedMessage::BufferedMessage(ReceivedMessage& msg) : msg_hash_(utils::sha256(msg.body())) {
-    sender_list_.push_back(msg.sender_ID());
+    sender_list_.push_back(msg.connectionID());
 }
 
 void BufferedMessage::add_sender(uint32_t senderID) {

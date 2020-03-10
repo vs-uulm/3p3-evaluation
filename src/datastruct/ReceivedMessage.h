@@ -5,14 +5,16 @@
 
 class ReceivedMessage : public NetworkMessage {
 public:
-    ReceivedMessage(uint32_t sender_ID);
+    ReceivedMessage(uint32_t connectionID);
 
-    void resize_body();
+    void resizeBody();
 
-    uint32_t sender_ID();
+    uint8_t msgType();
+
+    uint32_t connectionID();
 
 private:
-    uint32_t sender_ID_;
+    uint32_t connectionID_;
 
 };
 

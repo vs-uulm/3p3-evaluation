@@ -16,7 +16,7 @@ typedef ssl::stream<tcp::socket> ssl_socket;
 
 class P2PConnection {
 public:
-    P2PConnection(io_context& io_context_, ssl::context& ssl_context_, MessageQueue<NetworkMessage>& msg_queue);
+    P2PConnection(uint32_t connectionID, io_context& io_context_, ssl::context& ssl_context_, MessageQueue<ReceivedMessage>& inbox);
 
     ~P2PConnection();
 
@@ -29,8 +29,6 @@ public:
     void send_msg(NetworkMessage& msg);
 
     bool is_open();
-
-    uint32_t connectionID();
 
     ssl_socket& socket();
 
@@ -49,7 +47,7 @@ private:
 
     ssl_socket ssl_socket_;
 
-    MessageQueue<NetworkMessage>& msg_queue;
+    MessageQueue<ReceivedMessage>& inbox_;
 };
 
 

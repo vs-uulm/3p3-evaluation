@@ -1,11 +1,11 @@
 #include <iostream>
-#include "../threePP/DC_Network.h"
+#include "../threePP/DCNetwork.h"
 
 int main() {
-    DC_Network DC_network(32);
+    DCNetwork DC_network();
 
     std::string msg = "This is a test message";
-    DC_network.send_msg(msg);
+    //DC_network.send_msg(msg);
 
     return 0;
 
