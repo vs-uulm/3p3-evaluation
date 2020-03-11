@@ -1,15 +1,16 @@
 #ifndef THREEPP_READYSTATE_H
 #define THREEPP_READYSTATE_H
 
-#include "DCNetworkState.h"
 #include "../threePP/DCNetwork.h"
+#include "DCState.h"
 
-class ReadyState : public DCNetworkState {
+class ReadyState : public DCState {
 public:
-    ReadyState(DCNetwork& DCNet);
-    void executeTask();
-private:
-    DCNetwork& DCNet_;
+    ReadyState();
+
+    virtual ~ReadyState();
+
+    virtual std::unique_ptr<DCState> executeTask(DCNetwork& DCNet);
 };
 
 #endif //THREEPP_READYSTATE_H

@@ -5,18 +5,30 @@
 
 #include <iostream>
 
-DCNetwork::DCNetwork(uint32_t nodeID, MessageQueue<ReceivedMessage>& inbox, MessageQueue<NetworkMessage>& outbox)
-: state_(std::make_unique<InitState>()), inbox_(inbox), outbox_(outbox) {
+DCNetwork::DCNetwork(uint32_t nodeID, size_t k, MessageQueue<ReceivedMessage>& inbox, MessageQueue<OutgoingMessage>& outbox)
+: k_(k), state_(std::make_unique<InitState>()), inbox_(inbox), outbox_(outbox) {
     ec_group.Initialize(CryptoPP::ASN1::secp256k1());
-
 }
 
-void DCNetwork::add_member(uint32_t connectionID) {
-    memberList_.push_back(connectionID);
+void DCNetwork::run() {
+    for(int i = 0; i < 2; i++) {
+        state_ = state_->executeTask(*this);
+    }
 }
 
-void DCNetwork::remove_member(uint32_t connectionID) {
-    memberList_.remove(connectionID);
+std::unordered_map<uint32_t, uint32_t>& DCNetwork::members() {
+    return members_;
+}
+
+size_t DCNetwork::k() {
+    return k_;
+}
+
+MessageQueue<ReceivedMessage>& DCNetwork::inbox() {
+    return inbox_;
+}
+MessageQueue<OutgoingMessage>& DCNetwork::outbox() {
+    return outbox_;
 }
 
 ECPPoint DCNetwork::commit(uint16_t r, uint32_t s) {
@@ -26,10 +38,7 @@ ECPPoint DCNetwork::commit(uint16_t r, uint32_t s) {
     return C;
 }
 
-int send_msg(std::string& msg) {
-    if(msg.length() > USHRT_MAX)
-        return -1;
-}
+
 /*
 void phase_one(uint16_t msg_len) {
     // TODO member list has size of zero

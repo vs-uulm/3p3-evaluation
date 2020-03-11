@@ -7,7 +7,7 @@ class Peer {
 public:
     Peer(uint32_t nodeID);
     uint32_t nodeID();
-    int sendMsg(NetworkMessage msg);
+    int sendMsg(OutgoingMessage msg);
 
 private:
     uint32_t nodeID_;

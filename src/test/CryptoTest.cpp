@@ -5,10 +5,15 @@
 #include <cryptopp/asn.h>
 #include <cryptopp/oids.h>
 #include <cryptopp/osrng.h>
+#include <boost/asio/detail/array.hpp>
+#include "../datastruct/NetworkMessage.h"
 
 /* Test program used to generate two EC points G and H which are
  * required for the EC Pedersen Commitments */
 int main() {
+    //std::vector<uint8_t> testVector(4,0);
+    NetworkMessage testMessage;
+
     CryptoPP::AutoSeededRandomPool PRNG;
 
     CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> ec_group;

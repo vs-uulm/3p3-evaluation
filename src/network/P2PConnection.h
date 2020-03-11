@@ -5,7 +5,7 @@
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 #include <boost/enable_shared_from_this.hpp>
-#include "../datastruct/NetworkMessage.h"
+#include "../datastruct/OutgoingMessage.h"
 #include "../datastruct/ReceivedMessage.h"
 #include "../datastruct/MessageQueue.h"
 

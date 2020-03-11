@@ -39,19 +39,19 @@ cmake_force:
 SHELL = /bin/sh
 
 # The CMake executable.
-CMAKE_COMMAND = /home/alex/clion-2019.3.3/bin/cmake/linux/bin/cmake
+CMAKE_COMMAND = /Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake
 
 # The command to remove a file.
-RM = /home/alex/clion-2019.3.3/bin/cmake/linux/bin/cmake -E remove -f
+RM = /Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E remove -f
 
 # Escaping for special characters.
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/alex/three-phase-protocol-implementation
+CMAKE_SOURCE_DIR = /Users/Alex/three-phase-protocol-implementation
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/alex/three-phase-protocol-implementation/cmake-build-debug
+CMAKE_BINARY_DIR = /Users/Alex/three-phase-protocol-implementation/cmake-build-debug
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -59,7 +59,7 @@ CMAKE_BINARY_DIR = /home/alex/three-phase-protocol-implementation/cmake-build-de
 # Special rule for the target rebuild_cache
 rebuild_cache:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake to regenerate build system..."
-	/home/alex/clion-2019.3.3/bin/cmake/linux/bin/cmake -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
+	/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
 .PHONY : rebuild_cache
 
 # Special rule for the target rebuild_cache
@@ -70,7 +70,7 @@ rebuild_cache/fast: rebuild_cache
 # Special rule for the target edit_cache
 edit_cache:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "No interactive CMake dialog available..."
-	/home/alex/clion-2019.3.3/bin/cmake/linux/bin/cmake -E echo No\ interactive\ CMake\ dialog\ available.
+	/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E echo No\ interactive\ CMake\ dialog\ available.
 .PHONY : edit_cache
 
 # Special rule for the target edit_cache
@@ -80,9 +80,9 @@ edit_cache/fast: edit_cache
 
 # The main all target
 all: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles /home/alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles/progress.marks
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/Alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles /Users/Alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles/progress.marks
 	$(MAKE) -f CMakeFiles/Makefile2 all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/Alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
@@ -111,17 +111,17 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named DCNetworkTest
+# Target rules for targets named cryptoTest
 
 # Build rule for target.
-DCNetworkTest: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 DCNetworkTest
-.PHONY : DCNetworkTest
+cryptoTest: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 cryptoTest
+.PHONY : cryptoTest
 
 # fast build rule for target.
-DCNetworkTest/fast:
-	$(MAKE) -f CMakeFiles/DCNetworkTest.dir/build.make CMakeFiles/DCNetworkTest.dir/build
-.PHONY : DCNetworkTest/fast
+cryptoTest/fast:
+	$(MAKE) -f CMakeFiles/cryptoTest.dir/build.make CMakeFiles/cryptoTest.dir/build
+.PHONY : cryptoTest/fast
 
 #=============================================================================
 # Target rules for targets named threePP
@@ -135,19 +135,6 @@ threePP: cmake_check_build_system
 threePP/fast:
 	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/build
 .PHONY : threePP/fast
-
-#=============================================================================
-# Target rules for targets named cryptoTest
-
-# Build rule for target.
-cryptoTest: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 cryptoTest
-.PHONY : cryptoTest
-
-# fast build rule for target.
-cryptoTest/fast:
-	$(MAKE) -f CMakeFiles/cryptoTest.dir/build.make CMakeFiles/cryptoTest.dir/build
-.PHONY : cryptoTest/fast
 
 src/crypto/Utils.o: src/crypto/Utils.cpp.o
 
@@ -203,36 +190,6 @@ src/datastruct/BufferedMessage.cpp.s:
 	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/datastruct/BufferedMessage.cpp.s
 .PHONY : src/datastruct/BufferedMessage.cpp.s
 
-src/datastruct/DirectMessage.o: src/datastruct/DirectMessage.cpp.o
-
-.PHONY : src/datastruct/DirectMessage.o
-
-# target to build an object file
-src/datastruct/DirectMessage.cpp.o:
-	$(MAKE) -f CMakeFiles/DCNetworkTest.dir/build.make CMakeFiles/DCNetworkTest.dir/src/datastruct/DirectMessage.cpp.o
-	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/datastruct/DirectMessage.cpp.o
-.PHONY : src/datastruct/DirectMessage.cpp.o
-
-src/datastruct/DirectMessage.i: src/datastruct/DirectMessage.cpp.i
-
-.PHONY : src/datastruct/DirectMessage.i
-
-# target to preprocess a source file
-src/datastruct/DirectMessage.cpp.i:
-	$(MAKE) -f CMakeFiles/DCNetworkTest.dir/build.make CMakeFiles/DCNetworkTest.dir/src/datastruct/DirectMessage.cpp.i
-	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/datastruct/DirectMessage.cpp.i
-.PHONY : src/datastruct/DirectMessage.cpp.i
-
-src/datastruct/DirectMessage.s: src/datastruct/DirectMessage.cpp.s
-
-.PHONY : src/datastruct/DirectMessage.s
-
-# target to generate assembly for a file
-src/datastruct/DirectMessage.cpp.s:
-	$(MAKE) -f CMakeFiles/DCNetworkTest.dir/build.make CMakeFiles/DCNetworkTest.dir/src/datastruct/DirectMessage.cpp.s
-	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/datastruct/DirectMessage.cpp.s
-.PHONY : src/datastruct/DirectMessage.cpp.s
-
 src/datastruct/MessageBuffer.o: src/datastruct/MessageBuffer.cpp.o
 
 .PHONY : src/datastruct/MessageBuffer.o
@@ -266,6 +223,7 @@ src/datastruct/NetworkMessage.o: src/datastruct/NetworkMessage.cpp.o
 
 # target to build an object file
 src/datastruct/NetworkMessage.cpp.o:
+	$(MAKE) -f CMakeFiles/cryptoTest.dir/build.make CMakeFiles/cryptoTest.dir/src/datastruct/NetworkMessage.cpp.o
 	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/datastruct/NetworkMessage.cpp.o
 .PHONY : src/datastruct/NetworkMessage.cpp.o
 
@@ -275,6 +233,7 @@ src/datastruct/NetworkMessage.i: src/datastruct/NetworkMessage.cpp.i
 
 # target to preprocess a source file
 src/datastruct/NetworkMessage.cpp.i:
+	$(MAKE) -f CMakeFiles/cryptoTest.dir/build.make CMakeFiles/cryptoTest.dir/src/datastruct/NetworkMessage.cpp.i
 	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/datastruct/NetworkMessage.cpp.i
 .PHONY : src/datastruct/NetworkMessage.cpp.i
 
@@ -284,8 +243,36 @@ src/datastruct/NetworkMessage.s: src/datastruct/NetworkMessage.cpp.s
 
 # target to generate assembly for a file
 src/datastruct/NetworkMessage.cpp.s:
+	$(MAKE) -f CMakeFiles/cryptoTest.dir/build.make CMakeFiles/cryptoTest.dir/src/datastruct/NetworkMessage.cpp.s
 	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/datastruct/NetworkMessage.cpp.s
 .PHONY : src/datastruct/NetworkMessage.cpp.s
+
+src/datastruct/OutgoingMessage.o: src/datastruct/OutgoingMessage.cpp.o
+
+.PHONY : src/datastruct/OutgoingMessage.o
+
+# target to build an object file
+src/datastruct/OutgoingMessage.cpp.o:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/datastruct/OutgoingMessage.cpp.o
+.PHONY : src/datastruct/OutgoingMessage.cpp.o
+
+src/datastruct/OutgoingMessage.i: src/datastruct/OutgoingMessage.cpp.i
+
+.PHONY : src/datastruct/OutgoingMessage.i
+
+# target to preprocess a source file
+src/datastruct/OutgoingMessage.cpp.i:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/datastruct/OutgoingMessage.cpp.i
+.PHONY : src/datastruct/OutgoingMessage.cpp.i
+
+src/datastruct/OutgoingMessage.s: src/datastruct/OutgoingMessage.cpp.s
+
+.PHONY : src/datastruct/OutgoingMessage.s
+
+# target to generate assembly for a file
+src/datastruct/OutgoingMessage.cpp.s:
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/datastruct/OutgoingMessage.cpp.s
+.PHONY : src/datastruct/OutgoingMessage.cpp.s
 
 src/datastruct/ReceivedMessage.o: src/datastruct/ReceivedMessage.cpp.o
 
@@ -320,7 +307,7 @@ src/dc/InitState.o: src/dc/InitState.cpp.o
 
 # target to build an object file
 src/dc/InitState.cpp.o:
-	$(MAKE) -f CMakeFiles/cryptoTest.dir/build.make CMakeFiles/cryptoTest.dir/src/dc/InitState.cpp.o
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/dc/InitState.cpp.o
 .PHONY : src/dc/InitState.cpp.o
 
 src/dc/InitState.i: src/dc/InitState.cpp.i
@@ -329,7 +316,7 @@ src/dc/InitState.i: src/dc/InitState.cpp.i
 
 # target to preprocess a source file
 src/dc/InitState.cpp.i:
-	$(MAKE) -f CMakeFiles/cryptoTest.dir/build.make CMakeFiles/cryptoTest.dir/src/dc/InitState.cpp.i
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/dc/InitState.cpp.i
 .PHONY : src/dc/InitState.cpp.i
 
 src/dc/InitState.s: src/dc/InitState.cpp.s
@@ -338,7 +325,7 @@ src/dc/InitState.s: src/dc/InitState.cpp.s
 
 # target to generate assembly for a file
 src/dc/InitState.cpp.s:
-	$(MAKE) -f CMakeFiles/cryptoTest.dir/build.make CMakeFiles/cryptoTest.dir/src/dc/InitState.cpp.s
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/dc/InitState.cpp.s
 .PHONY : src/dc/InitState.cpp.s
 
 src/dc/ReadyState.o: src/dc/ReadyState.cpp.o
@@ -347,9 +334,7 @@ src/dc/ReadyState.o: src/dc/ReadyState.cpp.o
 
 # target to build an object file
 src/dc/ReadyState.cpp.o:
-	$(MAKE) -f CMakeFiles/DCNetworkTest.dir/build.make CMakeFiles/DCNetworkTest.dir/src/dc/ReadyState.cpp.o
 	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/dc/ReadyState.cpp.o
-	$(MAKE) -f CMakeFiles/cryptoTest.dir/build.make CMakeFiles/cryptoTest.dir/src/dc/ReadyState.cpp.o
 .PHONY : src/dc/ReadyState.cpp.o
 
 src/dc/ReadyState.i: src/dc/ReadyState.cpp.i
@@ -358,9 +343,7 @@ src/dc/ReadyState.i: src/dc/ReadyState.cpp.i
 
 # target to preprocess a source file
 src/dc/ReadyState.cpp.i:
-	$(MAKE) -f CMakeFiles/DCNetworkTest.dir/build.make CMakeFiles/DCNetworkTest.dir/src/dc/ReadyState.cpp.i
 	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/dc/ReadyState.cpp.i
-	$(MAKE) -f CMakeFiles/cryptoTest.dir/build.make CMakeFiles/cryptoTest.dir/src/dc/ReadyState.cpp.i
 .PHONY : src/dc/ReadyState.cpp.i
 
 src/dc/ReadyState.s: src/dc/ReadyState.cpp.s
@@ -369,9 +352,7 @@ src/dc/ReadyState.s: src/dc/ReadyState.cpp.s
 
 # target to generate assembly for a file
 src/dc/ReadyState.cpp.s:
-	$(MAKE) -f CMakeFiles/DCNetworkTest.dir/build.make CMakeFiles/DCNetworkTest.dir/src/dc/ReadyState.cpp.s
 	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/dc/ReadyState.cpp.s
-	$(MAKE) -f CMakeFiles/cryptoTest.dir/build.make CMakeFiles/cryptoTest.dir/src/dc/ReadyState.cpp.s
 .PHONY : src/dc/ReadyState.cpp.s
 
 src/network/MessageHandler.o: src/network/MessageHandler.cpp.o
@@ -536,33 +517,6 @@ src/test/CryptoTest.cpp.s:
 	$(MAKE) -f CMakeFiles/cryptoTest.dir/build.make CMakeFiles/cryptoTest.dir/src/test/CryptoTest.cpp.s
 .PHONY : src/test/CryptoTest.cpp.s
 
-src/test/DCNetworkTest.o: src/test/DCNetworkTest.cpp.o
-
-.PHONY : src/test/DCNetworkTest.o
-
-# target to build an object file
-src/test/DCNetworkTest.cpp.o:
-	$(MAKE) -f CMakeFiles/DCNetworkTest.dir/build.make CMakeFiles/DCNetworkTest.dir/src/test/DCNetworkTest.cpp.o
-.PHONY : src/test/DCNetworkTest.cpp.o
-
-src/test/DCNetworkTest.i: src/test/DCNetworkTest.cpp.i
-
-.PHONY : src/test/DCNetworkTest.i
-
-# target to preprocess a source file
-src/test/DCNetworkTest.cpp.i:
-	$(MAKE) -f CMakeFiles/DCNetworkTest.dir/build.make CMakeFiles/DCNetworkTest.dir/src/test/DCNetworkTest.cpp.i
-.PHONY : src/test/DCNetworkTest.cpp.i
-
-src/test/DCNetworkTest.s: src/test/DCNetworkTest.cpp.s
-
-.PHONY : src/test/DCNetworkTest.s
-
-# target to generate assembly for a file
-src/test/DCNetworkTest.cpp.s:
-	$(MAKE) -f CMakeFiles/DCNetworkTest.dir/build.make CMakeFiles/DCNetworkTest.dir/src/test/DCNetworkTest.cpp.s
-.PHONY : src/test/DCNetworkTest.cpp.s
-
 src/test/NetworkTest.o: src/test/NetworkTest.cpp.o
 
 .PHONY : src/test/NetworkTest.o
@@ -596,8 +550,7 @@ src/threePP/DCNetwork.o: src/threePP/DCNetwork.cpp.o
 
 # target to build an object file
 src/threePP/DCNetwork.cpp.o:
-	$(MAKE) -f CMakeFiles/DCNetworkTest.dir/build.make CMakeFiles/DCNetworkTest.dir/src/threePP/DCNetwork.cpp.o
-	$(MAKE) -f CMakeFiles/cryptoTest.dir/build.make CMakeFiles/cryptoTest.dir/src/threePP/DCNetwork.cpp.o
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/threePP/DCNetwork.cpp.o
 .PHONY : src/threePP/DCNetwork.cpp.o
 
 src/threePP/DCNetwork.i: src/threePP/DCNetwork.cpp.i
@@ -606,8 +559,7 @@ src/threePP/DCNetwork.i: src/threePP/DCNetwork.cpp.i
 
 # target to preprocess a source file
 src/threePP/DCNetwork.cpp.i:
-	$(MAKE) -f CMakeFiles/DCNetworkTest.dir/build.make CMakeFiles/DCNetworkTest.dir/src/threePP/DCNetwork.cpp.i
-	$(MAKE) -f CMakeFiles/cryptoTest.dir/build.make CMakeFiles/cryptoTest.dir/src/threePP/DCNetwork.cpp.i
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/threePP/DCNetwork.cpp.i
 .PHONY : src/threePP/DCNetwork.cpp.i
 
 src/threePP/DCNetwork.s: src/threePP/DCNetwork.cpp.s
@@ -616,8 +568,7 @@ src/threePP/DCNetwork.s: src/threePP/DCNetwork.cpp.s
 
 # target to generate assembly for a file
 src/threePP/DCNetwork.cpp.s:
-	$(MAKE) -f CMakeFiles/DCNetworkTest.dir/build.make CMakeFiles/DCNetworkTest.dir/src/threePP/DCNetwork.cpp.s
-	$(MAKE) -f CMakeFiles/cryptoTest.dir/build.make CMakeFiles/cryptoTest.dir/src/threePP/DCNetwork.cpp.s
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/threePP/DCNetwork.cpp.s
 .PHONY : src/threePP/DCNetwork.cpp.s
 
 # Help Target
@@ -628,24 +579,23 @@ help:
 	@echo "... depend"
 	@echo "... rebuild_cache"
 	@echo "... edit_cache"
-	@echo "... DCNetworkTest"
-	@echo "... threePP"
 	@echo "... cryptoTest"
+	@echo "... threePP"
 	@echo "... src/crypto/Utils.o"
 	@echo "... src/crypto/Utils.i"
 	@echo "... src/crypto/Utils.s"
 	@echo "... src/datastruct/BufferedMessage.o"
 	@echo "... src/datastruct/BufferedMessage.i"
 	@echo "... src/datastruct/BufferedMessage.s"
-	@echo "... src/datastruct/DirectMessage.o"
-	@echo "... src/datastruct/DirectMessage.i"
-	@echo "... src/datastruct/DirectMessage.s"
 	@echo "... src/datastruct/MessageBuffer.o"
 	@echo "... src/datastruct/MessageBuffer.i"
 	@echo "... src/datastruct/MessageBuffer.s"
 	@echo "... src/datastruct/NetworkMessage.o"
 	@echo "... src/datastruct/NetworkMessage.i"
 	@echo "... src/datastruct/NetworkMessage.s"
+	@echo "... src/datastruct/OutgoingMessage.o"
+	@echo "... src/datastruct/OutgoingMessage.i"
+	@echo "... src/datastruct/OutgoingMessage.s"
 	@echo "... src/datastruct/ReceivedMessage.o"
 	@echo "... src/datastruct/ReceivedMessage.i"
 	@echo "... src/datastruct/ReceivedMessage.s"
@@ -673,9 +623,6 @@ help:
 	@echo "... src/test/CryptoTest.o"
 	@echo "... src/test/CryptoTest.i"
 	@echo "... src/test/CryptoTest.s"
-	@echo "... src/test/DCNetworkTest.o"
-	@echo "... src/test/DCNetworkTest.i"
-	@echo "... src/test/DCNetworkTest.s"
 	@echo "... src/test/NetworkTest.o"
 	@echo "... src/test/NetworkTest.i"
 	@echo "... src/test/NetworkTest.s"

@@ -5,7 +5,7 @@
 #include <boost/asio.hpp>
 
 #include "P2PConnection.h"
-#include "../datastruct/NetworkMessage.h"
+#include "../datastruct/OutgoingMessage.h"
 #include "Node.h"
 #include "../datastruct/MessageBuffer.h"
 
@@ -17,9 +17,9 @@ public:
 
     uint32_t addNeighbor(uint32_t nodeID, const Node& node);
 
-    void directMessage(uint32_t connectionID, NetworkMessage& msg);
+    void directMessage(uint32_t connectionID, OutgoingMessage& msg);
 
-    void floodAndPrune(NetworkMessage& msg);
+    void floodAndPrune(OutgoingMessage& msg);
 
 private:
     void start_accept();

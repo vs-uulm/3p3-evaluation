@@ -1,12 +1,9 @@
-#include <deque>
 #include <iostream>
-
 #include "NetworkMessage.h"
 
-NetworkMessage::NetworkMessage() : header_(4,0) {}
+NetworkMessage::NetworkMessage() : header_{0} {}
 
-NetworkMessage::NetworkMessage(uint8_t msg_type, std::vector<uint8_t>& body)
-: header_(4, 0), body_(body) {
+NetworkMessage::NetworkMessage(uint8_t msg_type, std::vector<uint8_t>& body) : header_{0}, body_(body) {
     if(body.size() > 0x00FFFFFF)
         throw std::invalid_argument("Body length is limited to 24 Bits");
 
@@ -16,7 +13,7 @@ NetworkMessage::NetworkMessage(uint8_t msg_type, std::vector<uint8_t>& body)
     header_[3] = (body.size() & 0x000000FF);
 }
 
-std::vector<uint8_t>& NetworkMessage::header() {
+std::array<uint8_t, 4>& NetworkMessage::header() {
     return header_;
 }
 

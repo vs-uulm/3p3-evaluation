@@ -67,7 +67,7 @@ uint32_t NetworkManager::addNeighbor(uint32_t nodeID, const Node &node) {
     return connectionID;
 }
 
-void NetworkManager::floodAndPrune(NetworkMessage& msg) {
+void NetworkManager::floodAndPrune(OutgoingMessage& msg) {
     for(auto& connection : connections_) {
         if(connection->is_open()) {
             connection->send_msg(msg);

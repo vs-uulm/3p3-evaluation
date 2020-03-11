@@ -8,7 +8,8 @@
 #include <cryptopp/osrng.h>
 #include "../datastruct/MessageQueue.h"
 #include "../datastruct/ReceivedMessage.h"
-#include "../dc/DCNetworkState.h"
+#include "../dc/DCState.h"
+#include "../datastruct/OutgoingMessage.h"
 
 using namespace CryptoPP;
 
@@ -18,26 +19,33 @@ const ECPPoint G(CryptoPP::Integer("362dc3caf8a0e8afd06f454a6da0cdce6e539bc3f15e
 const ECPPoint H(CryptoPP::Integer("a3cf0a4b6e1d9146c73e9a82e4bfdc37ee1587bc2bf3b0c19cb159ae362e38beh"),
                 CryptoPP::Integer("db4369fabd3d770dd4c19d81ac69a1749963d69c687d7c4e12d186548b94cb2ah"));
 
+
 class DCNetwork {
 public:
-    DCNetwork(uint32_t nodeID, MessageQueue<ReceivedMessage>& inbox, MessageQueue<NetworkMessage>& outbox);
+    DCNetwork(uint32_t nodeID, size_t k, MessageQueue<ReceivedMessage>& inbox, MessageQueue<OutgoingMessage>& outbox);
 
-    void add_member(uint32_t connectionID);
+    std::unordered_map<uint32_t, uint32_t>& members();
 
-    void remove_member(uint32_t connectionID);
+    size_t k();
+
+    MessageQueue<ReceivedMessage>& inbox();
+    MessageQueue<OutgoingMessage>& outbox();
+
+    void run();
+
 private:
-    // The own nodeID
     uint32_t nodeID_;
 
-    // list of nodes that participate in the DC-Network
-    std::list<uint32_t> memberList_;
+    size_t k_;
 
+    // mapping the nodeIDs to the connectionIDs
+    std::unordered_map<uint32_t, uint32_t> members_;
 
     MessageQueue<ReceivedMessage>& inbox_;
-    MessageQueue<NetworkMessage>& outbox_;
+    MessageQueue<OutgoingMessage>& outbox_;
 
     // current state of the DC network
-    std::unique_ptr<DCNetworkState> state_;
+    std::unique_ptr<DCState> state_;
 
     // reusable cryptoPP objects
     AutoSeededRandomPool PRNG;

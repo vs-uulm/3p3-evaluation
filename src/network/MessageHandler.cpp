@@ -4,10 +4,9 @@
 
 std::mutex cout_mutex;
 
-MessageHandler::MessageHandler(MessageQueue<ReceivedMessage> &inbox, MessageQueue<ReceivedMessage> &inboxDCNet,
-        MessageQueue<NetworkMessage> &outbox)
-        : inbox_(inbox), inboxDCNet_(inboxDCNet), outbox_(outbox), msgBuffer(0) {}
-
+MessageHandler::MessageHandler(uint32_t nodeID, MessageQueue<ReceivedMessage> &inbox,
+        MessageQueue<ReceivedMessage> &inboxDCNet, MessageQueue<OutgoingMessage> &outbox)
+        : nodeID_(nodeID), inbox_(inbox), inboxDCNet_(inboxDCNet), outbox_(outbox), msgBuffer(0) {}
 
 void MessageHandler::run() {
     for(;;) {
@@ -27,10 +26,10 @@ void MessageHandler::run() {
 }
 
 void MessageHandler::handleHelloMsg(std::shared_ptr<ReceivedMessage> helloMsg) {
-    uint32_t nodeID = *(helloMsg->body().data());
-    {
-        std::lock_guard<std::mutex> lock(cout_mutex);
-        std::cout << "Received hello message from Instance: " << nodeID
-                  << " through connection: " << helloMsg->connectionID() << std::endl;
-    }
+    inboxDCNet_.push(helloMsg);
+
+    std::vector<uint8_t> nodeIDVector(reinterpret_cast<uint8_t*>(&nodeID_),
+                                      reinterpret_cast<uint8_t*>(&nodeID_) + sizeof(uint32_t));
+
+    // TODO
 }
