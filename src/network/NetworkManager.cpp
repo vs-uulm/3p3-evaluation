@@ -64,12 +64,11 @@ uint32_t NetworkManager::addNeighbor(uint32_t nodeID, const Node &node) {
     new_connection->send_msg(helloMessage);
     connections_.push_back(new_connection);
 
-    // TODO return connectionID
     return connectionID;
 }
 
 void NetworkManager::floodAndPrune(NetworkMessage& msg) {
-    for(auto connection : connections_) {
+    for(auto& connection : connections_) {
         if(connection->is_open()) {
             connection->send_msg(msg);
         }

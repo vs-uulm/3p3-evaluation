@@ -8,21 +8,24 @@
 #include "../network/P2PConnection.h"
 #include "../network/NetworkManager.h"
 #include "../network/Peer.h"
+#include "../network/MessageHandler.h"
 
 std::vector<Node> Nodes;
-std::mutex cout_mutex;
 
 void instance(int ID) {
     MessageQueue<ReceivedMessage> inbox;
-    std::unordered_map<int, std::shared_ptr<Peer>> Peers;
-    io_context network_io_context_;
+    MessageQueue<ReceivedMessage> inboxDCNet;
+    MessageQueue<NetworkMessage> outbox;
+
+    io_context io_context_;
     uint16_t port = Nodes[ID].port();
 
-    NetworkManager networkManager(network_io_context_, port, inbox);
+    NetworkManager networkManager(io_context_, port, inbox);
+    MessageHandler messageHandler(inbox, inboxDCNet, outbox);
 
     // Run the io_context
-    std::thread network_io_thread([&network_io_context_](){
-        network_io_context_.run();
+    std::thread networkThread([&io_context_](){
+        io_context_.run();
     });
 
     // Add neighbors
@@ -32,27 +35,11 @@ void instance(int ID) {
         }
     }
 
-    // simulate the protocol
-    std::thread message_handler([&](){
-        while(true) {
-            auto msg = inbox.pop();
-            if(msg->header()[0] == 0) {
-                uint32_t nodeID = *(msg->body().data());
-                {
-                    std::lock_guard<std::mutex> lock(cout_mutex);
-                    std::cout << "Received hello message from Instance: " << nodeID
-                              << " through connection: " << msg->connectionID() << std::endl;
-                }
-            }
-            else {
-                std::string body(msg->body().begin(), msg->body().end());
-                {
-                    std::lock_guard<std::mutex> lock(cout_mutex);
-                    std::cout << "Instance " << ID << ": " << body << std::endl;
-                }
-            }
-        }
+    // start the message handler in a separate thread
+    std::thread messageHandlerThread([&]() {
+        messageHandler.run();
     });
+
 
     // Wait until all nodes are connected
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
@@ -61,8 +48,8 @@ void instance(int ID) {
     NetworkMessage networkMessage(0, msgVector);
 
     //networkManager.initFaP(networkMessage);
-    message_handler.join();
-    network_io_thread.join();
+    messageHandlerThread.join();
+    networkThread.join();
 }
 
 int main() {

@@ -11,8 +11,6 @@
 #include "../dc/DCNetworkState.h"
 
 using namespace CryptoPP;
-typedef MessageQueue<std::vector<uint8_t>> Inbox;
-typedef std::queue<std::vector<uint8_t>> Outbox;
 
 const ECPPoint G(CryptoPP::Integer("362dc3caf8a0e8afd06f454a6da0cdce6e539bc3f15e79a15af8aa842d7e3ec2h"),
                 CryptoPP::Integer("b9f8addb295b0fd4d7c49a686eac7b34a9a11ed2d6d243ad065282dc13bce575h"));
@@ -22,7 +20,7 @@ const ECPPoint H(CryptoPP::Integer("a3cf0a4b6e1d9146c73e9a82e4bfdc37ee1587bc2bf3
 
 class DCNetwork {
 public:
-    DCNetwork(uint32_t nodeID, std::list<uint32_t>& members);
+    DCNetwork(uint32_t nodeID, MessageQueue<ReceivedMessage>& inbox, MessageQueue<NetworkMessage>& outbox);
 
     void add_member(uint32_t connectionID);
 
@@ -31,14 +29,15 @@ private:
     // The own nodeID
     uint32_t nodeID_;
 
-    // Neighbour nodes that participate in the DC-Network
-    std::list<uint32_t>& member_list_;
+    // list of nodes that participate in the DC-Network
+    std::list<uint32_t> memberList_;
 
-    std::queue<std::vector<uint8_t>> outbox_;
-    //std::queue
+
+    MessageQueue<ReceivedMessage>& inbox_;
+    MessageQueue<NetworkMessage>& outbox_;
 
     // current state of the DC network
-    //std::unique_ptr<DCNetworkState> state_;
+    std::unique_ptr<DCNetworkState> state_;
 
     // reusable cryptoPP objects
     AutoSeededRandomPool PRNG;

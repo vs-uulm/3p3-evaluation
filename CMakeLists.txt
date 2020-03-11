@@ -19,7 +19,7 @@ add_executable(
         src/crypto/Utils.cpp
         src/datastruct/BufferedMessage.cpp
         src/dc/DCNetworkState.h
-        src/dc/ReadyState.cpp src/datastruct/DirectMessage.cpp src/datastruct/DirectMessage.h)
+        src/dc/ReadyState.cpp src/datastruct/DirectMessage.cpp src/datastruct/DirectMessage.h src/datastruct/MessageType.h)
 
 target_link_libraries(
         threePP

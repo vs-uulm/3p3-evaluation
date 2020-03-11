@@ -1,5 +1,9 @@
 #include "InitState.h"
 
-InitState::InitState(DCNetwork& DCNet) : DCNet_(DCNet) {
+InitState::InitState() {
+
+}
+
+void InitState::executeTask() {
 
 }

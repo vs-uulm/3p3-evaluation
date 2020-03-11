@@ -6,10 +6,10 @@
 
 class InitState : public DCNetworkState {
 public:
-    InitState(DCNetwork& DCNet);
-    //void executeTask();
+    InitState();
+    void executeTask();
 private:
-    DCNetwork& DCNet_;
+    //DCNetwork& DCNet_;
 };
 
 

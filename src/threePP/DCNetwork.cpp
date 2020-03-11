@@ -1,35 +1,28 @@
 #include <cryptopp/oids.h>
 #include "DCNetwork.h"
 #include "../dc/ReadyState.h"
+#include "../dc/InitState.h"
 
 #include <iostream>
 
-DCNetwork::DCNetwork() : state_(std::make_unique<ReadyState>()) {
+DCNetwork::DCNetwork(uint32_t nodeID, MessageQueue<ReceivedMessage>& inbox, MessageQueue<NetworkMessage>& outbox)
+: state_(std::make_unique<InitState>()), inbox_(inbox), outbox_(outbox) {
     ec_group.Initialize(CryptoPP::ASN1::secp256k1());
 
-    // TODO remove
-    members.resize(8);
-    /*
-    bool G_test = ec_group.ValidateElement(3, G, nullptr);
-    std::cout << "Success: " << G_test << std::endl;
-
-    bool H_test = ec_group.ValidateElement(3, H, nullptr);
-    std::cout << "Success: " << H_test << std::endl;
-     */
 }
 
 void DCNetwork::add_member(uint32_t connectionID) {
-    members.push_back(connectionID);
+    memberList_.push_back(connectionID);
 }
 
 void DCNetwork::remove_member(uint32_t connectionID) {
-    members.remove(connectionID);
+    memberList_.remove(connectionID);
 }
 
-EC_Point DCNetwork::commit(uint16_t r, uint32_t s) {
-    EC_Point first = ec_group.GetCurve().ScalarMultiply(G, r);
-    EC_Point second = ec_group.GetCurve().ScalarMultiply(H, s);
-    EC_Point C = ec_group.GetCurve().Add(first, second);
+ECPPoint DCNetwork::commit(uint16_t r, uint32_t s) {
+    ECPPoint first = ec_group.GetCurve().ScalarMultiply(G, r);
+    ECPPoint second = ec_group.GetCurve().ScalarMultiply(H, s);
+    ECPPoint C = ec_group.GetCurve().Add(first, second);
     return C;
 }
 
@@ -37,9 +30,10 @@ int send_msg(std::string& msg) {
     if(msg.length() > USHRT_MAX)
         return -1;
 }
-
+/*
 void phase_one(uint16_t msg_len) {
-    size_t k = members.size();
+    // TODO member list has size of zero
+    size_t k = memberList_.size();
     size_t slot_size = 4 + 32*k;
     uint8_t* msg1 = new uint8_t[2*k * slot_size]();
 
@@ -54,3 +48,4 @@ void phase_one(uint16_t msg_len) {
 
     delete msg1;
 }
+ */

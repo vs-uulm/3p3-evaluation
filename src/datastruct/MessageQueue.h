@@ -23,7 +23,7 @@ public:
             // deal with spurious wakeup
             return !msg_queue_.empty();
         });
-        std::shared_ptr<T> msg = msg_queue_.front();
+        std::shared_ptr<T> msg = std::move(msg_queue_.front());
         msg_queue_.pop();
         lock.unlock();
         return msg;

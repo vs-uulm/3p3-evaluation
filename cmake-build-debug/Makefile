@@ -203,6 +203,36 @@ src/datastruct/BufferedMessage.cpp.s:
 	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/datastruct/BufferedMessage.cpp.s
 .PHONY : src/datastruct/BufferedMessage.cpp.s
 
+src/datastruct/DirectMessage.o: src/datastruct/DirectMessage.cpp.o
+
+.PHONY : src/datastruct/DirectMessage.o
+
+# target to build an object file
+src/datastruct/DirectMessage.cpp.o:
+	$(MAKE) -f CMakeFiles/DCNetworkTest.dir/build.make CMakeFiles/DCNetworkTest.dir/src/datastruct/DirectMessage.cpp.o
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/datastruct/DirectMessage.cpp.o
+.PHONY : src/datastruct/DirectMessage.cpp.o
+
+src/datastruct/DirectMessage.i: src/datastruct/DirectMessage.cpp.i
+
+.PHONY : src/datastruct/DirectMessage.i
+
+# target to preprocess a source file
+src/datastruct/DirectMessage.cpp.i:
+	$(MAKE) -f CMakeFiles/DCNetworkTest.dir/build.make CMakeFiles/DCNetworkTest.dir/src/datastruct/DirectMessage.cpp.i
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/datastruct/DirectMessage.cpp.i
+.PHONY : src/datastruct/DirectMessage.cpp.i
+
+src/datastruct/DirectMessage.s: src/datastruct/DirectMessage.cpp.s
+
+.PHONY : src/datastruct/DirectMessage.s
+
+# target to generate assembly for a file
+src/datastruct/DirectMessage.cpp.s:
+	$(MAKE) -f CMakeFiles/DCNetworkTest.dir/build.make CMakeFiles/DCNetworkTest.dir/src/datastruct/DirectMessage.cpp.s
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/datastruct/DirectMessage.cpp.s
+.PHONY : src/datastruct/DirectMessage.cpp.s
+
 src/datastruct/MessageBuffer.o: src/datastruct/MessageBuffer.cpp.o
 
 .PHONY : src/datastruct/MessageBuffer.o
@@ -283,6 +313,66 @@ src/datastruct/ReceivedMessage.s: src/datastruct/ReceivedMessage.cpp.s
 src/datastruct/ReceivedMessage.cpp.s:
 	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/datastruct/ReceivedMessage.cpp.s
 .PHONY : src/datastruct/ReceivedMessage.cpp.s
+
+src/dc/InitState.o: src/dc/InitState.cpp.o
+
+.PHONY : src/dc/InitState.o
+
+# target to build an object file
+src/dc/InitState.cpp.o:
+	$(MAKE) -f CMakeFiles/cryptoTest.dir/build.make CMakeFiles/cryptoTest.dir/src/dc/InitState.cpp.o
+.PHONY : src/dc/InitState.cpp.o
+
+src/dc/InitState.i: src/dc/InitState.cpp.i
+
+.PHONY : src/dc/InitState.i
+
+# target to preprocess a source file
+src/dc/InitState.cpp.i:
+	$(MAKE) -f CMakeFiles/cryptoTest.dir/build.make CMakeFiles/cryptoTest.dir/src/dc/InitState.cpp.i
+.PHONY : src/dc/InitState.cpp.i
+
+src/dc/InitState.s: src/dc/InitState.cpp.s
+
+.PHONY : src/dc/InitState.s
+
+# target to generate assembly for a file
+src/dc/InitState.cpp.s:
+	$(MAKE) -f CMakeFiles/cryptoTest.dir/build.make CMakeFiles/cryptoTest.dir/src/dc/InitState.cpp.s
+.PHONY : src/dc/InitState.cpp.s
+
+src/dc/ReadyState.o: src/dc/ReadyState.cpp.o
+
+.PHONY : src/dc/ReadyState.o
+
+# target to build an object file
+src/dc/ReadyState.cpp.o:
+	$(MAKE) -f CMakeFiles/DCNetworkTest.dir/build.make CMakeFiles/DCNetworkTest.dir/src/dc/ReadyState.cpp.o
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/dc/ReadyState.cpp.o
+	$(MAKE) -f CMakeFiles/cryptoTest.dir/build.make CMakeFiles/cryptoTest.dir/src/dc/ReadyState.cpp.o
+.PHONY : src/dc/ReadyState.cpp.o
+
+src/dc/ReadyState.i: src/dc/ReadyState.cpp.i
+
+.PHONY : src/dc/ReadyState.i
+
+# target to preprocess a source file
+src/dc/ReadyState.cpp.i:
+	$(MAKE) -f CMakeFiles/DCNetworkTest.dir/build.make CMakeFiles/DCNetworkTest.dir/src/dc/ReadyState.cpp.i
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/dc/ReadyState.cpp.i
+	$(MAKE) -f CMakeFiles/cryptoTest.dir/build.make CMakeFiles/cryptoTest.dir/src/dc/ReadyState.cpp.i
+.PHONY : src/dc/ReadyState.cpp.i
+
+src/dc/ReadyState.s: src/dc/ReadyState.cpp.s
+
+.PHONY : src/dc/ReadyState.s
+
+# target to generate assembly for a file
+src/dc/ReadyState.cpp.s:
+	$(MAKE) -f CMakeFiles/DCNetworkTest.dir/build.make CMakeFiles/DCNetworkTest.dir/src/dc/ReadyState.cpp.s
+	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/dc/ReadyState.cpp.s
+	$(MAKE) -f CMakeFiles/cryptoTest.dir/build.make CMakeFiles/cryptoTest.dir/src/dc/ReadyState.cpp.s
+.PHONY : src/dc/ReadyState.cpp.s
 
 src/network/MessageHandler.o: src/network/MessageHandler.cpp.o
 
@@ -500,35 +590,35 @@ src/test/NetworkTest.cpp.s:
 	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/src/test/NetworkTest.cpp.s
 .PHONY : src/test/NetworkTest.cpp.s
 
-src/threePP/DC_Network.o: src/threePP/DC_Network.cpp.o
+src/threePP/DCNetwork.o: src/threePP/DCNetwork.cpp.o
 
-.PHONY : src/threePP/DC_Network.o
+.PHONY : src/threePP/DCNetwork.o
 
 # target to build an object file
-src/threePP/DC_Network.cpp.o:
-	$(MAKE) -f CMakeFiles/DCNetworkTest.dir/build.make CMakeFiles/DCNetworkTest.dir/src/threePP/DC_Network.cpp.o
-	$(MAKE) -f CMakeFiles/cryptoTest.dir/build.make CMakeFiles/cryptoTest.dir/src/threePP/DC_Network.cpp.o
-.PHONY : src/threePP/DC_Network.cpp.o
+src/threePP/DCNetwork.cpp.o:
+	$(MAKE) -f CMakeFiles/DCNetworkTest.dir/build.make CMakeFiles/DCNetworkTest.dir/src/threePP/DCNetwork.cpp.o
+	$(MAKE) -f CMakeFiles/cryptoTest.dir/build.make CMakeFiles/cryptoTest.dir/src/threePP/DCNetwork.cpp.o
+.PHONY : src/threePP/DCNetwork.cpp.o
 
-src/threePP/DC_Network.i: src/threePP/DC_Network.cpp.i
+src/threePP/DCNetwork.i: src/threePP/DCNetwork.cpp.i
 
-.PHONY : src/threePP/DC_Network.i
+.PHONY : src/threePP/DCNetwork.i
 
 # target to preprocess a source file
-src/threePP/DC_Network.cpp.i:
-	$(MAKE) -f CMakeFiles/DCNetworkTest.dir/build.make CMakeFiles/DCNetworkTest.dir/src/threePP/DC_Network.cpp.i
-	$(MAKE) -f CMakeFiles/cryptoTest.dir/build.make CMakeFiles/cryptoTest.dir/src/threePP/DC_Network.cpp.i
-.PHONY : src/threePP/DC_Network.cpp.i
+src/threePP/DCNetwork.cpp.i:
+	$(MAKE) -f CMakeFiles/DCNetworkTest.dir/build.make CMakeFiles/DCNetworkTest.dir/src/threePP/DCNetwork.cpp.i
+	$(MAKE) -f CMakeFiles/cryptoTest.dir/build.make CMakeFiles/cryptoTest.dir/src/threePP/DCNetwork.cpp.i
+.PHONY : src/threePP/DCNetwork.cpp.i
 
-src/threePP/DC_Network.s: src/threePP/DC_Network.cpp.s
+src/threePP/DCNetwork.s: src/threePP/DCNetwork.cpp.s
 
-.PHONY : src/threePP/DC_Network.s
+.PHONY : src/threePP/DCNetwork.s
 
 # target to generate assembly for a file
-src/threePP/DC_Network.cpp.s:
-	$(MAKE) -f CMakeFiles/DCNetworkTest.dir/build.make CMakeFiles/DCNetworkTest.dir/src/threePP/DC_Network.cpp.s
-	$(MAKE) -f CMakeFiles/cryptoTest.dir/build.make CMakeFiles/cryptoTest.dir/src/threePP/DC_Network.cpp.s
-.PHONY : src/threePP/DC_Network.cpp.s
+src/threePP/DCNetwork.cpp.s:
+	$(MAKE) -f CMakeFiles/DCNetworkTest.dir/build.make CMakeFiles/DCNetworkTest.dir/src/threePP/DCNetwork.cpp.s
+	$(MAKE) -f CMakeFiles/cryptoTest.dir/build.make CMakeFiles/cryptoTest.dir/src/threePP/DCNetwork.cpp.s
+.PHONY : src/threePP/DCNetwork.cpp.s
 
 # Help Target
 help:
@@ -547,6 +637,9 @@ help:
 	@echo "... src/datastruct/BufferedMessage.o"
 	@echo "... src/datastruct/BufferedMessage.i"
 	@echo "... src/datastruct/BufferedMessage.s"
+	@echo "... src/datastruct/DirectMessage.o"
+	@echo "... src/datastruct/DirectMessage.i"
+	@echo "... src/datastruct/DirectMessage.s"
 	@echo "... src/datastruct/MessageBuffer.o"
 	@echo "... src/datastruct/MessageBuffer.i"
 	@echo "... src/datastruct/MessageBuffer.s"
@@ -556,6 +649,12 @@ help:
 	@echo "... src/datastruct/ReceivedMessage.o"
 	@echo "... src/datastruct/ReceivedMessage.i"
 	@echo "... src/datastruct/ReceivedMessage.s"
+	@echo "... src/dc/InitState.o"
+	@echo "... src/dc/InitState.i"
+	@echo "... src/dc/InitState.s"
+	@echo "... src/dc/ReadyState.o"
+	@echo "... src/dc/ReadyState.i"
+	@echo "... src/dc/ReadyState.s"
 	@echo "... src/network/MessageHandler.o"
 	@echo "... src/network/MessageHandler.i"
 	@echo "... src/network/MessageHandler.s"
@@ -580,9 +679,9 @@ help:
 	@echo "... src/test/NetworkTest.o"
 	@echo "... src/test/NetworkTest.i"
 	@echo "... src/test/NetworkTest.s"
-	@echo "... src/threePP/DC_Network.o"
-	@echo "... src/threePP/DC_Network.i"
-	@echo "... src/threePP/DC_Network.s"
+	@echo "... src/threePP/DCNetwork.o"
+	@echo "... src/threePP/DCNetwork.i"
+	@echo "... src/threePP/DCNetwork.s"
 .PHONY : help
 
 

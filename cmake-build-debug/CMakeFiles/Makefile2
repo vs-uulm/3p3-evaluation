@@ -78,12 +78,12 @@ preinstall:
 CMakeFiles/DCNetworkTest.dir/all:
 	$(MAKE) -f CMakeFiles/DCNetworkTest.dir/build.make CMakeFiles/DCNetworkTest.dir/depend
 	$(MAKE) -f CMakeFiles/DCNetworkTest.dir/build.make CMakeFiles/DCNetworkTest.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles --progress-num=1,2,3 "Built target DCNetworkTest"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles --progress-num=1,2,3,4,5 "Built target DCNetworkTest"
 .PHONY : CMakeFiles/DCNetworkTest.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/DCNetworkTest.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles 3
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles 5
 	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/DCNetworkTest.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles 0
 .PHONY : CMakeFiles/DCNetworkTest.dir/rule
@@ -105,12 +105,12 @@ CMakeFiles/DCNetworkTest.dir/clean:
 CMakeFiles/threePP.dir/all:
 	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/depend
 	$(MAKE) -f CMakeFiles/threePP.dir/build.make CMakeFiles/threePP.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles --progress-num=7,8,9,10,11,12,13,14,15,16,17,18 "Built target threePP"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles --progress-num=11,12,13,14,15,16,17,18,19,20,21,22,23,24 "Built target threePP"
 .PHONY : CMakeFiles/threePP.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/threePP.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles 12
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles 14
 	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/threePP.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles 0
 .PHONY : CMakeFiles/threePP.dir/rule
@@ -132,12 +132,12 @@ CMakeFiles/threePP.dir/clean:
 CMakeFiles/cryptoTest.dir/all:
 	$(MAKE) -f CMakeFiles/cryptoTest.dir/build.make CMakeFiles/cryptoTest.dir/depend
 	$(MAKE) -f CMakeFiles/cryptoTest.dir/build.make CMakeFiles/cryptoTest.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles --progress-num=4,5,6 "Built target cryptoTest"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles --progress-num=6,7,8,9,10 "Built target cryptoTest"
 .PHONY : CMakeFiles/cryptoTest.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/cryptoTest.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles 3
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles 5
 	$(MAKE) -f CMakeFiles/Makefile2 CMakeFiles/cryptoTest.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start /home/alex/three-phase-protocol-implementation/cmake-build-debug/CMakeFiles 0
 .PHONY : CMakeFiles/cryptoTest.dir/rule

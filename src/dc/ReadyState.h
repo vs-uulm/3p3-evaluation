@@ -7,7 +7,7 @@
 class ReadyState : public DCNetworkState {
 public:
     ReadyState(DCNetwork& DCNet);
-    //void executeTask();
+    void executeTask();
 private:
     DCNetwork& DCNet_;
 };
