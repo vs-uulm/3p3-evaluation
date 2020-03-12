@@ -17,9 +17,9 @@ public:
 
     uint32_t addNeighbor(uint32_t nodeID, const Node& node);
 
-    void directMessage(uint32_t connectionID, OutgoingMessage& msg);
+    int directMessage(uint32_t connectionID, OutgoingMessage& msg);
 
-    void floodAndPrune(OutgoingMessage& msg);
+    void broadcast(OutgoingMessage& msg);
 
 private:
     void start_accept();
@@ -38,7 +38,9 @@ private:
 
     MessageQueue<ReceivedMessage>& inbox_;
 
-    std::list<std::shared_ptr<P2PConnection>> connections_;
+    // TODO store the object
+    //std::list<std::shared_ptr<P2PConnection>> connections_;
+    std::unordered_map<uint32_t, std::shared_ptr<P2PConnection>> connections_;
 };
 
 

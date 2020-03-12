@@ -32,6 +32,8 @@ public:
 
     ssl_socket& socket();
 
+    uint32_t connectionID();
+
 private:
     void handshake_handler(const boost::system::error_code& e);
 

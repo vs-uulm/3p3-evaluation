@@ -1,6 +1,7 @@
 #include <cstdint>
 #include <thread>
 #include <list>
+#include <iostream>
 
 #include "../crypto/Utils.h"
 #include "../network/P2PConnection.h"
@@ -20,7 +21,7 @@ void instance(int ID) {
 
     NetworkManager networkManager(io_context_, port, inbox);
     MessageHandler messageHandler(ID, inbox, inboxDCNet, outbox);
-    DCNetwork DCNet( ID, 4, inboxDCNet, outbox);
+    DCNetwork DCNet(ID, 4, inboxDCNet, outbox);
 
     // Run the io_context
     std::thread networkThread([&io_context_](){
@@ -39,6 +40,17 @@ void instance(int ID) {
         messageHandler.run();
     });
 
+    // start the write thread
+    std::thread writeThread([&]() {
+        for(;;) {
+            auto message = outbox.pop();
+            if(message->receiverID() == -1)
+                networkManager.broadcast(*message);
+            else
+                networkManager.directMessage(message->receiverID(), *message);
+        }
+    });
+
     // start the DCNetwork
     std::thread DCThread([&]() {
         DCNet.run();
@@ -50,8 +62,9 @@ void instance(int ID) {
     std::vector<uint8_t> msgVector(server_msg.begin(), server_msg.end());
     OutgoingMessage networkMessage(-1, 0, msgVector);
 
-    //networkManager.initFaP(networkMessage);
+
     DCThread.join();
+    writeThread.join();
     messageHandlerThread.join();
     networkThread.join();
 }

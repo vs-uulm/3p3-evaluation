@@ -16,11 +16,7 @@ void MessageHandler::run() {
                 handleHelloMsg(receivedMessage);
                 break;
             default:
-                std::string body(receivedMessage->body().begin(), receivedMessage->body().end());
-                {
-                    std::lock_guard<std::mutex> lock(cout_mutex);
-                    std::cout << "ConnectionID: " << receivedMessage->connectionID() << ", " << body << std::endl;
-                }
+                std::cout << "Unknown message type" << std::endl;
         }
     }
 }
@@ -28,8 +24,9 @@ void MessageHandler::run() {
 void MessageHandler::handleHelloMsg(std::shared_ptr<ReceivedMessage> helloMsg) {
     inboxDCNet_.push(helloMsg);
 
+    // create a response that contains the own nodeID
     std::vector<uint8_t> nodeIDVector(reinterpret_cast<uint8_t*>(&nodeID_),
                                       reinterpret_cast<uint8_t*>(&nodeID_) + sizeof(uint32_t));
-
-    // TODO
+    OutgoingMessage response(helloMsg->connectionID(), 0, nodeIDVector);
+    outbox_.push(std::make_shared<OutgoingMessage>(response));
 }

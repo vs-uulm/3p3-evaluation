@@ -34,7 +34,7 @@ void NetworkManager::accept_handler(const boost::system::error_code& e, std::sha
         std::cerr << "Accept Error:" << e.message() << std::endl;
     } else {
         connection->async_handshake();
-        connections_.push_back(connection);
+        connections_.insert(std::pair(connection->connectionID(), connection));
         start_accept();
     }
 }
@@ -46,11 +46,11 @@ uint32_t NetworkManager::addNeighbor(uint32_t nodeID, const Node &node) {
         connectionID = maxConnectionID;
         maxConnectionID++;
     }
-    auto new_connection = std::make_shared<P2PConnection>(connectionID, io_context_, ssl_context_, inbox_);
+    auto connection = std::make_shared<P2PConnection>(connectionID, io_context_, ssl_context_, inbox_);
     int retry_count = 3;
 
     while(retry_count-- > 0) {
-        if(new_connection->connect(node.ip_address(), node.port()) == 0)
+        if(connection->connect(node.ip_address(), node.port()) == 0)
             break;
         std::cout << "Connection refused: retrying after 500 milliseconds" << std::endl;
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
@@ -61,16 +61,24 @@ uint32_t NetworkManager::addNeighbor(uint32_t nodeID, const Node &node) {
             reinterpret_cast<uint8_t*>(&nodeID) + sizeof(uint32_t));
     NetworkMessage helloMessage(0, nodeIDVector);
 
-    new_connection->send_msg(helloMessage);
-    connections_.push_back(new_connection);
+    connection->send_msg(helloMessage);
+    connections_.insert(std::pair(connection->connectionID(), connection));
 
     return connectionID;
 }
 
-void NetworkManager::floodAndPrune(OutgoingMessage& msg) {
+void NetworkManager::broadcast(OutgoingMessage& msg) {
     for(auto& connection : connections_) {
-        if(connection->is_open()) {
-            connection->send_msg(msg);
+        if(connection.second->is_open()) {
+            connection.second->send_msg(msg);
         }
     }
+}
+
+int NetworkManager::directMessage(uint32_t connectionID, OutgoingMessage &msg) {
+    if(!connections_[connectionID]->is_open())
+        return -1;
+
+    connections_[connectionID]->send_msg(msg);
+    return 0;
 }

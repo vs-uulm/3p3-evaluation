@@ -1,18 +1,14 @@
 #include <iostream>
-#include "InitState.h"
-#include "ReadyState.h"
+#include "Init.h"
+#include "Ready.h"
 
 std::mutex c_mutex;
 
-InitState::InitState() {
-    std::cout << "InitState Constructor" << std::endl;
-}
+Init::Init() {}
 
-InitState::~InitState() {
-    std::cout << "InitState Destructor" << std::endl;
-}
+Init::~Init() {}
 
-std::unique_ptr<DCState> InitState::executeTask(DCNetwork& DCNet) {
+std::unique_ptr<DCState> Init::executeTask(DCNetwork& DCNet) {
     while(DCNet.members().size() < DCNet.k()-1) {
         auto receivedMessage = DCNet.inbox().pop();
         uint32_t nodeID = *(receivedMessage->body().data());
@@ -23,6 +19,7 @@ std::unique_ptr<DCState> InitState::executeTask(DCNetwork& DCNet) {
         }
         DCNet.members().insert(std::make_pair(nodeID, receivedMessage->connectionID()));
     }
-    // transition
-    return std::make_unique<ReadyState>();
+
+    // perform a state transition
+    return std::make_unique<Ready>();
 }

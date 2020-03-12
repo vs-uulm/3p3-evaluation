@@ -26,10 +26,13 @@ public:
 
     std::unordered_map<uint32_t, uint32_t>& members();
 
-    size_t k();
-
     MessageQueue<ReceivedMessage>& inbox();
+
     MessageQueue<OutgoingMessage>& outbox();
+
+    uint32_t nodeID();
+
+    size_t k();
 
     void run();
 
