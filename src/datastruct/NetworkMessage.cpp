@@ -3,6 +3,8 @@
 
 NetworkMessage::NetworkMessage() : header_{0} {}
 
+NetworkMessage::NetworkMessage(uint8_t msg_type) : header_{{msg_type, 0,0,0}} {}
+
 NetworkMessage::NetworkMessage(uint8_t msg_type, std::vector<uint8_t>& body) : header_{0}, body_(body) {
     if(body.size() > 0x00FFFFFF)
         throw std::invalid_argument("Body length is limited to 24 Bits");

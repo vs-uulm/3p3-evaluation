@@ -8,6 +8,8 @@ class NetworkMessage {
 public:
     NetworkMessage();
 
+    NetworkMessage(uint8_t msg_type);
+
     NetworkMessage(uint8_t msg_type, std::vector<uint8_t>& body);
 
     std::array<uint8_t, 4>& header();

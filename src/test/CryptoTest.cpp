@@ -7,6 +7,7 @@
 #include <cryptopp/osrng.h>
 #include <boost/asio/detail/array.hpp>
 #include "../datastruct/NetworkMessage.h"
+#include "../datastruct/MessageType.h"
 
 /* Test program used to generate two EC points G and H which are
  * required for the EC Pedersen Commitments */
@@ -41,6 +42,5 @@ int main() {
     std::cout << "H:" << std::endl;
     std::cout << "  " << std::hex << H.x << std::endl;
     std::cout << "  " << std::hex << H.y << std::endl;
-    
     return 0;
 }

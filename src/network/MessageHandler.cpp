@@ -12,8 +12,14 @@ void MessageHandler::run() {
     for(;;) {
         auto receivedMessage = inbox_.pop();
         switch(receivedMessage->msgType()) {
-            case HelloMsg:
-                handleHelloMsg(receivedMessage);
+            case HelloMessage:
+                inboxDCNet_.push(receivedMessage);
+                createHelloResponse(receivedMessage);
+                break;
+            case HelloResponse:
+            case ReadyMessage:
+            case StartDCRound:
+                inboxDCNet_.push(receivedMessage);
                 break;
             default:
                 std::cout << "Unknown message type" << std::endl;
@@ -21,12 +27,10 @@ void MessageHandler::run() {
     }
 }
 
-void MessageHandler::handleHelloMsg(std::shared_ptr<ReceivedMessage> helloMsg) {
-    inboxDCNet_.push(helloMsg);
-
+void MessageHandler::createHelloResponse(std::shared_ptr<ReceivedMessage>& helloMsg) {
     // create a response that contains the own nodeID
     std::vector<uint8_t> nodeIDVector(reinterpret_cast<uint8_t*>(&nodeID_),
                                       reinterpret_cast<uint8_t*>(&nodeID_) + sizeof(uint32_t));
-    OutgoingMessage response(helloMsg->connectionID(), 0, nodeIDVector);
+    OutgoingMessage response(helloMsg->connectionID(), HelloResponse, nodeIDVector);
     outbox_.push(std::make_shared<OutgoingMessage>(response));
 }

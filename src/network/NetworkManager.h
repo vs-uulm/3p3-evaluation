@@ -2,11 +2,12 @@
 #define THREEPP_NETWORKMANAGER_H
 
 #include <list>
+#include <unordered_map>
 #include <boost/asio.hpp>
 
 #include "P2PConnection.h"
-#include "../datastruct/OutgoingMessage.h"
 #include "Node.h"
+#include "../datastruct/OutgoingMessage.h"
 #include "../datastruct/MessageBuffer.h"
 
 using namespace boost::asio;
@@ -17,10 +18,7 @@ public:
 
     uint32_t addNeighbor(uint32_t nodeID, const Node& node);
 
-    int directMessage(uint32_t connectionID, OutgoingMessage& msg);
-
-    void broadcast(OutgoingMessage& msg);
-
+    int sendMessage(OutgoingMessage& msg);
 private:
     void start_accept();
 

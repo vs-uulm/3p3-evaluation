@@ -67,18 +67,17 @@ uint32_t NetworkManager::addNeighbor(uint32_t nodeID, const Node &node) {
     return connectionID;
 }
 
-void NetworkManager::broadcast(OutgoingMessage& msg) {
-    for(auto& connection : connections_) {
-        if(connection.second->is_open()) {
-            connection.second->send_msg(msg);
+int NetworkManager::sendMessage(OutgoingMessage& msg) {
+    if(msg.receiverID() == -1) {
+        for (auto& connection : connections_) {
+            if (connection.second->is_open()) {
+                connection.second->send_msg(msg);
+            }
         }
+    } else {
+        if (!connections_[msg.receiverID()]->is_open())
+            return -1;
+        connections_[msg.receiverID()]->send_msg(msg);
     }
-}
-
-int NetworkManager::directMessage(uint32_t connectionID, OutgoingMessage &msg) {
-    if(!connections_[connectionID]->is_open())
-        return -1;
-
-    connections_[connectionID]->send_msg(msg);
     return 0;
 }

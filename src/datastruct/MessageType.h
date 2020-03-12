@@ -2,7 +2,10 @@
 #define THREEPP_MESSAGETYPE_H
 
 enum MessageType {
-    HelloMsg = 0
+    HelloMessage = 0,
+    HelloResponse = 1,
+    ReadyMessage = 2,
+    StartDCRound = 3,
 };
 
 #endif //THREEPP_MESSAGETYPE_H

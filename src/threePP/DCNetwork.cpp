@@ -6,12 +6,12 @@
 #include <iostream>
 
 DCNetwork::DCNetwork(uint32_t nodeID, size_t k, MessageQueue<ReceivedMessage>& inbox, MessageQueue<OutgoingMessage>& outbox)
-: k_(k), state_(std::make_unique<Init>()), inbox_(inbox), outbox_(outbox) {
+: nodeID_(nodeID), k_(k), state_(std::make_unique<Init>()), inbox_(inbox), outbox_(outbox) {
     ec_group.Initialize(CryptoPP::ASN1::secp256k1());
 }
 
 void DCNetwork::run() {
-    for(int i = 0; i < 2; i++) {
+    for(;;) {
         state_ = state_->executeTask(*this);
     }
 }

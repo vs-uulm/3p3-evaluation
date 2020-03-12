@@ -44,10 +44,7 @@ void instance(int ID) {
     std::thread writeThread([&]() {
         for(;;) {
             auto message = outbox.pop();
-            if(message->receiverID() == -1)
-                networkManager.broadcast(*message);
-            else
-                networkManager.directMessage(message->receiverID(), *message);
+            networkManager.sendMessage(*message);
         }
     });
 
