@@ -1,16 +1,19 @@
 #ifndef THREEPP_INIT_H
 #define THREEPP_INIT_H
 
-#include "../threePP/DCNetwork.h"
+#include "DCNetwork.h"
 #include "DCState.h"
 
 class Init : public DCState {
 public:
-    Init();
+    Init(DCNetwork& DCNet);
 
     virtual ~Init();
 
-    virtual std::unique_ptr<DCState> executeTask(DCNetwork& DCNet);
+    virtual std::unique_ptr<DCState> executeTask();
+
+private:
+    DCNetwork& DCNetwork_;
 };
 
 #endif //THREEPP_INIT_H

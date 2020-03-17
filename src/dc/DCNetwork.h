@@ -8,7 +8,7 @@
 #include <cryptopp/osrng.h>
 #include "../datastruct/MessageQueue.h"
 #include "../datastruct/ReceivedMessage.h"
-#include "../dc/DCState.h"
+#include "DCState.h"
 #include "../datastruct/OutgoingMessage.h"
 
 using namespace CryptoPP;
@@ -30,11 +30,15 @@ public:
 
     MessageQueue<OutgoingMessage>& outbox();
 
+    MessageQueue<std::vector<uint8_t>>& submittedMessages();
+
     uint32_t nodeID();
 
     size_t k();
 
     void run();
+
+    void submitMessage(std::vector<uint8_t>& msg);
 
 private:
     uint32_t nodeID_;
@@ -45,16 +49,13 @@ private:
     std::unordered_map<uint32_t, uint32_t> members_;
 
     MessageQueue<ReceivedMessage>& inbox_;
+
     MessageQueue<OutgoingMessage>& outbox_;
+
+    MessageQueue<std::vector<uint8_t>> submittedMessages_;
 
     // current state of the DC network
     std::unique_ptr<DCState> state_;
-
-    // reusable cryptoPP objects
-    AutoSeededRandomPool PRNG;
-    DL_GroupParameters_EC<ECP> ec_group;
-
-    ECPPoint commit(uint16_t r, uint32_t s);
 };
 
 

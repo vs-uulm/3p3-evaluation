@@ -29,6 +29,11 @@ public:
         return msg;
     }
 
+    bool empty() {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return msg_queue_.empty();
+    }
+
 private:
     std::mutex mutex_;
     std::condition_variable cond_var_;

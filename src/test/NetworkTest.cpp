@@ -7,9 +7,11 @@
 #include "../network/P2PConnection.h"
 #include "../network/NetworkManager.h"
 #include "../network/MessageHandler.h"
-#include "../threePP/DCNetwork.h"
+#include "../dc/DCNetwork.h"
 
 std::vector<Node> Nodes;
+
+unsigned INSTANCES = 12;
 
 void instance(int ID) {
     MessageQueue<ReceivedMessage> inbox;
@@ -21,7 +23,7 @@ void instance(int ID) {
 
     NetworkManager networkManager(io_context_, port, inbox);
     MessageHandler messageHandler(ID, inbox, inboxDCNet, outbox);
-    DCNetwork DCNet(ID, 4, inboxDCNet, outbox);
+    DCNetwork DCNet(ID, INSTANCES, inboxDCNet, outbox);
 
     // Run the io_context
     std::thread networkThread([&io_context_](){
@@ -68,7 +70,7 @@ void instance(int ID) {
 
 int main() {
     std::list<std::thread> threads;
-    for(int i=0; i<4; i++) {
+    for(int i=0; i<INSTANCES; i++) {
         Node node(i, 5555 + i, "127.0.0.1");
         Nodes.push_back(std::move(node));
         std::thread t(instance, i);

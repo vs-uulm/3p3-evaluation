@@ -18,7 +18,7 @@ add_executable(
         src/network/MessageHandler.cpp
         src/datastruct/ReceivedMessage.cpp
         src/crypto/Utils.cpp
-        src/threePP/DCNetwork.cpp
+        src/dc/DCNetwork.cpp
         src/dc/Init.cpp
         src/dc/Ready.cpp
         src/datastruct/MessageType.h

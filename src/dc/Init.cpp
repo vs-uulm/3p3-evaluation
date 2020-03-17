@@ -6,19 +6,19 @@
 
 std::mutex c_mutex;
 
-Init::Init() {}
+Init::Init(DCNetwork& DCNet) : DCNetwork_(DCNet) {}
 
 Init::~Init() {}
 
-std::unique_ptr<DCState> Init::executeTask(DCNetwork &DCNet) {
-    while (DCNet.members().size() < DCNet.k() - 1) {
-        auto receivedMessage = DCNet.inbox().pop();
+std::unique_ptr<DCState> Init::executeTask() {
+    while (DCNetwork_.members().size() < DCNetwork_.k() - 1) {
+        auto receivedMessage = DCNetwork_.inbox().pop();
 
         // filter early ready messages
         while((receivedMessage->msgType() != HelloMessage) && (receivedMessage->msgType() != HelloResponse)) {
-            DCNet.inbox().push(receivedMessage);
+            DCNetwork_.inbox().push(receivedMessage);
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
-            receivedMessage = DCNet.inbox().pop();
+            receivedMessage = DCNetwork_.inbox().pop();
         }
             uint32_t nodeID = *(receivedMessage->body().data());
             {
@@ -26,8 +26,8 @@ std::unique_ptr<DCState> Init::executeTask(DCNetwork &DCNet) {
                 //std::cout << "Received hello message from Instance: " << nodeID
                 //          << " through connection: " << receivedMessage->connectionID() << std::endl;
             }
-            DCNet.members().insert(std::make_pair(nodeID, receivedMessage->connectionID()));
+            DCNetwork_.members().insert(std::make_pair(nodeID, receivedMessage->connectionID()));
     }
     // perform a state transition
-    return std::make_unique<Ready>();
+    return std::make_unique<Ready>(DCNetwork_);
 }

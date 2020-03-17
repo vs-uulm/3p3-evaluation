@@ -9,7 +9,7 @@ class DCState {
 public:
     virtual ~DCState() {}
 
-    virtual std::unique_ptr<DCState> executeTask(DCNetwork& DCNet) = 0;
+    virtual std::unique_ptr<DCState> executeTask() = 0;
 };
 
 #endif //THREEPP_DCSTATE_H
