@@ -35,7 +35,6 @@ std::unique_ptr<DCState> Ready::executeTask() {
             }
         }
         // the loop is terminated when all members of the DC network are ready
-        std::cout << "all ready messages received" << std::endl;
         OutgoingMessage startDCRound(-1, StartDCRound);
         DCNetwork_.outbox().push(std::make_shared<OutgoingMessage>(startDCRound));
     }

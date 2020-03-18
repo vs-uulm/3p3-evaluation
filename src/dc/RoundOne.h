@@ -5,6 +5,7 @@
 #include <cryptopp/osrng.h>
 #include <cryptopp/eccrypto.h>
 #include "DCState.h"
+#include "../datastruct/ReceivedMessage.h"
 
 class RoundOne : public DCState {
 public:
@@ -15,7 +16,11 @@ public:
     virtual std::unique_ptr<DCState> executeTask();
 
 private:
-    void commitRoundOne(std::vector<std::vector<uint8_t>>& shares, size_t sizeMsg1);
+    void commitRoundOne(std::vector<std::vector<CryptoPP::Integer>>& shares);
+
+    void validateCommitments(std::vector<uint8_t> messageVec, std::vector<std::vector<CryptoPP::Integer>>& shares,
+        std::vector<std::vector<CryptoPP::Integer>> randomness,
+        std::vector<std::vector<std::array<uint8_t, 33>>> commitments);
 
     DCNetwork& DCNetwork_;
 

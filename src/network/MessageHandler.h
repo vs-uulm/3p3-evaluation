@@ -17,7 +17,9 @@ private:
     void createHelloResponse(std::shared_ptr<ReceivedMessage>& helloMsg);
 
     MessageQueue<ReceivedMessage>& inbox_;
+
     MessageQueue<ReceivedMessage>& inboxDCNet_;
+
     MessageQueue<OutgoingMessage>& outbox_;
 
     MessageBuffer msgBuffer;

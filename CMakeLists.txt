@@ -7,7 +7,7 @@ include_directories(/usr/local/include)
 
 add_executable(
         threePP
-        src/test/NetworkTest.cpp
+        src/test/mainTest.cpp
         src/network/Node.cpp
         src/network/Peer.cpp
         src/network/P2PConnection.cpp

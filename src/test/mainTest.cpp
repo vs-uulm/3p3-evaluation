@@ -11,7 +11,7 @@
 
 std::vector<Node> Nodes;
 
-unsigned INSTANCES = 12;
+unsigned INSTANCES = 1;
 
 void instance(int ID) {
     MessageQueue<ReceivedMessage> inbox;
@@ -22,10 +22,7 @@ void instance(int ID) {
     uint16_t port = Nodes[ID].port();
 
     NetworkManager networkManager(io_context_, port, inbox);
-    MessageHandler messageHandler(ID, inbox, inboxDCNet, outbox);
-    DCNetwork DCNet(ID, INSTANCES, inboxDCNet, outbox);
-
-    // Run the io_context
+    // Run the io_context which handles the network manager
     std::thread networkThread([&io_context_](){
         io_context_.run();
     });
@@ -38,6 +35,7 @@ void instance(int ID) {
     }
 
     // start the message handler in a separate thread
+    MessageHandler messageHandler(ID, inbox, inboxDCNet, outbox);
     std::thread messageHandlerThread([&]() {
         messageHandler.run();
     });
@@ -51,16 +49,10 @@ void instance(int ID) {
     });
 
     // start the DCNetwork
+    DCNetwork DCNet(ID, INSTANCES, inboxDCNet, outbox);
     std::thread DCThread([&]() {
         DCNet.run();
     });
-
-    // Wait until all nodes are connected
-    std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    std::string server_msg = "Hello from ID " + std::to_string(ID);
-    std::vector<uint8_t> msgVector(server_msg.begin(), server_msg.end());
-    OutgoingMessage networkMessage(-1, 0, msgVector);
-
 
     DCThread.join();
     writeThread.join();

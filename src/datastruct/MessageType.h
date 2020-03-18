@@ -5,7 +5,8 @@ enum MessageType {
     HelloMessage,
     HelloResponse,
     ReadyMessage,
-    StartDCRound
+    StartDCRound,
+    CommitmentRoundOne
 };
 
 #endif //THREEPP_MESSAGETYPE_H

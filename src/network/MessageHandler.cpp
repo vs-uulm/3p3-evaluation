@@ -2,8 +2,6 @@
 #include "MessageHandler.h"
 #include "../datastruct/MessageType.h"
 
-std::mutex cout_mutex;
-
 MessageHandler::MessageHandler(uint32_t nodeID, MessageQueue<ReceivedMessage> &inbox,
         MessageQueue<ReceivedMessage> &inboxDCNet, MessageQueue<OutgoingMessage> &outbox)
         : nodeID_(nodeID), inbox_(inbox), inboxDCNet_(inboxDCNet), outbox_(outbox), msgBuffer(0) {}
@@ -19,6 +17,7 @@ void MessageHandler::run() {
             case HelloResponse:
             case ReadyMessage:
             case StartDCRound:
+            case CommitmentRoundOne:
                 inboxDCNet_.push(receivedMessage);
                 break;
             default:

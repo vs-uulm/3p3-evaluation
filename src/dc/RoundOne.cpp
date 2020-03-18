@@ -31,6 +31,7 @@ std::unique_ptr<DCState> RoundOne::executeTask() {
     }
 
     size_t k = DCNetwork_.members().size() + 1;
+    k = 6;
     // calculate the size of the message vector
     size_t sizeMsg1 = 2*k * (4 + 32*k);
     // Initialize the message vector with zeroes
@@ -54,69 +55,82 @@ std::unique_ptr<DCState> RoundOne::executeTask() {
         PRNG.GenerateBlock(&msgVec[8*k + p * 32*k], 32*k);
     }
 
-
-    std::vector<std::vector<uint8_t>> shares;
+    size_t numSlots = std::ceil(sizeMsg1 / 31);
+    std::vector<std::vector<CryptoPP::Integer>> shares;
     shares.resize(k);
 
-    // fill k-1 shares with random data
-    for(auto it = shares.begin(); it < shares.end()-1; it++) {
-        it->reserve(sizeMsg1);
-        PRNG.GenerateBlock(it->data(), sizeMsg1);
+    // init the k-th set of shares with zeroes
+    shares[k-1].resize(numSlots);
+
+    // fill the first k-1 set of shares with random data
+    for(int i=0; i<k-1; i++) {
+        shares[i].reserve(numSlots);
+        for(int j=0; j<numSlots; j++) {
+            CryptoPP::Integer slot(PRNG, Integer::One(), curve.GetMaxExponent());
+            shares[i].push_back(slot);
+            shares[k-1][j] -= slot;
+        }
+        //std::cout << shares[i].size() << std::endl;
     }
 
     // calculate the k-th share
-    shares[k-1] = msgVec;
-    for(int i=0; i<sizeMsg1; i++)
-        for(int j=0; j<k-1; j++)
-            shares[k-1][i] ^= shares[j][i];
-
+    for (int j = 0; j < numSlots; j++) {
+        size_t sliceSize = ((sizeMsg1 - 31 * (j + 1) >= 31) ? 31 : sizeMsg1 - 31 * (j + 1));
+        CryptoPP::Integer slice(&msgVec[31 * j], sliceSize);
+        shares[k-1][j] += slice;
+        shares[k-1][j].Modulo(curve.GetSubgroupOrder());
+    }
     // generate and broadcast the commitments for the first round
-    commitRoundOne(shares, sizeMsg1);
+    commitRoundOne(shares);
 
     return std::make_unique<Init>(DCNetwork_);
 }
 
 
-void RoundOne::commitRoundOne(std::vector<std::vector<uint8_t>> &shares, size_t sizeMsg1) {
+void RoundOne::commitRoundOne(std::vector<std::vector<CryptoPP::Integer>>& shares) {
     size_t k = DCNetwork_.members().size() + 1;
 
-    // Create the commitments
-    typedef std::array<CryptoPP::byte, 32> Slot;
-
-    size_t commitSlots = std::ceil(sizeMsg1 / 31);
-
-    std::vector<std::vector<Slot>> commitments;
+    size_t commitSlots = shares[0].size();
+    std::vector<std::vector<std::array<uint8_t, 33>>> commitments;
     commitments.resize(k);
     for(auto& share : commitments)
         share.reserve(commitSlots);
 
-    std::vector<std::vector<Slot>> randomness;
+    //std::vector<std::vector<std::array<CryptoPP::byte, 32>>> randomness;
+    auto start = std::chrono::high_resolution_clock::now();
+    std::vector<std::vector<CryptoPP::Integer>> randomness;
     randomness.resize(k);
     for(auto& share : randomness)
-        share.reserve(commitSlots);
-    double elapsed = 0;
+        share.resize(commitSlots);
+
+    // measure the time it takes to generate all commitments
     for(int i=0; i < k; i++) {
-        for (int j = 0; j < commitSlots; j++) {
-            // generate random blinding coefficient
-            Integer r(PRNG, CryptoPP::Integer::One(), curve.GetMaxExponent());
+        for (int j=0; j < commitSlots; j++) {
+            // generate the randomness r for this slice of the share
+            randomness[i][j] = (PRNG, CryptoPP::Integer::One(), curve.GetMaxExponent());
 
-            // store in the raw bytes of the blinding coefficient
-            r.Encode(randomness[i][j].data(), 32);
+            ECPPoint rG = curve.GetCurve().ScalarMultiply(G, randomness[i][j]);
+            ECPPoint xH = curve.GetCurve().ScalarMultiply(H, shares[i][j]);
+            ECPPoint C = curve.GetCurve().Add(rG, xH);
 
-            // a 31 Byte slot of the i-th share
-            Integer s(&shares[i][31*j], 31);
-            auto start = std::chrono::high_resolution_clock::now();
-            ECPPoint first = curve.GetCurve().ScalarMultiply(G, r);
-            ECPPoint second = curve.GetCurve().ScalarMultiply(H, s);
-            ECPPoint C = curve.GetCurve().Add(first, second);
-            auto finish = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double> duration = finish - start;
-            elapsed += duration.count();
-            curve.EncodeElement(false, C, commitments[i][j].data());
+            curve.GetCurve().EncodePoint(commitments[i][j].data(), C, true);
+            for(uint8_t c : commitments[i][j])
+                std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) c;
+            std::cout << std::endl;
         }
     }
+    auto finish = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> duration = finish - start;
+
     {
         std::lock_guard<std::mutex> lock(mutex_);
-        std::cout << "Finished in: " << elapsed << std::endl;
+        std::cout << "Finished in: " << duration.count() << std::endl;
     }
+}
+
+void RoundOne::validateCommitments(std::vector<uint8_t> messageVec,
+        std::vector<std::vector<CryptoPP::Integer>>& shares,
+        std::vector<std::vector<CryptoPP::Integer>> randomness,
+        std::vector<std::vector<std::array<uint8_t, 33>>> commitments) {
+
 }
