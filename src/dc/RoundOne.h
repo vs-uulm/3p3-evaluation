@@ -16,11 +16,11 @@ public:
     virtual std::unique_ptr<DCState> executeTask();
 
 private:
-    void commitRoundOne(std::vector<std::vector<CryptoPP::Integer>>& shares);
+    void commitRoundOne(std::vector<std::vector<CryptoPP::Integer>>& shares, std::vector<uint8_t>& messageVec);
 
-    void validateCommitments(std::vector<uint8_t> messageVec, std::vector<std::vector<CryptoPP::Integer>>& shares,
-        std::vector<std::vector<CryptoPP::Integer>> randomness,
-        std::vector<std::vector<std::array<uint8_t, 33>>> commitments);
+    void validateCommitments(std::vector<uint8_t>& messageVec, std::vector<std::vector<CryptoPP::Integer>>& shares,
+        std::vector<std::vector<CryptoPP::Integer>>& randomness,
+        std::vector<std::vector<std::array<uint8_t, 33>>>& commitments);
 
     DCNetwork& DCNetwork_;
 

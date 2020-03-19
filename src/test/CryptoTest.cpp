@@ -24,6 +24,8 @@ CryptoPP::Hash_DRBG<> DRNG;
 /* Test program used to generate two EC points G and H which are
  * required for the EC Pedersen Commitments */
 int main() {
+    CryptoPP::AutoSeededRandomPool PRNG;
+    /*
     size_t b = 32;
     CryptoPP::AutoSeededRandomPool PRNG;
     CryptoPP::byte seed[b];
@@ -48,45 +50,74 @@ int main() {
     for(uint8_t c : stream2)
         std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) c;
     std::cout << std::endl;
-
+    */
     CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> ec_group;
     ec_group.Initialize(CryptoPP::ASN1::secp256k1());
 
-    std::cout << "Maximum Exponent: " << std::endl << std::hex << ec_group.GetMaxExponent() << std::endl;
-    std::cout << "Subgroup order: " << std::endl << ec_group.GetSubgroupOrder() << std::endl;
-
-    CryptoPP::Integer r1(ec_group.GetMaxExponent() - 23);
+    CryptoPP::Integer r1("c9bb432af142d9ff2ee65d3995f886bb6c57bb70e207df3104bc53bc7f41f015h");
     std::cout << std::hex <<  "r1: " << r1 << std::endl;
-    CryptoPP::Integer r2(ec_group.GetMaxExponent() - 46);
+    CryptoPP::Integer r2("991bbe52bfe8f8b79210f230097b235959adff76b158a134b5872f474ee74aa6h");
     std::cout << std::hex <<  "r2: " << r2 << std::endl;
-    CryptoPP::Integer r3 = (r1 + r2).Modulo(ec_group.GetSubgroupOrder());
+    CryptoPP::Integer r3("d02043984478522191c33815f102eb28d41804b46cf06d964e385d4df8873ba4h");
     std::cout << std::hex <<  "r3: " << r3 << std::endl;
+    CryptoPP::Integer R = (r1 + r2 + r3).Modulo(ec_group.GetSubgroupOrder());
+    std::cout << std::hex <<  "R:  " << R << std::endl;
+    std::cout << std::endl;
 
-    CryptoPP::Integer x1(ec_group.GetMaxExponent() - 75);
-    CryptoPP::Integer x2(ec_group.GetMaxExponent() - 97);
-    CryptoPP::Integer x3 = (x1 + x2).Modulo(ec_group.GetSubgroupOrder());
+    CryptoPP::Integer message("000000000000000000000000000000005c7c00200000000000000000000000h");
+    CryptoPP::Integer x1("eb281e3eed97e1bf4c82760f8d44f97e82e7d79824b09ed0ee216521d526a628h");
+    std::cout << std::hex <<  "x1: " << x1 << std::endl;
+    CryptoPP::Integer x2("a7564bd6f21d0f6fde3190d3138a81c246c51ea2f6f41c81b398d0559d82fa6h");
+    std::cout << std::hex <<  "x2: " << x2 << std::endl;
+    CryptoPP::Integer x3 = (message - (x1 + x2)).Modulo(ec_group.GetSubgroupOrder());
+    std::cout << std::hex <<  "x3: " << x3 << std::endl;
+    CryptoPP::Integer X = (x1 + x2 + x3).Modulo(ec_group.GetSubgroupOrder());
+    std::cout << std::hex <<  "X:  " << X << std::endl;
+    std::cout << std::endl;
 
     CryptoPP::ECPPoint r1G = ec_group.GetCurve().ScalarMultiply(G, r1);
     CryptoPP::ECPPoint x1H = ec_group.GetCurve().ScalarMultiply(H, x1);
     CryptoPP::ECPPoint C1 = ec_group.GetCurve().Add(r1G, x1H);
+    uint8_t compressedC1[33];
+    ec_group.GetCurve().EncodePoint(compressedC1, C1, true);
+    for(uint8_t c : compressedC1)
+        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) c;
+    std::cout << std::endl;
 
     CryptoPP::ECPPoint r2G = ec_group.GetCurve().ScalarMultiply(G, r2);
     CryptoPP::ECPPoint x2H = ec_group.GetCurve().ScalarMultiply(H, x2);
     CryptoPP::ECPPoint C2 = ec_group.GetCurve().Add(r2G, x2H);
+    uint8_t compressedC2[33];
+    ec_group.GetCurve().EncodePoint(compressedC2, C2, true);
+    for(uint8_t c : compressedC2)
+        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) c;
+    std::cout << std::endl;
 
-    CryptoPP::ECPPoint C3_first =  ec_group.GetCurve().Add(C2, C1);
 
     CryptoPP::ECPPoint r3G = ec_group.GetCurve().ScalarMultiply(G, r3);
     CryptoPP::ECPPoint x3H = ec_group.GetCurve().ScalarMultiply(H, x3);
-    CryptoPP::ECPPoint C3_second = ec_group.GetCurve().Add(r3G, x3H);
+    CryptoPP::ECPPoint C3 = ec_group.GetCurve().Add(r3G, x3H);
+    uint8_t compressedC3[33];
+    ec_group.GetCurve().EncodePoint(compressedC3, C3, true);
+    for(uint8_t c : compressedC3)
+        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) c;
+    std::cout << std::endl;
+
+    CryptoPP::ECPPoint sumC = ec_group.GetCurve().Add(C2, C1);
+    sumC = ec_group.GetCurve().Add(C3, sumC);
+
+    CryptoPP::ECPPoint RG = ec_group.GetCurve().ScalarMultiply(G, R);
+    CryptoPP::ECPPoint XH = ec_group.GetCurve().ScalarMultiply(H, X);
+    CryptoPP::ECPPoint RXC = ec_group.GetCurve().Add(RG, XH);
 
     std::cout << "First: " << std::endl;
-    std::cout << std::hex << C3_first.x << std::endl;
-    std::cout << std::hex << C3_first.y << std::endl;
+    std::cout << std::hex << sumC.x << std::endl;
+    std::cout << std::hex << sumC.y << std::endl;
+    std::cout << std::endl;
 
     std::cout << "Second: " << std::endl;
-    std::cout << std::hex << C3_second.x << std::endl;
-    std::cout << std::hex << C3_second.y << std::endl;
+    std::cout << std::hex << RXC.x << std::endl;
+    std::cout << std::hex << RXC.y << std::endl;
 
     /*
     CryptoPP::Integer maximum_k1 = ec_group.GetMaxExponent();
