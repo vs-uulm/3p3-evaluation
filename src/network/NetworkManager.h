@@ -32,12 +32,10 @@ private:
 
     tcp::acceptor acceptor_;
 
-    uint32_t maxConnectionID;
+    uint32_t maxConnectionID_;
 
     MessageQueue<ReceivedMessage>& inbox_;
 
-    // TODO store the object
-    //std::list<std::shared_ptr<P2PConnection>> connections_;
     std::unordered_map<uint32_t, std::shared_ptr<P2PConnection>> connections_;
 };
 

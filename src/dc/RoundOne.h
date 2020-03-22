@@ -16,13 +16,34 @@ public:
     virtual std::unique_ptr<DCState> executeTask();
 
 private:
-    void commitRoundOne(std::vector<std::vector<CryptoPP::Integer>>& shares, std::vector<uint8_t>& messageVec);
+    void commitRoundOne(std::vector<std::vector<CryptoPP::Integer>>& shares);
 
-    void validateCommitments(std::vector<uint8_t>& messageVec, std::vector<std::vector<CryptoPP::Integer>>& shares,
-        std::vector<std::vector<CryptoPP::Integer>>& randomness,
-        std::vector<std::vector<std::array<uint8_t, 33>>>& commitments);
+    void broadcastCommitments(std::vector<std::vector<std::array<uint8_t, 33>>>& commitments);
+
+    bool processCommitments();
+
+    void validateCommitments(std::vector<std::vector<CryptoPP::Integer>>& shares,
+                                std::vector<std::vector<std::array<uint8_t, 33>>>& commitments);
+
+    void addShares(std::vector<std::vector<CryptoPP::Integer>>);
+
+    void addRandomness(std::vector<std::vector<CryptoPP::Integer>>);
 
     DCNetwork& DCNetwork_;
+
+    // DCNetwork size
+    size_t k_;
+
+    std::vector<uint8_t> msgVector_;
+
+    // sum of all shares
+    std::vector<CryptoPP::Integer> S;
+
+    // sum of all random blinding coefficients
+    std::vector<CryptoPP::Integer> R;
+
+    // sum of all commitments
+    std::vector<CryptoPP::ECPPoint> C;
 
     CryptoPP::AutoSeededRandomPool PRNG;
 

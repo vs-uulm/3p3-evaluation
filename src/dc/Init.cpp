@@ -6,12 +6,13 @@
 
 std::mutex c_mutex;
 
-Init::Init(DCNetwork& DCNet) : DCNetwork_(DCNet) {}
+Init::Init(DCNetwork& DCNet) : DCNetwork_(DCNet) {
+}
 
 Init::~Init() {}
 
 std::unique_ptr<DCState> Init::executeTask() {
-    while (DCNetwork_.members().size() < DCNetwork_.k() - 1) {
+    while (DCNetwork_.members().size() < DCNetwork_.k()) {
         auto receivedMessage = DCNetwork_.inbox().pop();
 
         // filter early ready messages

@@ -24,8 +24,27 @@ CryptoPP::Hash_DRBG<> DRNG;
 /* Test program used to generate two EC points G and H which are
  * required for the EC Pedersen Commitments */
 int main() {
-    CryptoPP::AutoSeededRandomPool PRNG;
+    size_t k = pow(2, 24);
+    std::vector<uint8_t> vector1;
+    vector1.resize(k);
+
+    auto start = std::chrono::high_resolution_clock::now();
+    auto first = std::make_shared<std::vector<uint8_t>>(vector1);
+    auto finish = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> duration = finish - start;
+    std::cout << "Copy: " << duration.count() << std::endl;
+
+
+    start = std::chrono::high_resolution_clock::now();
+    first = std::make_shared<std::vector<uint8_t>>(std::move(vector1));
+    finish = std::chrono::high_resolution_clock::now();
+    duration = finish - start;
+    std::cout << "Move: " << duration.count() << std::endl;
     /*
+    CryptoPP::AutoSeededRandomPool PRNG;
+    CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> ec_group;
+    ec_group.Initialize(CryptoPP::ASN1::secp256k1());
+
     size_t b = 32;
     CryptoPP::AutoSeededRandomPool PRNG;
     CryptoPP::byte seed[b];
@@ -50,7 +69,6 @@ int main() {
     for(uint8_t c : stream2)
         std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) c;
     std::cout << std::endl;
-    */
     CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> ec_group;
     ec_group.Initialize(CryptoPP::ASN1::secp256k1());
 
@@ -118,6 +136,7 @@ int main() {
     std::cout << "Second: " << std::endl;
     std::cout << std::hex << RXC.x << std::endl;
     std::cout << std::hex << RXC.y << std::endl;
+    */
 
     /*
     CryptoPP::Integer maximum_k1 = ec_group.GetMaxExponent();

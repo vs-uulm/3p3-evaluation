@@ -5,18 +5,24 @@
 #include <vector>
 #include "NetworkMessage.h"
 
+const uint32_t BROADCAST = 0xFFFFFFFF;
+// TODO implement the handler
+const uint32_t DC_NET    = 0xFFFFFFFE;
+
+const uint32_t SELF      = 0xFFFFFFFD;
+
 class OutgoingMessage : public NetworkMessage {
 public:
     OutgoingMessage();
 
-    OutgoingMessage(int receiverID, uint8_t msg_type);
+    OutgoingMessage(uint32_t receiverID, uint8_t msg_type);
 
-    OutgoingMessage(int receiverID, uint8_t msg_type, std::vector<uint8_t>& body);
+    OutgoingMessage(uint32_t receiverID, uint8_t msg_type, std::vector<uint8_t>& body);
 
-    int receiverID();
+    uint32_t receiverID();
 
 private:
-    int receiverID_;
+    uint32_t receiverID_;
 };
 
 

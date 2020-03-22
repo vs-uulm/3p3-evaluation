@@ -20,10 +20,10 @@ public:
     std::shared_ptr<T> pop() {
         std::unique_lock<std::mutex> lock(mutex_);
         cond_var_.wait(lock, [&](){
-            // deal with spurious wakeup
+            // deal with a spurious wakeup
             return !msg_queue_.empty();
         });
-        std::shared_ptr<T> msg = std::move(msg_queue_.front());
+        std::shared_ptr<T> msg = msg_queue_.front();
         msg_queue_.pop();
         lock.unlock();
         return msg;

@@ -6,7 +6,11 @@
 #include <thread>
 #include <chrono>
 
-Ready::Ready(DCNetwork& DCNet) : DCNetwork_(DCNet) {}
+std::mutex member_mutex;
+
+Ready::Ready(DCNetwork& DCNet) : DCNetwork_(DCNet) {
+
+}
 
 Ready::~Ready() {}
 
@@ -16,14 +20,13 @@ std::unique_ptr<DCState> Ready::executeTask() {
     for(auto& member : DCNetwork_.members())
         if(member.first < minimumID)
             minimumID = member.first;
-
     // this node acts as the group manager
     if(minimumID == DCNetwork_.nodeID()) {
         size_t memberCount = DCNetwork_.members().size();
         std::vector<uint32_t> readyNodes;
         readyNodes.reserve(memberCount);
 
-        while(readyNodes.size() < memberCount) {
+        while(readyNodes.size() < memberCount - 1) {
             auto readyMessage = DCNetwork_.inbox().pop();
             if(readyMessage->msgType() != ReadyMessage) {
                 std::cout << "Inappropriate message received: " << (int) readyMessage->msgType() << std::endl;
@@ -35,7 +38,7 @@ std::unique_ptr<DCState> Ready::executeTask() {
             }
         }
         // the loop is terminated when all members of the DC network are ready
-        OutgoingMessage startDCRound(-1, StartDCRound);
+        OutgoingMessage startDCRound(BROADCAST, StartDCRound);
         DCNetwork_.outbox().push(std::make_shared<OutgoingMessage>(startDCRound));
     }
     else {
@@ -50,7 +53,6 @@ std::unique_ptr<DCState> Ready::executeTask() {
         if(receivedMessage->msgType() != StartDCRound)
             std::cout << "inappropriate message received" << std::endl;
     }
-
     // perform a state transition
     return std::make_unique<RoundOne>(DCNetwork_);
 }

@@ -4,118 +4,122 @@
 #include <iomanip>
 #include "RoundOne.h"
 #include "Init.h"
+#include "RoundTwo.h"
+#include "../datastruct/MessageType.h"
 
 std::mutex mutex_;
 
 RoundOne::RoundOne(DCNetwork& DCNet) : DCNetwork_(DCNet) {
     curve.Initialize(CryptoPP::ASN1::secp256k1());
+    k_ = DCNetwork_.members().size();
+    // TODO undo
+    //k_ = 8;
+    msgVector_.resize(2*k_ * (4 + 32*k_));
 }
 
-RoundOne::~RoundOne() {
-
-}
+RoundOne::~RoundOne() {}
 
 std::unique_ptr<DCState> RoundOne::executeTask() {
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        std::cout << "Entering round one" << std::endl;
-    }
-
-    std::shared_ptr<std::vector<uint8_t>> message;
-    // determine the size of the broadcast message
-    // if there is no message to be sent, the size remains zero
+    // check if there is a submitted message
+    // and determine it's length
     uint16_t l = 0;
     if (!DCNetwork_.submittedMessages().empty()) {
-        message = DCNetwork_.submittedMessages().pop();
-        l = message->size() > USHRT_MAX ? USHRT_MAX : message->size();
+        size_t msgSize = DCNetwork_.submittedMessages().front().size();
+        // ensure that the message size does not exceed 2^16 Bytes
+        l = msgSize > USHRT_MAX ? USHRT_MAX : msgSize;
     }
-    // TODO undo
-    size_t k = DCNetwork_.members().size() + 1;
-    k = 16;
-    // calculate the size of the message vector
-
-    size_t sizeMsg1 = 2*k * (4 + 32*k);
-    // Initialize the message vector with zeroes
-    std::vector<uint8_t> msgVec(sizeMsg1,0);
 
     // TODO for tests only
     l = 32;
 
     if (l > 0) {
         uint16_t r = PRNG.GenerateWord32(0, USHRT_MAX);
-        uint16_t p = PRNG.GenerateWord32(0, 2*k - 1);
+        uint16_t p = PRNG.GenerateWord32(0, 2*k_ - 1);
 
         // set the values in Big Endian format
-        msgVec[4*p] = static_cast<uint8_t>((r & 0xFF00) >> 8);
-        msgVec[4*p + 1] = static_cast<uint8_t>((r & 0x00FF));
-        msgVec[4*p + 2] = static_cast<uint8_t>((l & 0xFF00) >> 8);
-        msgVec[4*p + 3] = static_cast<uint8_t>((l & 0x00FF));
+        msgVector_[4*p] = static_cast<uint8_t>((r & 0xFF00) >> 8);
+        msgVector_[4*p + 1] = static_cast<uint8_t>((r & 0x00FF));
+        msgVector_[4*p + 2] = static_cast<uint8_t>((l & 0xFF00) >> 8);
+        msgVector_[4*p + 3] = static_cast<uint8_t>((l & 0x00FF));
 
         // generate k random K values used as seeds
         // for the commitments of the second round
-        PRNG.GenerateBlock(&msgVec[8*k + p * 32*k], 32*k);
+        PRNG.GenerateBlock(&msgVector_[8*k_ + p * 32*k_], 32*k_);
     }
-    std::cout << "Size message vector: " << sizeMsg1 << std::endl;
-    size_t numSlots = std::ceil(sizeMsg1 / 31.0);
-    std::cout << "Num slots: " << numSlots << std::endl;
+
+    // Split the message vector into slices of 31 Bytes
+    size_t numSlices = std::ceil(msgVector_.size() / 31.0);
+    S.reserve(numSlices);
+
+    for(int i=0; i<numSlices; i++) {
+        size_t sliceSize = ((msgVector_.size() - 31*i > 31) ? 31 : msgVector_.size() - 31*i);
+        CryptoPP::Integer slice(&msgVector_[31*i], sliceSize);
+        S.push_back(std::move(slice));
+    }
+
+    // Split each slice into k shares
     std::vector<std::vector<CryptoPP::Integer>> shares;
-    shares.resize(k);
-
+    shares.resize(k_);
     // init the k-th set of shares with zeroes
-    shares[k-1].resize(numSlots);
-
+    shares[k_-1].resize(numSlices);
     // fill the first k-1 set of shares with random data
-    for(int i=0; i<k-1; i++) {
-        shares[i].reserve(numSlots);
-        for(int j=0; j<numSlots; j++) {
+    for(int i=0; i<k_-1; i++) {
+        shares[i].reserve(numSlices);
+        for(int j=0; j<numSlices; j++) {
             CryptoPP::Integer slot(PRNG, Integer::One(), curve.GetMaxExponent());
-            shares[i].push_back(slot);
-            shares[k-1][j] -= slot;
+            shares[k_-1][j] -= slot;
+            shares[i].push_back(std::move(slot));
         }
     }
-
     // calculate the k-th share
-    for (int j = 0; j < numSlots; j++) {
-        size_t sliceSize = ((sizeMsg1 - 31 * (j) > 31) ? 31 : sizeMsg1 - 31 * (j));
-        CryptoPP::Integer slice(&msgVec[31 * j], sliceSize);
-        shares[k-1][j] += slice;
-        shares[k-1][j] = shares[k-1][j].Modulo(curve.GetSubgroupOrder());
+    for (int j = 0; j < numSlices; j++) {
+        shares[k_-1][j] += S[j];
+        shares[k_-1][j] = shares[k_-1][j].Modulo(curve.GetSubgroupOrder());
     }
-    // generate and broadcast the commitments for the first round
-    commitRoundOne(shares, msgVec);
 
-    return std::make_unique<Init>(DCNetwork_);
+    // generate and broadcast the commitments for the first round
+    commitRoundOne(shares);
+
+    // transition to round two
+    return std::make_unique<RoundTwo>(DCNetwork_);
 }
 
 
-void RoundOne::commitRoundOne(std::vector<std::vector<CryptoPP::Integer>>& shares, std::vector<uint8_t>& messageVec) {
-    size_t k = shares.size();
 
-    size_t commitSlots = shares[0].size();
-    std::vector<std::vector<std::array<uint8_t, 33>>> commitments;
-    commitments.resize(k);
-    for(auto& share : commitments)
-        share.resize(commitSlots);
+void RoundOne::commitRoundOne(std::vector<std::vector<CryptoPP::Integer>>& shares) {
+    size_t numSlices = S.size();
+    size_t encodedPointSize = curve.GetCurve().EncodedPointSize(true);
 
-    auto start = std::chrono::high_resolution_clock::now();
+    std::vector<uint8_t> commitments;
+    commitments.resize(k_ * numSlices * encodedPointSize);
+
     std::vector<std::vector<CryptoPP::Integer>> randomness;
-    randomness.resize(k);
-    for(auto& share : randomness)
-        share.reserve(commitSlots);
+    randomness.resize(k_);
+    for(auto& slice : randomness)
+        slice.reserve(numSlices);
 
+    // init R and C
+    R.resize(numSlices);
+    C.resize(numSlices);
     // measure the time it takes to generate all the commitments
-    for(int i=0; i < k; i++) {
-        for (int j=0; j < commitSlots; j++) {
+    auto start = std::chrono::high_resolution_clock::now();
+    for(int i=0; i < k_; i++) {
+        for (int j=0; j < numSlices; j++) {
             // generate the randomness r for this slice of the share
             CryptoPP::Integer r(PRNG, CryptoPP::Integer::One(), curve.GetMaxExponent());
-            //randomness[i][j] = std::move(r);
+            R[j] += r;
             randomness[i].push_back(std::move(r));
+
+            // generate the commitment for the j-th slice of the i-th share
             CryptoPP::ECPPoint rG = curve.GetCurve().ScalarMultiply(G, randomness[i][j]);
             CryptoPP::ECPPoint xH = curve.GetCurve().ScalarMultiply(H, shares[i][j]);
-            CryptoPP::ECPPoint C = curve.GetCurve().Add(rG, xH);
+            CryptoPP::ECPPoint commitment = curve.GetCurve().Add(rG, xH);
 
-            // compress the commitment to 33 bytes
-            curve.GetCurve().EncodePoint(commitments[i][j].data(), C, true);
+            // compress the commitment and store in the given position in the vector
+            size_t offset = (i * numSlices + j) * encodedPointSize;
+            curve.GetCurve().EncodePoint(&commitments[offset], commitment, true);
+            // store the commitment
+            C[j] = curve.GetCurve().Add(C[j], commitment);
         }
     }
 
@@ -127,28 +131,53 @@ void RoundOne::commitRoundOne(std::vector<std::vector<CryptoPP::Integer>>& share
         std::cout << "Finished in: " << duration.count() << std::endl;
     }
 
-    validateCommitments(messageVec, shares, randomness, commitments);
+    /*
+    for(uint8_t c : commitments)
+        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) c;
+    std::cout << std::endl;
+    */
+
+    // TODO change to DC internal broadcast
+    OutgoingMessage commitBroadcast(BROADCAST, CommitmentRoundOne, commitments);
+    DCNetwork_.outbox().push(std::make_shared<OutgoingMessage>(commitBroadcast));
+
+    bool valid = processCommitments();
+    //std::vector<std::vector<std::array<uint8_t, 33>>> commitmentsTest;
+    //validateCommitments(shares, commitmentsTest);
 }
 
-void RoundOne::validateCommitments(std::vector<uint8_t>& messageVec,
-        std::vector<std::vector<CryptoPP::Integer>>& shares,
-        std::vector<std::vector<CryptoPP::Integer>>& randomness,
+bool RoundOne::processCommitments() {
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        std::cout << "Waiting for commitments" << std::endl;
+    }
+    size_t remainingCommitments = k_ -1;
+    while(remainingCommitments > 0) {
+        auto commitBroadcast = DCNetwork_.inbox().pop();
+        if (commitBroadcast->msgType() != CommitmentRoundOne) {
+            std::lock_guard<std::mutex> lock(mutex_);
+            std::cout << "Inappropriate message received: " << (int) commitBroadcast->msgType() << std::endl;
+        }
+        remainingCommitments--;
+    }
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        std::cout << "All commitments received" << std::endl;
+    }
+}
+
+
+
+void RoundOne::validateCommitments(std::vector<std::vector<CryptoPP::Integer>>& shares,
         std::vector<std::vector<std::array<uint8_t, 33>>>& commitments) {
 
-    size_t sizeMsg1 = messageVec.size();
-    // resize initialize all integers with zero
+    // resize initialize the slices with zeroes
     std::vector<CryptoPP::Integer> S;
     S.resize(shares[0].size());
-
-    // resize initialize all integers with zero
-    std::vector<CryptoPP::Integer> R;
-    R.resize(randomness[0].size());
-    std::cout << randomness[0].size() << std::endl;
 
     for(int i=0; i<shares.size(); i++) {
         for(int j=0; j<shares[0].size(); j++) {
             S[j] += shares[i][j];
-            R[j] += randomness[i][j];
         }
     }
 
@@ -194,10 +223,10 @@ void RoundOne::validateCommitments(std::vector<uint8_t>& messageVec,
 
     std::cout << "Added Shares" << std::endl;
     std::vector<uint8_t> reconstructedMessage;
-    reconstructedMessage.resize(sizeMsg1);
+    reconstructedMessage.resize(msgVector_.size());
 
     for(int i=0; i < S.size(); i++) {
-        size_t sliceSize = ((sizeMsg1 - 31*i > 31) ? 31 : sizeMsg1 - 31*i);
+        size_t sliceSize = ((msgVector_.size() - 31*i > 31) ? 31 : msgVector_.size() - 31*i);
         S[i].Encode(&reconstructedMessage[31*i], sliceSize);
     }
 
@@ -206,9 +235,43 @@ void RoundOne::validateCommitments(std::vector<uint8_t>& messageVec,
     }
     std::cout << std::endl;
     std::cout << "Original" << std::endl;
-    for(uint8_t c : messageVec)
+    for(uint8_t c : msgVector_)
         std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) c;
     std::cout <<std::endl << std::endl;
     std::cout << "Done!" << std::endl;
-
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

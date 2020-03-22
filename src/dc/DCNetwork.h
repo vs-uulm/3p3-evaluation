@@ -1,7 +1,7 @@
 #ifndef THREEPP_DCNETWORK_H
 #define THREEPP_DCNETWORK_H
 
-#include <unordered_map>
+#include <map>
 #include <cstdlib>
 #include <cryptopp/ecp.h>
 #include <cryptopp/eccrypto.h>
@@ -24,13 +24,13 @@ class DCNetwork {
 public:
     DCNetwork(uint32_t nodeID, size_t k, MessageQueue<ReceivedMessage>& inbox, MessageQueue<OutgoingMessage>& outbox);
 
-    std::unordered_map<uint32_t, uint32_t>& members();
+    std::map<uint32_t, uint32_t>& members();
 
     MessageQueue<ReceivedMessage>& inbox();
 
     MessageQueue<OutgoingMessage>& outbox();
 
-    MessageQueue<std::vector<uint8_t>>& submittedMessages();
+    std::queue<std::vector<uint8_t>>& submittedMessages();
 
     uint32_t nodeID();
 
@@ -46,13 +46,13 @@ private:
     size_t k_;
 
     // mapping the nodeIDs to the connectionIDs
-    std::unordered_map<uint32_t, uint32_t> members_;
+    std::map<uint32_t, uint32_t> members_;
 
     MessageQueue<ReceivedMessage>& inbox_;
 
     MessageQueue<OutgoingMessage>& outbox_;
 
-    MessageQueue<std::vector<uint8_t>> submittedMessages_;
+    std::queue<std::vector<uint8_t>> submittedMessages_;
 
     // current state of the DC network
     std::unique_ptr<DCState> state_;

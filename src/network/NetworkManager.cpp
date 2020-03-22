@@ -5,7 +5,7 @@
 
 NetworkManager::NetworkManager(io_context& io_context, uint16_t port, MessageQueue<ReceivedMessage>& inbox)
 : io_context_(io_context), ssl_context_(ssl::context::sslv23), inbox_(inbox),
-  maxConnectionID(0), acceptor_(io_context, tcp::endpoint(tcp::v4(), port)) {
+  maxConnectionID_(0), acceptor_(io_context, tcp::endpoint(tcp::v4(), port)) {
 
     ssl_context_.set_options(ssl::context::default_workarounds |
                              ssl::context::no_sslv2 |
@@ -20,8 +20,8 @@ void NetworkManager::start_accept() {
     uint32_t connectionID;
     {
         std::lock_guard<std::mutex> lock(mutex_);
-        connectionID = maxConnectionID;
-        maxConnectionID++;
+        connectionID = maxConnectionID_;
+        maxConnectionID_++;
     }
     auto new_connection = std::make_shared<P2PConnection>(connectionID, io_context_, ssl_context_, inbox_);
     acceptor_.async_accept(new_connection->socket().lowest_layer(),
@@ -43,8 +43,8 @@ uint32_t NetworkManager::addNeighbor(uint32_t nodeID, const Node &node) {
     uint32_t connectionID;
     {
         std::lock_guard<std::mutex> lock(mutex_);
-        connectionID = maxConnectionID;
-        maxConnectionID++;
+        connectionID = maxConnectionID_;
+        maxConnectionID_++;
     }
     auto connection = std::make_shared<P2PConnection>(connectionID, io_context_, ssl_context_, inbox_);
     int retry_count = 3;
@@ -68,12 +68,14 @@ uint32_t NetworkManager::addNeighbor(uint32_t nodeID, const Node &node) {
 }
 
 int NetworkManager::sendMessage(OutgoingMessage& msg) {
-    if(msg.receiverID() == -1) {
+    if(msg.receiverID() == BROADCAST) {
         for (auto& connection : connections_) {
             if (connection.second->is_open()) {
                 connection.second->send_msg(msg);
             }
         }
+    } else if(msg.receiverID() == DC_NET) {
+        std::cout << "Warning: DC Broadcast not implemented yet" << std::endl;
     } else {
         if (!connections_[msg.receiverID()]->is_open())
             return -1;

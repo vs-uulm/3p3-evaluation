@@ -24,7 +24,7 @@ add_executable(
         src/datastruct/MessageType.h
         src/dc/DCState.h
         src/datastruct/NetworkMessage.cpp
-        src/dc/RoundOne.cpp src/dc/RoundOne.h)
+        src/dc/RoundOne.cpp src/dc/RoundOne.h src/dc/RoundTwo.cpp src/dc/RoundTwo.h)
 
 target_link_libraries(
         threePP
