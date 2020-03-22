@@ -38,6 +38,7 @@ target_link_libraries(
 add_executable(
         cryptoTest
         src/test/CryptoTest.cpp
+        src/datastruct/NetworkMessage.cpp
 )
 
 target_link_libraries(

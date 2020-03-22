@@ -15,9 +15,9 @@ class OutgoingMessage : public NetworkMessage {
 public:
     OutgoingMessage();
 
-    OutgoingMessage(uint32_t receiverID, uint8_t msg_type);
+    OutgoingMessage(uint32_t receiverID, uint8_t msg_type, uint32_t senderID);
 
-    OutgoingMessage(uint32_t receiverID, uint8_t msg_type, std::vector<uint8_t>& body);
+    OutgoingMessage(uint32_t receiverID, uint8_t msg_type, uint32_t senderID, std::vector<uint8_t>& body);
 
     uint32_t receiverID();
 

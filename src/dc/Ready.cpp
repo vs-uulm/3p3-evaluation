@@ -38,14 +38,14 @@ std::unique_ptr<DCState> Ready::executeTask() {
             }
         }
         // the loop is terminated when all members of the DC network are ready
-        OutgoingMessage startDCRound(BROADCAST, StartDCRound);
+        OutgoingMessage startDCRound(BROADCAST, StartDCRound, DCNetwork_.nodeID());
         DCNetwork_.outbox().push(std::make_shared<OutgoingMessage>(startDCRound));
     }
     else {
         uint32_t groupManager = DCNetwork_.members().at(minimumID);
 
         // send a ready message
-        OutgoingMessage readyMessage(groupManager, ReadyMessage);
+        OutgoingMessage readyMessage(groupManager, ReadyMessage, DCNetwork_.nodeID());
         DCNetwork_.outbox().push(std::make_shared<OutgoingMessage>(readyMessage));
 
         // wait for the round start message

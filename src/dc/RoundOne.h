@@ -16,7 +16,7 @@ public:
     virtual std::unique_ptr<DCState> executeTask();
 
 private:
-    void commitRoundOne(std::vector<std::vector<CryptoPP::Integer>>& shares);
+    void phaseOne(std::vector<std::vector<CryptoPP::Integer>>& shares);
 
     void broadcastCommitments(std::vector<std::vector<std::array<uint8_t, 33>>>& commitments);
 
@@ -35,6 +35,8 @@ private:
     size_t k_;
 
     std::vector<uint8_t> msgVector_;
+
+    std::unordered_map<uint32_t, std::vector<std::vector<CryptoPP::ECPPoint>>> commitments_;
 
     // sum of all shares
     std::vector<CryptoPP::Integer> S;

@@ -8,16 +8,18 @@ class NetworkMessage {
 public:
     NetworkMessage();
 
-    NetworkMessage(uint8_t msg_type);
+    NetworkMessage(uint8_t msgType, uint32_t senderID);
 
-    NetworkMessage(uint8_t msg_type, std::vector<uint8_t>& body);
+    NetworkMessage(uint8_t msgType, uint32_t senderID, std::vector<uint8_t>& body);
 
-    std::array<uint8_t, 4>& header();
+    std::array<uint8_t, 8>& header();
 
     std::vector<uint8_t>& body();
 
+    uint32_t senderID();
+
 protected:
-    std::array<uint8_t, 4> header_;
+    std::array<uint8_t, 8> header_;
 
     std::vector<uint8_t> body_;
 };

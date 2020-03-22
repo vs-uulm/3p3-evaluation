@@ -24,27 +24,59 @@ CryptoPP::Hash_DRBG<> DRNG;
 /* Test program used to generate two EC points G and H which are
  * required for the EC Pedersen Commitments */
 int main() {
-    size_t k = pow(2, 24);
-    std::vector<uint8_t> vector1;
-    vector1.resize(k);
+    unsigned N = pow(2, 16);
+    CryptoPP::AutoSeededRandomPool PRNG;
+    CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> ec_group1;
+    ec_group1.Initialize(CryptoPP::ASN1::secp256k1());
 
+    CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> ec_group2;
+    ec_group2.Initialize(CryptoPP::ASN1::secp256r1());
+
+    std::vector<CryptoPP::Integer> int256;
+    int256.reserve(N);
+    std::vector<CryptoPP::ECPPoint> result256;
+    result256.reserve(N);
+    for(int i=0; i < N; i++) {
+        CryptoPP::Integer randomInt(PRNG, CryptoPP::Integer::One(), ec_group1.GetMaxExponent());
+        int256.push_back(std::move(randomInt));
+    }
+
+    std::vector<CryptoPP::Integer> int521;
+    int521.reserve(N);
+    std::vector<CryptoPP::ECPPoint> result521;
+    result521.reserve(N);
+    for(int i=0; i < N; i++) {
+        CryptoPP::Integer randomInt(PRNG, CryptoPP::Integer::One(), ec_group2.GetMaxExponent());
+        int521.push_back(std::move(randomInt));
+    }
+
+
+    CryptoPP::Integer seed(PRNG, CryptoPP::Integer::One(), ec_group1.GetMaxExponent());
+    CryptoPP::ECPPoint basePoint1 = ec_group1.ExponentiateBase(seed);
+    // 256 Bit curve
     auto start = std::chrono::high_resolution_clock::now();
-    auto first = std::make_shared<std::vector<uint8_t>>(vector1);
+    for(int i=0; i < N; i++) {
+        CryptoPP::ECPPoint result = ec_group1.GetCurve().ScalarMultiply(basePoint1, int256[i]);
+        result256.push_back(std::move(result));
+    }
     auto finish = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> duration = finish - start;
-    std::cout << "Copy: " << duration.count() << std::endl;
+    std::cout << "Finished in: " << duration.count() << std::endl;
 
 
+    CryptoPP::Integer seed2(PRNG, CryptoPP::Integer::One(), ec_group2.GetMaxExponent());
+    CryptoPP::ECPPoint basePoint2 = ec_group2.ExponentiateBase(seed2);
+    // 521 Bit curve
     start = std::chrono::high_resolution_clock::now();
-    first = std::make_shared<std::vector<uint8_t>>(std::move(vector1));
+    for(int i=0; i < N; i++) {
+        CryptoPP::ECPPoint result = ec_group2.GetCurve().ScalarMultiply(basePoint2, int521[i]);
+        result521.push_back(std::move(result));
+    }
     finish = std::chrono::high_resolution_clock::now();
     duration = finish - start;
-    std::cout << "Move: " << duration.count() << std::endl;
-    /*
-    CryptoPP::AutoSeededRandomPool PRNG;
-    CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> ec_group;
-    ec_group.Initialize(CryptoPP::ASN1::secp256k1());
+    std::cout << "Finished in: " << duration.count() << std::endl;
 
+    /*
     size_t b = 32;
     CryptoPP::AutoSeededRandomPool PRNG;
     CryptoPP::byte seed[b];

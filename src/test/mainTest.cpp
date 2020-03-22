@@ -11,7 +11,7 @@
 
 std::vector<Node> Nodes;
 
-unsigned INSTANCES = 4;
+unsigned INSTANCES = 6;
 
 void instance(int ID) {
     MessageQueue<ReceivedMessage> inbox;

@@ -28,8 +28,8 @@ void MessageHandler::run() {
 
 void MessageHandler::createHelloResponse(std::shared_ptr<ReceivedMessage>& helloMsg) {
     // create a response that contains the own nodeID
-    std::vector<uint8_t> nodeIDVector(reinterpret_cast<uint8_t*>(&nodeID_),
-                                      reinterpret_cast<uint8_t*>(&nodeID_) + sizeof(uint32_t));
-    OutgoingMessage response(helloMsg->connectionID(), HelloResponse, nodeIDVector);
+    //std::vector<uint8_t> nodeIDVector(reinterpret_cast<uint8_t*>(&nodeID_),
+      //                                reinterpret_cast<uint8_t*>(&nodeID_) + sizeof(uint32_t));
+    OutgoingMessage response(helloMsg->connectionID(), HelloResponse, nodeID_);
     outbox_.push(std::make_shared<OutgoingMessage>(response));
 }

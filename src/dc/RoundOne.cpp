@@ -78,7 +78,7 @@ std::unique_ptr<DCState> RoundOne::executeTask() {
     }
 
     // generate and broadcast the commitments for the first round
-    commitRoundOne(shares);
+    phaseOne(shares);
 
     // transition to round two
     return std::make_unique<RoundTwo>(DCNetwork_);
@@ -86,7 +86,7 @@ std::unique_ptr<DCState> RoundOne::executeTask() {
 
 
 
-void RoundOne::commitRoundOne(std::vector<std::vector<CryptoPP::Integer>>& shares) {
+void RoundOne::phaseOne(std::vector<std::vector<CryptoPP::Integer>>& shares) {
     size_t numSlices = S.size();
     size_t encodedPointSize = curve.GetCurve().EncodedPointSize(true);
 
@@ -101,6 +101,7 @@ void RoundOne::commitRoundOne(std::vector<std::vector<CryptoPP::Integer>>& share
     // init R and C
     R.resize(numSlices);
     C.resize(numSlices);
+
     // measure the time it takes to generate all the commitments
     auto start = std::chrono::high_resolution_clock::now();
     for(int i=0; i < k_; i++) {
@@ -128,17 +129,11 @@ void RoundOne::commitRoundOne(std::vector<std::vector<CryptoPP::Integer>>& share
 
     {
         std::lock_guard<std::mutex> lock(mutex_);
-        std::cout << "Finished in: " << duration.count() << std::endl;
+        std::cout << "Commitment generation finished in: " << duration.count() << std::endl;
     }
 
-    /*
-    for(uint8_t c : commitments)
-        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) c;
-    std::cout << std::endl;
-    */
-
     // TODO change to DC internal broadcast
-    OutgoingMessage commitBroadcast(BROADCAST, CommitmentRoundOne, commitments);
+    OutgoingMessage commitBroadcast(BROADCAST, CommitmentRoundOne, DCNetwork_.nodeID(), commitments);
     DCNetwork_.outbox().push(std::make_shared<OutgoingMessage>(commitBroadcast));
 
     bool valid = processCommitments();
@@ -154,9 +149,32 @@ bool RoundOne::processCommitments() {
     size_t remainingCommitments = k_ -1;
     while(remainingCommitments > 0) {
         auto commitBroadcast = DCNetwork_.inbox().pop();
+
         if (commitBroadcast->msgType() != CommitmentRoundOne) {
             std::lock_guard<std::mutex> lock(mutex_);
             std::cout << "Inappropriate message received: " << (int) commitBroadcast->msgType() << std::endl;
+        } else {
+            // extract and store the commitments
+            std::vector<uint8_t>& commitments = commitBroadcast->body();
+            size_t numSlices = S.size();
+            size_t encodedPointSize = curve.GetCurve().EncodedPointSize(true);
+
+            std::vector<std::vector<CryptoPP::ECPPoint>> commitmentMatrix;
+            commitmentMatrix.resize(k_);
+            for(auto& share : commitmentMatrix)
+                share.reserve(numSlices);
+
+            // decompress all the points
+            for(int i=0; i < k_; i++) {
+                for (int j = 0; j < numSlices; j++) {
+                    size_t offset = (i * numSlices + j) * encodedPointSize;
+                    CryptoPP::ECPPoint commitment;
+                    curve.GetCurve().DecodePoint(commitment, &commitments[offset], encodedPointSize);
+                    commitmentMatrix[i].push_back(std::move(commitment));
+                }
+            }
+            // Store the decompressed points
+            commitments_.insert(std::pair(commitBroadcast->senderID(), std::move(commitmentMatrix)));
         }
         remainingCommitments--;
     }
@@ -171,7 +189,9 @@ bool RoundOne::processCommitments() {
 void RoundOne::validateCommitments(std::vector<std::vector<CryptoPP::Integer>>& shares,
         std::vector<std::vector<std::array<uint8_t, 33>>>& commitments) {
 
-    // resize initialize the slices with zeroes
+    // TODO redo
+
+    // initialize the slices with zeroes
     std::vector<CryptoPP::Integer> S;
     S.resize(shares[0].size());
 

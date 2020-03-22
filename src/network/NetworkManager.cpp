@@ -57,9 +57,9 @@ uint32_t NetworkManager::addNeighbor(uint32_t nodeID, const Node &node) {
     }
 
     // a hello message is sent to introduce the node to the new neighbor
-    std::vector<uint8_t> nodeIDVector(reinterpret_cast<uint8_t*>(&nodeID),
-            reinterpret_cast<uint8_t*>(&nodeID) + sizeof(uint32_t));
-    NetworkMessage helloMessage(0, nodeIDVector);
+    //std::vector<uint8_t> nodeIDVector(reinterpret_cast<uint8_t*>(&nodeID),
+      //      reinterpret_cast<uint8_t*>(&nodeID) + sizeof(uint32_t));
+    NetworkMessage helloMessage(0, nodeID);
 
     connection->send_msg(helloMessage);
     connections_.insert(std::pair(connection->connectionID(), connection));
