@@ -18,6 +18,8 @@ void MessageHandler::run() {
             case ReadyMessage:
             case StartDCRound:
             case CommitmentRoundOne:
+            case SharingOneRoundOne:
+            case SharingTwoRoundOne:
                 inboxDCNet_.push(receivedMessage);
                 break;
             default:

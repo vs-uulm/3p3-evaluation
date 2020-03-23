@@ -16,14 +16,15 @@ public:
     virtual std::unique_ptr<DCState> executeTask();
 
 private:
-    void phaseOne(std::vector<std::vector<CryptoPP::Integer>>& shares);
+    void phaseOneTwo(std::vector<std::vector<CryptoPP::Integer>>& shares, size_t numSlices);
 
-    void broadcastCommitments(std::vector<std::vector<std::array<uint8_t, 33>>>& commitments);
+    void phaseThree(size_t numSlices);
 
-    bool processCommitments();
+    void phaseFour(size_t numSlices);
 
-    void validateCommitments(std::vector<std::vector<CryptoPP::Integer>>& shares,
-                                std::vector<std::vector<std::array<uint8_t, 33>>>& commitments);
+    void collectCommitments();
+
+    bool validateCommitments();
 
     void addShares(std::vector<std::vector<CryptoPP::Integer>>);
 
