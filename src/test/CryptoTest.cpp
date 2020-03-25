@@ -1,17 +1,10 @@
-#include <iostream>
-
 #include <cryptopp/eccrypto.h>
 #include <cryptopp/ecpoint.h>
 #include <cryptopp/asn.h>
 #include <cryptopp/oids.h>
 #include <cryptopp/osrng.h>
 #include <cryptopp/drbg.h>
-#include <boost/asio/detail/array.hpp>
-#include <iomanip>
-#include <bitset>
-#include <valarray>
-#include "../datastruct/NetworkMessage.h"
-#include "../datastruct/MessageType.h"
+#include <iostream>
 
 const CryptoPP::ECPPoint G(CryptoPP::Integer("362dc3caf8a0e8afd06f454a6da0cdce6e539bc3f15e79a15af8aa842d7e3ec2h"),
                             CryptoPP::Integer("b9f8addb295b0fd4d7c49a686eac7b34a9a11ed2d6d243ad065282dc13bce575h"));
@@ -21,61 +14,31 @@ const CryptoPP::ECPPoint H(CryptoPP::Integer("a3cf0a4b6e1d9146c73e9a82e4bfdc37ee
 
 CryptoPP::Hash_DRBG<> DRNG;
 
-/* Test program used to generate two EC points G and H which are
- * required for the EC Pedersen Commitments */
 int main() {
-    unsigned N = pow(2, 16);
+    CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> ec_group;
+    ec_group.Initialize(CryptoPP::ASN1::secp256k1());
+
     CryptoPP::AutoSeededRandomPool PRNG;
-    CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> ec_group1;
-    ec_group1.Initialize(CryptoPP::ASN1::secp256k1());
 
-    CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> ec_group2;
-    ec_group2.Initialize(CryptoPP::ASN1::secp256r1());
+    CryptoPP::Integer seed(PRNG, CryptoPP::Integer::One(), ec_group.GetMaxExponent());
 
-    std::vector<CryptoPP::Integer> int256;
-    int256.reserve(N);
-    std::vector<CryptoPP::ECPPoint> result256;
-    result256.reserve(N);
-    for(int i=0; i < N; i++) {
-        CryptoPP::Integer randomInt(PRNG, CryptoPP::Integer::One(), ec_group1.GetMaxExponent());
-        int256.push_back(std::move(randomInt));
-    }
+    CryptoPP::ECPPoint empty;
 
-    std::vector<CryptoPP::Integer> int521;
-    int521.reserve(N);
-    std::vector<CryptoPP::ECPPoint> result521;
-    result521.reserve(N);
-    for(int i=0; i < N; i++) {
-        CryptoPP::Integer randomInt(PRNG, CryptoPP::Integer::One(), ec_group2.GetMaxExponent());
-        int521.push_back(std::move(randomInt));
-    }
+    CryptoPP::ECPPoint point1 = ec_group.ExponentiateBase(seed);
+    CryptoPP::ECPPoint point2 = ec_group.GetCurve().ScalarMultiply(point1, seed);
+    CryptoPP::ECPPoint point3 = ec_group.GetCurve().ScalarMultiply(point2, seed);
 
+    CryptoPP::ECPPoint test1 = ec_group.GetCurve().Add(empty, point1);
+    test1 = ec_group.GetCurve().Add(test1, point2);
+    test1 = ec_group.GetCurve().Add(test1, point3);
+    std::cout << "First" << std::endl;
+    std::cout << std::hex << test1.x << std::endl << test1.y << std::endl << std::endl;
 
-    CryptoPP::Integer seed(PRNG, CryptoPP::Integer::One(), ec_group1.GetMaxExponent());
-    CryptoPP::ECPPoint basePoint1 = ec_group1.ExponentiateBase(seed);
-    // 256 Bit curve
-    auto start = std::chrono::high_resolution_clock::now();
-    for(int i=0; i < N; i++) {
-        CryptoPP::ECPPoint result = ec_group1.GetCurve().ScalarMultiply(basePoint1, int256[i]);
-        result256.push_back(std::move(result));
-    }
-    auto finish = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> duration = finish - start;
-    std::cout << "Finished in: " << duration.count() << std::endl;
-
-
-    CryptoPP::Integer seed2(PRNG, CryptoPP::Integer::One(), ec_group2.GetMaxExponent());
-    CryptoPP::ECPPoint basePoint2 = ec_group2.ExponentiateBase(seed2);
-    // 521 Bit curve
-    start = std::chrono::high_resolution_clock::now();
-    for(int i=0; i < N; i++) {
-        CryptoPP::ECPPoint result = ec_group2.GetCurve().ScalarMultiply(basePoint2, int521[i]);
-        result521.push_back(std::move(result));
-    }
-    finish = std::chrono::high_resolution_clock::now();
-    duration = finish - start;
-    std::cout << "Finished in: " << duration.count() << std::endl;
-
+    CryptoPP::ECPPoint test2 = ec_group.GetCurve().Add(empty, point3);
+    test2 = ec_group.GetCurve().Add(test2, point2);
+    test2 = ec_group.GetCurve().Add(test2, point1);
+    std::cout << "second" << std::endl;
+    std::cout << std::hex << test2.x << std::endl << test2.y << std::endl << std::endl;
     /*
     size_t b = 32;
     CryptoPP::AutoSeededRandomPool PRNG;

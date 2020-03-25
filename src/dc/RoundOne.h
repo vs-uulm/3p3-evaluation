@@ -22,13 +22,7 @@ private:
 
     void phaseFour(size_t numSlices);
 
-    void collectCommitments();
-
-    bool validateCommitments();
-
-    void addShares(std::vector<std::vector<CryptoPP::Integer>>);
-
-    void addRandomness(std::vector<std::vector<CryptoPP::Integer>>);
+    void printMessageVector(std::vector<uint8_t>& msgVector);
 
     DCNetwork& DCNetwork_;
 
@@ -37,6 +31,7 @@ private:
 
     std::vector<uint8_t> msgVector_;
 
+    // initial commitments stored with the corresponding senderID
     std::unordered_map<uint32_t, std::vector<std::vector<CryptoPP::ECPPoint>>> commitments_;
 
     // sum of all shares

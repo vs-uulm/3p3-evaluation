@@ -8,7 +8,8 @@ enum MessageType {
     StartDCRound,
     CommitmentRoundOne,
     SharingOneRoundOne,
-    SharingTwoRoundOne
+    SharingTwoRoundOne,
+    BlameMessage
 };
 
 #endif //THREEPP_MESSAGETYPE_H
