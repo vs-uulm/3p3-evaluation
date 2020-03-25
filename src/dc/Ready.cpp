@@ -54,5 +54,5 @@ std::unique_ptr<DCState> Ready::executeTask() {
             std::cout << "inappropriate message received" << std::endl;
     }
     // perform a state transition
-    return std::make_unique<RoundOne>(DCNetwork_);
+    return std::make_unique<RoundOne>(DCNetwork_, true);
 }

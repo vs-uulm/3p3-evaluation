@@ -9,7 +9,7 @@
 
 class RoundOne : public DCState {
 public:
-    RoundOne(DCNetwork& DCNet);
+    RoundOne(DCNetwork& DCNet, bool securedRound);
 
     virtual ~RoundOne();
 
@@ -25,6 +25,9 @@ private:
     void printMessageVector(std::vector<uint8_t>& msgVector);
 
     DCNetwork& DCNetwork_;
+
+    // determines if the commitment mechanism is used
+    bool securedRound_;
 
     // DCNetwork size
     size_t k_;

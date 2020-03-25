@@ -9,11 +9,13 @@
 
 std::mutex mutex_;
 
-RoundOne::RoundOne(DCNetwork& DCNet) : DCNetwork_(DCNet) {
+RoundOne::RoundOne(DCNetwork& DCNet, bool securedRound)
+: DCNetwork_(DCNet), k_(DCNetwork_.members().size()), securedRound_(securedRound) {
     curve.Initialize(CryptoPP::ASN1::secp256k1());
-    k_ = DCNetwork_.members().size();
-
-    msgVector_.resize(2*k_ * (4 + 32*k_));
+    if(securedRound)
+        msgVector_.resize(2*k_ * (4 + 32*k_));
+    else
+        msgVector_.resize(8*k_);
 }
 
 RoundOne::~RoundOne() {}
@@ -46,7 +48,8 @@ std::unique_ptr<DCState> RoundOne::executeTask() {
 
         // generate k random K values used as seeds
         // for the commitments in the second round
-        PRNG.GenerateBlock(&msgVector_[8*k_ + p * 32*k_], 32*k_);
+        if(securedRound_)
+            PRNG.GenerateBlock(&msgVector_[8*k_ + p * 32*k_], 32*k_);
     }
 
     // Split the message vector into slices of 31 Bytes
@@ -107,107 +110,109 @@ std::unique_ptr<DCState> RoundOne::executeTask() {
 }
 
 void RoundOne::phaseOneTwo(std::vector<std::vector<CryptoPP::Integer>>& shares, size_t numSlices) {
-    size_t encodedPointSize = curve.GetCurve().EncodedPointSize(true);
-
-    std::vector<uint8_t> commitments;
-    commitments.resize(k_ * numSlices * encodedPointSize);
-
     std::vector<std::vector<CryptoPP::Integer>> rVector;
-    rVector.resize(k_);
-    for(auto& slice : rVector)
-        slice.reserve(numSlices);
+    if(securedRound_) {
+        size_t encodedPointSize = curve.GetCurve().EncodedPointSize(true);
 
-    // init C
-    C.resize(numSlices);
+        std::vector<uint8_t> commitments;
+        commitments.resize(k_ * numSlices * encodedPointSize);
 
-    std::vector<std::vector<CryptoPP::ECPPoint>> commitmentMatrix;
-    commitmentMatrix.resize(k_);
-    for(auto& share : commitmentMatrix)
-        share.reserve(numSlices);
+        rVector.resize(k_);
+        for (auto &slice : rVector)
+            slice.reserve(numSlices);
 
-    // measure the time it takes to generate all the commitments
-    auto start = std::chrono::high_resolution_clock::now();
-    for(int i=0; i < k_; i++) {
-        for(int j=0; j < numSlices; j++) {
-            // generate the random value r for this slice of the share
-            CryptoPP::Integer r(PRNG, CryptoPP::Integer::One(), curve.GetMaxExponent());
-            rVector[i].push_back(std::move(r));
+        // init C
+        C.resize(numSlices);
 
-            // generate the commitment for the j-th slice of the i-th share
-            CryptoPP::ECPPoint rG = curve.GetCurve().ScalarMultiply(G, rVector[i][j]);
-            CryptoPP::ECPPoint xH = curve.GetCurve().ScalarMultiply(H, shares[i][j]);
-            CryptoPP::ECPPoint commitment = curve.GetCurve().Add(rG, xH);
+        std::vector<std::vector<CryptoPP::ECPPoint>> commitmentMatrix;
+        commitmentMatrix.resize(k_);
+        for (auto &share : commitmentMatrix)
+            share.reserve(numSlices);
 
-            // store the commitment
-            commitmentMatrix[i].push_back(std::move(commitment));
+        // measure the time it takes to generate all the commitments
+        auto start = std::chrono::high_resolution_clock::now();
+        for (int i = 0; i < k_; i++) {
+            for (int j = 0; j < numSlices; j++) {
+                // generate the random value r for this slice of the share
+                CryptoPP::Integer r(PRNG, CryptoPP::Integer::One(), curve.GetMaxExponent());
+                rVector[i].push_back(std::move(r));
 
-            // compress the commitment and store in the given position in the vector
-            size_t offset = (i * numSlices + j) * encodedPointSize;
-            curve.GetCurve().EncodePoint(&commitments[offset], commitmentMatrix[i][j], true);
+                // generate the commitment for the j-th slice of the i-th share
+                CryptoPP::ECPPoint rG = curve.GetCurve().ScalarMultiply(G, rVector[i][j]);
+                CryptoPP::ECPPoint xH = curve.GetCurve().ScalarMultiply(H, shares[i][j]);
+                CryptoPP::ECPPoint commitment = curve.GetCurve().Add(rG, xH);
 
-            // Add the commitment to the sum C
-            C[j] = curve.GetCurve().Add(C[j], commitmentMatrix[i][j]);
-        }
-    }
+                // store the commitment
+                commitmentMatrix[i].push_back(std::move(commitment));
 
-    // store the commitment matrix
-    commitments_.insert(std::pair(DCNetwork_.nodeID(), std::move(commitmentMatrix)));
+                // compress the commitment and store in the given position in the vector
+                size_t offset = (i * numSlices + j) * encodedPointSize;
+                curve.GetCurve().EncodePoint(&commitments[offset], commitmentMatrix[i][j], true);
 
-    auto finish = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> duration = finish - start;
-
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        std::cout << "Commitment generation finished in: " << duration.count() << "s" << std::endl;
-    }
-
-    // store the random values used for the Commitments of the own share
-    R.resize(numSlices);
-
-    // get the index of the own share by checking the position of the local nodeID in the member list
-    int index = std::distance(DCNetwork_.members().begin(), DCNetwork_.members().find(DCNetwork_.nodeID()));
-    for(int j=0; j<numSlices; j++) {
-        R[j] = rVector[index][j];
-    }
-
-    // broadcast the commitments
-    // TODO change to DC Network broadcast
-    OutgoingMessage commitBroadcast(BROADCAST, CommitmentRoundOne, DCNetwork_.nodeID(), commitments);
-    DCNetwork_.outbox().push(std::make_shared<OutgoingMessage>(commitBroadcast));
-
-    // collect the commitments from the other k-1 members
-    while(commitments_.size() < k_) {
-        auto commitBroadcast = DCNetwork_.inbox().pop();
-
-        if (commitBroadcast->msgType() != CommitmentRoundOne) {
-            std::lock_guard<std::mutex> lock(mutex_);
-            std::cout << "Inappropriate message received: " << (int) commitBroadcast->msgType() << std::endl;
-            DCNetwork_.inbox().push(commitBroadcast);
-            std::this_thread::sleep_for(std::chrono::milliseconds(20));
-        } else {
-            // extract and store the commitments
-            std::vector<uint8_t>& commitments = commitBroadcast->body();
-            size_t numSlices = S.size();
-            size_t encodedPointSize = curve.GetCurve().EncodedPointSize(true);
-
-            std::vector<std::vector<CryptoPP::ECPPoint>> commitmentMatrix;
-            commitmentMatrix.resize(k_);
-            for(auto& share : commitmentMatrix)
-                share.reserve(numSlices);
-
-            // decompress all the points
-            for(int i=0; i < k_; i++) {
-                for (int j = 0; j < numSlices; j++) {
-                    size_t offset = (i * numSlices + j) * encodedPointSize;
-                    CryptoPP::ECPPoint commitment;
-                    curve.GetCurve().DecodePoint(commitment, &commitments[offset], encodedPointSize);
-                    commitmentMatrix[i].push_back(std::move(commitment));
-
-                    C[j] = curve.GetCurve().Add(C[j], commitment);
-                }
+                // Add the commitment to the sum C
+                C[j] = curve.GetCurve().Add(C[j], commitmentMatrix[i][j]);
             }
-            // Store the decompressed points
-            commitments_.insert(std::pair(commitBroadcast->senderID(), std::move(commitmentMatrix)));
+        }
+
+        // store the commitment matrix
+        commitments_.insert(std::pair(DCNetwork_.nodeID(), std::move(commitmentMatrix)));
+
+        auto finish = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> duration = finish - start;
+
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            std::cout << "Commitment generation finished in: " << duration.count() << "s" << std::endl;
+        }
+
+        // store the random values used for the Commitments of the own share
+        R.resize(numSlices);
+
+        // get the index of the own share by checking the position of the local nodeID in the member list
+        int index = std::distance(DCNetwork_.members().begin(), DCNetwork_.members().find(DCNetwork_.nodeID()));
+        for (int j = 0; j < numSlices; j++) {
+            R[j] = rVector[index][j];
+        }
+
+        // broadcast the commitments
+        // TODO change to DC Network broadcast
+        OutgoingMessage commitBroadcast(BROADCAST, CommitmentRoundOne, DCNetwork_.nodeID(), commitments);
+        DCNetwork_.outbox().push(std::make_shared<OutgoingMessage>(commitBroadcast));
+
+        // collect the commitments from the other k-1 members
+        while (commitments_.size() < k_) {
+            auto commitBroadcast = DCNetwork_.inbox().pop();
+
+            if (commitBroadcast->msgType() != CommitmentRoundOne) {
+                std::lock_guard<std::mutex> lock(mutex_);
+                std::cout << "Inappropriate message received: " << (int) commitBroadcast->msgType() << std::endl;
+                DCNetwork_.inbox().push(commitBroadcast);
+                std::this_thread::sleep_for(std::chrono::milliseconds(20));
+            } else {
+                // extract and store the commitments
+                std::vector<uint8_t> &commitments = commitBroadcast->body();
+                size_t numSlices = S.size();
+                size_t encodedPointSize = curve.GetCurve().EncodedPointSize(true);
+
+                std::vector<std::vector<CryptoPP::ECPPoint>> commitmentMatrix;
+                commitmentMatrix.resize(k_);
+                for (auto &share : commitmentMatrix)
+                    share.reserve(numSlices);
+
+                // decompress all the points
+                for (int i = 0; i < k_; i++) {
+                    for (int j = 0; j < numSlices; j++) {
+                        size_t offset = (i * numSlices + j) * encodedPointSize;
+                        CryptoPP::ECPPoint commitment;
+                        curve.GetCurve().DecodePoint(commitment, &commitments[offset], encodedPointSize);
+                        commitmentMatrix[i].push_back(std::move(commitment));
+
+                        C[j] = curve.GetCurve().Add(C[j], commitment);
+                    }
+                }
+                // Store the decompressed points
+                commitments_.insert(std::pair(commitBroadcast->senderID(), std::move(commitmentMatrix)));
+            }
         }
     }
 
@@ -217,13 +222,20 @@ void RoundOne::phaseOneTwo(std::vector<std::vector<CryptoPP::Integer>>& shares, 
 
         if(it->second != SELF) {
             std::vector<uint8_t> rsPairs;
-            rsPairs.resize(64 * numSlices);
 
-            for (int j = 0; j < numSlices; j++) {
-                rVector[i][j].Encode(&rsPairs[j*64], 32);
-                shares[i][j].Encode(&rsPairs[j*64 + 32], 32);
+            if(securedRound_) {
+                rsPairs.resize(64 * numSlices);
+
+                for (int j = 0; j < numSlices; j++) {
+                    rVector[i][j].Encode(&rsPairs[j * 64], 32);
+                    shares[i][j].Encode(&rsPairs[j * 64 + 32], 32);
+                }
+            } else {
+                rsPairs.resize(32 * numSlices);
+                for (int j = 0; j < numSlices; j++) {
+                    shares[i][j].Encode(&rsPairs[j*32], 32);
+                }
             }
-
             OutgoingMessage rsMessage(it->second, SharingOneRoundOne, DCNetwork_.nodeID(), rsPairs);
             DCNetwork_.outbox().push(std::make_shared<OutgoingMessage>(rsMessage));
         }
@@ -243,45 +255,61 @@ void RoundOne::phaseThree(size_t numSlices) {
             std::this_thread::sleep_for(std::chrono::milliseconds(20));
         } else {
             std::vector<uint8_t>& rsPairs = rsMessage->body();
-            for (int i = 0; i < numSlices; i++) {
-                CryptoPP::Integer r;
-                CryptoPP::Integer s;
-                // extract and decode the random values and the slice of the share
-                r.Decode(&rsPairs[i*64], 32);
-                s.Decode(&rsPairs[i*64 + 32], 32);
+            if(securedRound_) {
+                for (int i = 0; i < numSlices; i++) {
+                    CryptoPP::Integer r;
+                    CryptoPP::Integer s;
+                    // extract and decode the random values and the slice of the share
+                    r.Decode(&rsPairs[i * 64], 32);
+                    s.Decode(&rsPairs[i * 64 + 32], 32);
 
-                CryptoPP::ECPPoint rG = curve.GetCurve().ScalarMultiply(G, r);
-                CryptoPP::ECPPoint xH = curve.GetCurve().ScalarMultiply(H, s);
-                CryptoPP::ECPPoint commitment = curve.GetCurve().Add(rG, xH);
+                    CryptoPP::ECPPoint rG = curve.GetCurve().ScalarMultiply(G, r);
+                    CryptoPP::ECPPoint xH = curve.GetCurve().ScalarMultiply(H, s);
+                    CryptoPP::ECPPoint commitment = curve.GetCurve().Add(rG, xH);
 
-                // verify that the commitment is valid
-                if((commitment.x != commitments_[rsMessage->senderID()][DCNetwork_.nodeID()][i].x)
-                   || (commitment.y != commitments_[rsMessage->senderID()][DCNetwork_.nodeID()][i].y)) {
+                    // verify that the commitment is valid
+                    if ((commitment.x != commitments_[rsMessage->senderID()][DCNetwork_.nodeID()][i].x)
+                        || (commitment.y != commitments_[rsMessage->senderID()][DCNetwork_.nodeID()][i].y)) {
 
-                    // TODO inject blame message
-                    std::lock_guard<std::mutex> lock(mutex_);
-                    std::cout << "Invalid commitment detected" << std::endl;
-                    break;
+                        // TODO inject blame message
+                        std::lock_guard<std::mutex> lock(mutex_);
+                        std::cout << "Invalid commitment detected" << std::endl;
+                        break;
+                    }
+
+                    R[i] += r;
+                    S[i] += s;
                 }
-
-                R[i] += r;
-                S[i] += s;
+            } else {
+                for (int i = 0; i < numSlices; i++) {
+                    CryptoPP::Integer s;
+                    s.Decode(&rsPairs[i * 32], 32);
+                    S[i] += s;
+                }
             }
         }
         remainingShares--;
     }
 
     std::vector<uint8_t> rsVector;
-    rsVector.resize(numSlices*64);
+    if(securedRound_) {
+        rsVector.resize(numSlices * 64);
 
-    for(int i=0; i<numSlices; i++) {
-        R[i] = R[i].Modulo(curve.GetSubgroupOrder());
-        R[i].Encode(&rsVector[i*64], 32);
+        for (int i = 0; i < numSlices; i++) {
+            R[i] = R[i].Modulo(curve.GetSubgroupOrder());
+            R[i].Encode(&rsVector[i * 64], 32);
 
-        S[i] = S[i].Modulo(curve.GetSubgroupOrder());
-        S[i].Encode(&rsVector[i*64 + 32], 32);
+            S[i] = S[i].Modulo(curve.GetSubgroupOrder());
+            S[i].Encode(&rsVector[i * 64 + 32], 32);
+        }
+    } else {
+        rsVector.resize(numSlices * 32);
+
+        for (int i = 0; i < numSlices; i++) {
+            S[i] = S[i].Modulo(curve.GetSubgroupOrder());
+            S[i].Encode(&rsVector[i * 32], 32);
+        }
     }
-
     // TODO change to DC Network Broadcast
     OutgoingMessage rsBroadcast(BROADCAST, SharingTwoRoundOne, DCNetwork_.nodeID(), rsVector);
     DCNetwork_.outbox().push(std::make_shared<OutgoingMessage>(rsBroadcast));
@@ -300,49 +328,65 @@ void RoundOne::phaseFour(size_t numSlices) {
         } else {
             std::vector<uint8_t>& rsPairs = rsBroadcast->body();
             int index = std::distance(DCNetwork_.members().begin(), DCNetwork_.members().find(rsBroadcast->senderID()));
-            for(int i = 0; i < numSlices; i++) {
-                CryptoPP::Integer r;
-                CryptoPP::Integer s;
-                // extract and decode the random values and the slice of the share
-                r.Decode(&rsPairs[i*64], 32);
-                s.Decode(&rsPairs[i*64 + 32], 32);
 
-                // validate r and s
-                CryptoPP::ECPPoint addedCommitments;
-                for(auto& c : commitments_) {
-                    addedCommitments = curve.GetCurve().Add(addedCommitments, c.second[index][i]);
+            if(securedRound_) {
+                for (int i = 0; i < numSlices; i++) {
+                    CryptoPP::Integer r;
+                    CryptoPP::Integer s;
+                    // extract and decode the random values and the slice of the share
+                    r.Decode(&rsPairs[i * 64], 32);
+                    s.Decode(&rsPairs[i * 64 + 32], 32);
+
+                    // validate r and s
+                    CryptoPP::ECPPoint addedCommitments;
+                    for (auto &c : commitments_) {
+                        addedCommitments = curve.GetCurve().Add(addedCommitments, c.second[index][i]);
+                    }
+
+                    CryptoPP::ECPPoint rG = curve.GetCurve().ScalarMultiply(G, r);
+                    CryptoPP::ECPPoint sH = curve.GetCurve().ScalarMultiply(H, s);
+                    CryptoPP::ECPPoint commitment = curve.GetCurve().Add(rG, sH);
+
+                    if (commitment.x != addedCommitments.x || commitment.y != addedCommitments.y) {
+                        // TODO inject blame message
+
+                        std::lock_guard<std::mutex> lock(mutex_);
+                        std::cout << "Invalid commitment detected" << std::endl;
+                        break;
+                    }
+                    R[i] += r;
+                    S[i] += s;
                 }
-
-                CryptoPP::ECPPoint rG = curve.GetCurve().ScalarMultiply(G, r);
-                CryptoPP::ECPPoint sH = curve.GetCurve().ScalarMultiply(H, s);
-                CryptoPP::ECPPoint commitment = curve.GetCurve().Add(rG, sH);
-
-                if(commitment.x != addedCommitments.x || commitment.y != addedCommitments.y) {
-                    // TODO inject blame message
-
-                    std::lock_guard<std::mutex> lock(mutex_);
-                    std::cout << "Invalid commitment detected" << std::endl;
-                    break;
+            } else {
+                for (int i = 0; i < numSlices; i++) {
+                    CryptoPP::Integer s;
+                    s.Decode(&rsPairs[i * 32], 32);
+                    S[i] += s;
                 }
-                R[i] += r;
-                S[i] += s;
             }
         }
         remainingShares--;
     }
 
-    for(int i=0; i<numSlices; i++) {
-        R[i] = R[i].Modulo(curve.GetSubgroupOrder());
-        S[i] = S[i].Modulo(curve.GetSubgroupOrder());
+    // validate the intermediate commitments
+    if(securedRound_) {
+        for (int i = 0; i < numSlices; i++) {
+            R[i] = R[i].Modulo(curve.GetSubgroupOrder());
+            S[i] = S[i].Modulo(curve.GetSubgroupOrder());
 
-        CryptoPP::ECPPoint rG = curve.GetCurve().ScalarMultiply(G, R[i]);
-        CryptoPP::ECPPoint sH = curve.GetCurve().ScalarMultiply(H, S[i]);
-        CryptoPP::ECPPoint commitment = curve.GetCurve().Add(rG, sH);
+            CryptoPP::ECPPoint rG = curve.GetCurve().ScalarMultiply(G, R[i]);
+            CryptoPP::ECPPoint sH = curve.GetCurve().ScalarMultiply(H, S[i]);
+            CryptoPP::ECPPoint commitment = curve.GetCurve().Add(rG, sH);
 
 
-        if((C[i].x != commitment.x) ||( C[i].y != commitment.y)) {
-            std::cout << "Invalid commitment detected" << std::endl;
-            break;
+            if ((C[i].x != commitment.x) || (C[i].y != commitment.y)) {
+                std::cout << "Invalid commitment detected" << std::endl;
+                break;
+            }
+        }
+    } else {
+        for (int i = 0; i < numSlices; i++) {
+            S[i] = S[i].Modulo(curve.GetSubgroupOrder());
         }
     }
 

@@ -9,7 +9,6 @@ add_executable(
         threePP
         src/test/mainTest.cpp
         src/network/Node.cpp
-        src/network/Peer.cpp
         src/network/P2PConnection.cpp
         src/datastruct/OutgoingMessage.cpp
         src/network/NetworkManager.cpp
@@ -24,7 +23,9 @@ add_executable(
         src/datastruct/MessageType.h
         src/dc/DCState.h
         src/datastruct/NetworkMessage.cpp
-        src/dc/RoundOne.cpp src/dc/RoundOne.h src/dc/RoundTwo.cpp src/dc/RoundTwo.h)
+        src/dc/RoundOne.cpp
+        src/dc/RoundTwo.cpp
+)
 
 target_link_libraries(
         threePP
@@ -38,7 +39,6 @@ target_link_libraries(
 add_executable(
         cryptoTest
         src/test/CryptoTest.cpp
-        src/datastruct/NetworkMessage.cpp
 )
 
 target_link_libraries(
