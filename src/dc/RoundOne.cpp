@@ -137,7 +137,7 @@ std::unique_ptr<DCState> RoundOne::executeTask() {
     if(L.size() == 0)
         return std::make_unique<Ready>(DCNetwork_);
     else
-        return std::make_unique<RoundTwo>(DCNetwork_, p, seeds, L);
+        return std::make_unique<RoundTwo>(DCNetwork_, securedRound_, p, seeds, L);
 }
 
 void RoundOne::sharingPartOne(std::vector<std::vector<CryptoPP::Integer>>& shares, size_t numSlices) {
