@@ -56,9 +56,6 @@ uint32_t NetworkManager::addNeighbor(uint32_t nodeID, const Node &node) {
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
 
-    // a hello message is sent to introduce the node to the new neighbor
-    //std::vector<uint8_t> nodeIDVector(reinterpret_cast<uint8_t*>(&nodeID),
-      //      reinterpret_cast<uint8_t*>(&nodeID) + sizeof(uint32_t));
     NetworkMessage helloMessage(0, nodeID);
 
     connection->send_msg(helloMessage);
@@ -74,8 +71,6 @@ int NetworkManager::sendMessage(OutgoingMessage& msg) {
                 connection.second->send_msg(msg);
             }
         }
-    } else if(msg.receiverID() == DC_NET) {
-        std::cout << "Warning: DC Broadcast not implemented yet" << std::endl;
     } else {
         if (!connections_[msg.receiverID()]->is_open())
             return -1;

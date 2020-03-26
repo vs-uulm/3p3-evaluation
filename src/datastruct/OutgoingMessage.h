@@ -6,8 +6,6 @@
 #include "NetworkMessage.h"
 
 const uint32_t BROADCAST = 0xFFFFFFFF;
-// TODO implement the handler
-const uint32_t DC_NET    = 0xFFFFFFFE;
 
 const uint32_t SELF      = 0xFFFFFFFD;
 

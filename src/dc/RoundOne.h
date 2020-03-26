@@ -16,11 +16,11 @@ public:
     virtual std::unique_ptr<DCState> executeTask();
 
 private:
-    void phaseOneTwo(std::vector<std::vector<CryptoPP::Integer>>& shares, size_t numSlices);
+    void sharingPartOne(std::vector<std::vector<CryptoPP::Integer>>& shares, size_t numSlices);
 
-    void phaseThree(size_t numSlices);
+    void sharingPartTwo(size_t numSlices);
 
-    void phaseFour(size_t numSlices);
+    std::vector<uint8_t> resultComputation(size_t numSlices);
 
     void printMessageVector(std::vector<uint8_t>& msgVector);
 

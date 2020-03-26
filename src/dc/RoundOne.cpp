@@ -6,6 +6,7 @@
 #include "Init.h"
 #include "RoundTwo.h"
 #include "../datastruct/MessageType.h"
+#include "Ready.h"
 
 std::mutex mutex_;
 
@@ -21,8 +22,8 @@ RoundOne::RoundOne(DCNetwork& DCNet, bool securedRound)
 RoundOne::~RoundOne() {}
 
 std::unique_ptr<DCState> RoundOne::executeTask() {
-    // check if there is a submitted message
-    // and determine it's length
+    // check if there is a submitted message and determine it's length,
+    // but don't remove it from the message queue just yet
     uint16_t l = 0;
     if (!DCNetwork_.submittedMessages().empty()) {
         size_t msgSize = DCNetwork_.submittedMessages().front().size();
@@ -31,14 +32,15 @@ std::unique_ptr<DCState> RoundOne::executeTask() {
     }
 
     // TODO: for tests only
-    uint16_t sendMessage = PRNG.GenerateWord32(0, 1);
-    if(sendMessage) {
+    uint16_t sendMessage = PRNG.GenerateWord32(0, 3);
+    if(sendMessage == 0) {
         l = PRNG.GenerateWord32(0, USHRT_MAX);
     }
 
+    int p = -1;
     if (l > 0) {
         uint16_t r = PRNG.GenerateWord32(0, USHRT_MAX);
-        uint16_t p = PRNG.GenerateWord32(0, 2*k_ - 1);
+        p = PRNG.GenerateWord32(0, 2*k_ - 1);
 
         // set the values in Big Endian format
         msgVector_[4*p]     = static_cast<uint8_t>((r & 0xFF00) >> 8);
@@ -97,19 +99,48 @@ std::unique_ptr<DCState> RoundOne::executeTask() {
     }
 
     // generate and broadcast the commitments for the first round
-    RoundOne::phaseOneTwo(shares, numSlices);
+    RoundOne::sharingPartOne(shares, numSlices);
 
     // collect and validate the shares
-    RoundOne::phaseThree(numSlices);
+    RoundOne::sharingPartTwo(numSlices);
 
     // collect and validate the final shares
-    RoundOne::phaseFour(numSlices);
+    std::vector<uint8_t> finalMsgVector = RoundOne::resultComputation(numSlices);
 
-    // transition to round two
-    return std::make_unique<RoundTwo>(DCNetwork_);
+    if(p > -1) {
+        // verify that no collision occurred
+        if((msgVector_[4*p] != finalMsgVector[4*p]) || (msgVector_[4*p+1] != finalMsgVector[4*p+1])) {
+            std::lock_guard<std::mutex> lock(mutex_);
+            std::cout << "A collision occurred at position" << std::dec << p+1 << std::endl;
+            // TODO handle the collision
+        }
+    }
+
+    std::vector<std::array<uint8_t, 32>> seeds;
+    std::vector<uint16_t> L;
+
+    for(int i=0; i<2*k_; i++) {
+        uint16_t length = (finalMsgVector[4*i + 2] << 8) | finalMsgVector[4*i + 3];
+
+        if(length > 0) {
+            // extract the own seed for the i-th message slot
+            std::array<uint8_t, 32> K;
+            uint8_t* position = &finalMsgVector[8*k_ + 32 * index];
+            std::copy(position, position + 32, K.data());
+            seeds.push_back(std::move(K));
+
+            // store the length of the message slot
+            L.push_back(length);
+        }
+    }
+    // if no member wants to send a message, return to the Ready state
+    if(L.size() == 0)
+        return std::make_unique<Ready>(DCNetwork_);
+    else
+        return std::make_unique<RoundTwo>(DCNetwork_, p, seeds, L);
 }
 
-void RoundOne::phaseOneTwo(std::vector<std::vector<CryptoPP::Integer>>& shares, size_t numSlices) {
+void RoundOne::sharingPartOne(std::vector<std::vector<CryptoPP::Integer>>& shares, size_t numSlices) {
     std::vector<std::vector<CryptoPP::Integer>> rVector;
     if(securedRound_) {
         size_t encodedPointSize = curve.GetCurve().EncodedPointSize(true);
@@ -175,9 +206,12 @@ void RoundOne::phaseOneTwo(std::vector<std::vector<CryptoPP::Integer>>& shares, 
         }
 
         // broadcast the commitments
-        // TODO change to DC Network broadcast
-        OutgoingMessage commitBroadcast(BROADCAST, CommitmentRoundOne, DCNetwork_.nodeID(), commitments);
-        DCNetwork_.outbox().push(std::make_shared<OutgoingMessage>(commitBroadcast));
+        for(auto& member : DCNetwork_.members()) {
+            if(member.second != SELF) {
+                OutgoingMessage commitBroadcast(member.second, CommitmentRoundOne, DCNetwork_.nodeID(), commitments);
+                DCNetwork_.outbox().push(std::make_shared<OutgoingMessage>(commitBroadcast));
+            }
+        }
 
         // collect the commitments from the other k-1 members
         while (commitments_.size() < k_) {
@@ -225,7 +259,6 @@ void RoundOne::phaseOneTwo(std::vector<std::vector<CryptoPP::Integer>>& shares, 
 
             if(securedRound_) {
                 rsPairs.resize(64 * numSlices);
-
                 for (int j = 0; j < numSlices; j++) {
                     rVector[i][j].Encode(&rsPairs[j * 64], 32);
                     shares[i][j].Encode(&rsPairs[j * 64 + 32], 32);
@@ -242,7 +275,7 @@ void RoundOne::phaseOneTwo(std::vector<std::vector<CryptoPP::Integer>>& shares, 
     }
 }
 
-void RoundOne::phaseThree(size_t numSlices) {
+void RoundOne::sharingPartTwo(size_t numSlices) {
     // collect the shares from the other k-1 members and validate them using the broadcasted commitments
     size_t remainingShares = k_-1;
     while(remainingShares > 0) {
@@ -310,12 +343,16 @@ void RoundOne::phaseThree(size_t numSlices) {
             S[i].Encode(&rsVector[i * 32], 32);
         }
     }
-    // TODO change to DC Network Broadcast
-    OutgoingMessage rsBroadcast(BROADCAST, SharingTwoRoundOne, DCNetwork_.nodeID(), rsVector);
-    DCNetwork_.outbox().push(std::make_shared<OutgoingMessage>(rsBroadcast));
+
+    for(auto& member : DCNetwork_.members()) {
+        if(member.second != SELF) {
+            OutgoingMessage rsBroadcast(member.second, SharingTwoRoundOne, DCNetwork_.nodeID(), rsVector);
+            DCNetwork_.outbox().push(std::make_shared<OutgoingMessage>(rsBroadcast));
+        }
+    }
 }
 
-void RoundOne::phaseFour(size_t numSlices) {
+std::vector<uint8_t> RoundOne::resultComputation(size_t numSlices) {
     size_t remainingShares = k_-1;
     while(remainingShares > 0) {
         auto rsBroadcast = DCNetwork_.inbox().pop();
@@ -378,7 +415,6 @@ void RoundOne::phaseFour(size_t numSlices) {
             CryptoPP::ECPPoint sH = curve.GetCurve().ScalarMultiply(H, S[i]);
             CryptoPP::ECPPoint commitment = curve.GetCurve().Add(rG, sH);
 
-
             if ((C[i].x != commitment.x) || (C[i].y != commitment.y)) {
                 std::cout << "Invalid commitment detected" << std::endl;
                 break;
@@ -398,6 +434,8 @@ void RoundOne::phaseFour(size_t numSlices) {
         S[i].Encode(&reconstructedMessage[31*i], sliceSize);
     }
     RoundOne::printMessageVector(reconstructedMessage);
+
+    return reconstructedMessage;
 }
 
 // helper function to print the slots in the message vector

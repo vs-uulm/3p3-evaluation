@@ -6,10 +6,8 @@
 #include <thread>
 #include <chrono>
 
-std::mutex member_mutex;
 
 Ready::Ready(DCNetwork& DCNet) : DCNetwork_(DCNet) {
-
 }
 
 Ready::~Ready() {}
