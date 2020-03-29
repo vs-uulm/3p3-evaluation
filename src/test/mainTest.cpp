@@ -13,13 +13,14 @@ std::vector<Node> Nodes;
 
 unsigned INSTANCES = 6;
 
-void instance(int ID) {
+void instance(int nodeID) {
+    CryptoPP::AutoSeededRandomPool PRNG;
     MessageQueue<ReceivedMessage> inbox;
     MessageQueue<ReceivedMessage> inboxDCNet;
     MessageQueue<OutgoingMessage> outbox;
 
     io_context io_context_;
-    uint16_t port = Nodes[ID].port();
+    uint16_t port = Nodes[nodeID].port();
 
     NetworkManager networkManager(io_context_, port, inbox);
     // Run the io_context which handles the network manager
@@ -29,13 +30,13 @@ void instance(int ID) {
 
     // Add neighbors
     for(const Node& node : Nodes) {
-        if(node.nodeID() < ID) {
-            networkManager.addNeighbor(ID, node);
+        if(node.nodeID() < nodeID) {
+            networkManager.addNeighbor(nodeID, node);
         }
     }
 
     // start the message handler in a separate thread
-    MessageHandler messageHandler(ID, inbox, inboxDCNet, outbox);
+    MessageHandler messageHandler(nodeID, inbox, inboxDCNet, outbox);
     std::thread messageHandlerThread([&]() {
         messageHandler.run();
     });
@@ -49,10 +50,19 @@ void instance(int ID) {
     });
 
     // start the DCNetwork
-    DCNetwork DCNet(ID, INSTANCES, inboxDCNet, outbox);
+    DCNetwork DCNet(nodeID, INSTANCES, inboxDCNet, outbox);
     std::thread DCThread([&]() {
         DCNet.run();
     });
+
+    // the node with nodeID 0 will always submit a message
+    if(nodeID == 0) {
+        //uint16_t length = PRNG.GenerateWord32(0, 128);
+        uint16_t length = 128;
+        std::vector<uint8_t> message(length);
+        PRNG.GenerateBlock(message.data(), length);
+        DCNet.submitMessage(message);
+    }
 
     DCThread.join();
     writeThread.join();

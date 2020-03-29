@@ -4,8 +4,12 @@
 #include <cryptopp/ecpoint.h>
 #include <cryptopp/osrng.h>
 #include <cryptopp/eccrypto.h>
+
+#include <unordered_map>
 #include "DCState.h"
 #include "../datastruct/ReceivedMessage.h"
+
+extern std::mutex mutex_;
 
 class RoundOne : public DCState {
 public:
@@ -16,7 +20,7 @@ public:
     virtual std::unique_ptr<DCState> executeTask();
 
 private:
-    void sharingPartOne(std::vector<std::vector<CryptoPP::Integer>>& shares, size_t numSlices);
+    void sharingPartOne(std::vector<std::vector<CryptoPP::Integer>>& shares);
 
     void sharingPartTwo(size_t numSlices);
 
@@ -31,6 +35,9 @@ private:
 
     // DCNetwork size
     size_t k_;
+
+    // the position in of the own nodeID in the ordered member list
+    size_t nodeIndex_;
 
     std::vector<uint8_t> msgVector_;
 

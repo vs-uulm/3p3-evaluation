@@ -4,7 +4,9 @@
 #include <cryptopp/oids.h>
 #include <cryptopp/osrng.h>
 #include <cryptopp/drbg.h>
+#include <cryptopp/modes.h>
 #include <iostream>
+#include <iomanip>
 
 const CryptoPP::ECPPoint G(CryptoPP::Integer("362dc3caf8a0e8afd06f454a6da0cdce6e539bc3f15e79a15af8aa842d7e3ec2h"),
                             CryptoPP::Integer("b9f8addb295b0fd4d7c49a686eac7b34a9a11ed2d6d243ad065282dc13bce575h"));
@@ -12,14 +14,35 @@ const CryptoPP::ECPPoint G(CryptoPP::Integer("362dc3caf8a0e8afd06f454a6da0cdce6e
 const CryptoPP::ECPPoint H(CryptoPP::Integer("a3cf0a4b6e1d9146c73e9a82e4bfdc37ee1587bc2bf3b0c19cb159ae362e38beh"),
                             CryptoPP::Integer("db4369fabd3d770dd4c19d81ac69a1749963d69c687d7c4e12d186548b94cb2ah"));
 
-CryptoPP::Hash_DRBG<> DRNG;
-
 int main() {
+    CryptoPP::AutoSeededRandomPool PRNG;
+
     CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> ec_group;
     ec_group.Initialize(CryptoPP::ASN1::secp256k1());
 
-    CryptoPP::AutoSeededRandomPool PRNG;
+    CryptoPP::byte seed[32];
+    PRNG.GenerateBlock(seed, 32);
 
+    CryptoPP::OFB_Mode<CryptoPP::AES>::Encryption DRNG1;
+
+    CryptoPP::OFB_Mode<CryptoPP::AES>::Encryption DRNG2;
+
+    CryptoPP::OFB_Mode<CryptoPP::AES>::Encryption DRNG3;
+
+    for(int i=0; i<10; i++) {
+        PRNG.GenerateBlock(seed, 32);
+        DRNG1.SetKeyWithIV(seed, 16, seed+16, 16);
+        DRNG2.SetKeyWithIV(seed, 16, seed+16, 16);
+        DRNG3.SetKeyWithIV(seed, 16, seed+16, 16);
+        CryptoPP::Integer i1(DRNG1, CryptoPP::Integer::One(), ec_group.GetMaxExponent());
+        CryptoPP::Integer i2(DRNG2, CryptoPP::Integer::One(), ec_group.GetMaxExponent());
+        CryptoPP::Integer i3(DRNG3, CryptoPP::Integer::One(), ec_group.GetMaxExponent());
+
+        std::cout << "I1:" << std::hex << i1 << std::endl;
+        std::cout << "I2:" << std::hex << i2 << std::endl;
+        std::cout << "I3:" << std::hex << i3 << std::endl << std::endl;
+    }
+    /*
     CryptoPP::Integer seed(PRNG, CryptoPP::Integer::One(), ec_group.GetMaxExponent());
 
     CryptoPP::ECPPoint empty;
@@ -39,31 +62,10 @@ int main() {
     test2 = ec_group.GetCurve().Add(test2, point1);
     std::cout << "second" << std::endl;
     std::cout << std::hex << test2.x << std::endl << test2.y << std::endl << std::endl;
+     */
+
+    //prng.SetKeyWithIV(seed, 32, seed + 32, 16);
     /*
-    size_t b = 32;
-    CryptoPP::AutoSeededRandomPool PRNG;
-    CryptoPP::byte seed[b];
-    PRNG.GenerateBlock(seed, b);
-
-    CryptoPP::Hash_DRBG<> PRNG1;
-    CryptoPP::Hash_DRBG<> PRNG2;
-
-    PRNG1.IncorporateEntropy(seed, 16);
-    PRNG2.IncorporateEntropy(seed, 17);
-
-    CryptoPP::byte stream1[32];
-    CryptoPP::byte stream2[32];
-
-    PRNG1.GenerateBlock(stream1, 32);
-    PRNG2.GenerateBlock(stream2, 32);
-
-    for(uint8_t c : stream1)
-        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) c;
-    std::cout << std::endl;
-
-    for(uint8_t c : stream2)
-        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) c;
-    std::cout << std::endl;
     CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> ec_group;
     ec_group.Initialize(CryptoPP::ASN1::secp256k1());
 

@@ -7,11 +7,13 @@ enum MessageType {
     ReadyMessage,
     StartDCRound,
     CommitmentRoundOne,
-    SharingOneRoundOne,
-    SharingTwoRoundOne,
+    RoundOneSharingPartOne,
+    RoundOneSharingPartTwo,
     RestartRoundOne,
     BlameMessage,
-
+    CommitmentRoundTwo,
+    RoundTwoSharingPartOne,
+    RoundTwoSharingPartTwo
 };
 
 #endif //THREEPP_MESSAGETYPE_H

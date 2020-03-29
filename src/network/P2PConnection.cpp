@@ -3,6 +3,7 @@
 #include <iostream>
 
 #include <boost/bind.hpp>
+#include <iomanip>
 
 P2PConnection::P2PConnection(uint32_t connectionID, io_context& io_context_, ssl::context& ssl_context_, MessageQueue<ReceivedMessage>& inbox)
 : connectionID_(connectionID), is_open_(false), ssl_socket_(io_context_, ssl_context_), inbox_(inbox) {}
@@ -79,6 +80,10 @@ void P2PConnection::read_header(const boost::system::error_code& e, std::shared_
 void P2PConnection::read_body(const boost::system::error_code& e, std::shared_ptr<ReceivedMessage> received_msg) {
     if(e) {
         std::cerr << "Could not read the message body from connection: " << connectionID_ << std::endl;
+        std::cerr << "Corresponding header: ";
+        for(uint8_t c : received_msg->header())
+            std::cerr << std::hex << std::setw(2) << std::setfill('0') << (int) c << " ";
+        std::cerr << std::endl;
     } else {
         inbox_.push(received_msg);
         async_read();
