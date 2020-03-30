@@ -21,7 +21,11 @@ public:
     virtual std::unique_ptr<DCState> executeTask();
 
 private:
-    void sharingPartOne(std::vector<std::vector<std::vector<CryptoPP::Integer>>>& shares);
+    void sharingPartOne(size_t totalNumSlices, std::vector<std::vector<std::vector<CryptoPP::Integer>>>& shares);
+
+    void sharingPartTwo(size_t totalNumSlices);
+
+    std::vector<std::vector<uint8_t>> resultComputation(size_t totalNumSlices);
 
     DCNetwork& DCNetwork_;
 

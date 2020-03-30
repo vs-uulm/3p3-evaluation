@@ -55,10 +55,9 @@ void instance(int nodeID) {
         DCNet.run();
     });
 
-    // the node with nodeID 0 will always submit a message
-    if(nodeID == 0) {
-        //uint16_t length = PRNG.GenerateWord32(0, 128);
-        uint16_t length = 128;
+    // node 0 and node 1 will always submit a message
+    if(nodeID == 0 || nodeID == 1) {
+        uint16_t length = PRNG.GenerateWord32(0, 128);
         std::vector<uint8_t> message(length);
         PRNG.GenerateBlock(message.data(), length);
         DCNet.submitMessage(message);
@@ -80,7 +79,7 @@ int main() {
     }
 
     for(auto it = threads.begin(); it != threads.end(); it++) {
-        (*it).join();
+        it->join();
     }
     return 0;
 }

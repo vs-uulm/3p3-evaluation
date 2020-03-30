@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cryptopp/oids.h>
 #include <thread>
+#include <iomanip>
 #include "RoundTwo.h"
 #include "Init.h"
 #include "../datastruct/MessageType.h"
@@ -106,20 +107,23 @@ std::unique_ptr<DCState> RoundTwo::executeTask() {
         }
     }
 
-
-    RoundTwo::sharingPartOne(shares);
-
-
-    return std::make_unique<Init>(DCNetwork_);
-}
-
-void RoundTwo::sharingPartOne(std::vector<std::vector<std::vector<CryptoPP::Integer>>> &shares) {
-    size_t numSlots = slots_.size();
-
     // determine the total number of slices
     size_t totalNumSlices = 0;
     for (auto &slot : shares)
         totalNumSlices += slot.size();
+
+
+    RoundTwo::sharingPartOne(totalNumSlices, shares);
+
+    RoundTwo::sharingPartTwo(totalNumSlices);
+
+    RoundTwo::resultComputation(totalNumSlices);
+
+    return std::make_unique<Init>(DCNetwork_);
+}
+
+void RoundTwo::sharingPartOne(size_t totalNumSlices, std::vector<std::vector<std::vector<CryptoPP::Integer>>> &shares) {
+    size_t numSlots = slots_.size();
 
     if (securedRound_) {
         C.resize(shares.size());
@@ -143,6 +147,7 @@ void RoundTwo::sharingPartOne(std::vector<std::vector<std::vector<CryptoPP::Inte
 
             // use 16 bytes as key and 16 bytes as IV
             DRNG.SetKeyWithIV(seeds_[slot][nodeIndex_].data(), 16, seeds_[slot][nodeIndex_].data() + 16, 16);
+            size_t offset = 0;
             for (int share = 0; share < k_; share++) {
                 for (int slice = 0; slice < numSlices; slice++) {
                     // generate the random value r for this slice of the share
@@ -158,10 +163,10 @@ void RoundTwo::sharingPartOne(std::vector<std::vector<std::vector<CryptoPP::Inte
                     commitmentMatrix[share].push_back(std::move(commitment));
 
                     // compress the commitment and store in the given position in the vector
-                    size_t offset = (share * numSlices + slice) * encodedPointSize;
                     curve.GetCurve().EncodePoint(&commitmentVector[offset], commitmentMatrix[share][slice], true);
                     // Add the commitment to the sum C
                     C[slot][slice] = curve.GetCurve().Add(C[slot][slice], commitmentMatrix[share][slice]);
+                    offset += 32;
                 }
             }
             commitments.push_back(std::move(commitmentMatrix));
@@ -198,20 +203,22 @@ void RoundTwo::sharingPartOne(std::vector<std::vector<std::vector<CryptoPP::Inte
                 commitments.resize(numSlots);
 
                 // decompress all the points
-                for(int slot=0; slot<numSlots; slot++) {
+                size_t offset = 0;
+                for (int slot = 0; slot < numSlots; slot++) {
                     size_t numSlices = shares[slot][0].size();
                     std::vector<std::vector<CryptoPP::ECPPoint>> commitmentMatrix(k_);
                     for (auto &share : commitmentMatrix)
                         share.reserve(numSlices);
+
                     for (int share = 0; share < k_; share++) {
                         for (int slice = 0; slice < numSlices; slice++) {
-                            size_t offset = (share * numSlices + slice) * encodedPointSize;
                             CryptoPP::ECPPoint commitment;
                             curve.GetCurve().DecodePoint(commitment, &commitBroadcast->body()[offset],
                                                          encodedPointSize);
                             commitmentMatrix[share].push_back(std::move(commitment));
 
                             C[slot][slice] = curve.GetCurve().Add(C[slot][slice], commitment);
+                            offset += encodedPointSize;
                         }
                     }
                     commitments.push_back(std::move(commitmentMatrix));
@@ -229,11 +236,12 @@ void RoundTwo::sharingPartOne(std::vector<std::vector<std::vector<CryptoPP::Inte
         if (it->second != SELF) {
             std::vector<uint8_t> sharingMessage(32 * totalNumSlices);
 
+            size_t offset = 0;
             for (int slot = 0; slot < numSlots; slot++) {
                 size_t numSlices = shares[slot][shareIndex].size();
-                for(int slice=0; slice < numSlices; slice++) {
-                    size_t offset = (slot * numSlices + slice) * 32;
+                for (int slice = 0; slice < numSlices; slice++) {
                     shares[slot][shareIndex][slice].Encode(&sharingMessage[offset], 32);
+                    offset += 32;
                 }
             }
 
@@ -241,9 +249,179 @@ void RoundTwo::sharingPartOne(std::vector<std::vector<std::vector<CryptoPP::Inte
             DCNetwork_.outbox().push(std::make_shared<OutgoingMessage>(rsMessage));
         }
     }
+}
 
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        std::cout << "Finished" << std::endl;
+void RoundTwo::sharingPartTwo(size_t totalNumSlices) {
+    size_t numSlots = slots_.size();
+
+    // collect the shares from the other k-1 members and validate them using the broadcasted commitments
+    for(int remainingShares = 0; remainingShares < k_-1; remainingShares++) {
+        auto sharingMessage = DCNetwork_.inbox().pop();
+
+        if (sharingMessage->msgType() != RoundTwoSharingPartOne) {
+            std::lock_guard<std::mutex> lock(mutex_);
+            std::cout << "Inappropriate message received: " << (int) sharingMessage->msgType() << std::endl;
+            DCNetwork_.inbox().push(sharingMessage);
+            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        } else {
+            size_t offset = 0;
+            for (int slot = 0; slot < numSlots; slot++) {
+                size_t numSlices = S[slot].size();
+                for (int slice = 0; slice < numSlices; slice++) {
+                    // TODO generate random values
+                    CryptoPP::Integer s(&sharingMessage->body()[offset], 32);
+                    offset += 32;
+                    if (securedRound_) {
+                        // TODO
+                        /*
+                        CryptoPP::ECPPoint rG = curve.GetCurve().ScalarMultiply(G, r);
+                        CryptoPP::ECPPoint xH = curve.GetCurve().ScalarMultiply(H, s);
+                        CryptoPP::ECPPoint commitment = curve.GetCurve().Add(rG, xH);
+
+                        // verify that the commitment is valid
+                        if ((commitment.x != commitments_[rsMessage->senderID()][DCNetwork_.nodeID()][i].x)
+                            || (commitment.y != commitments_[rsMessage->senderID()][DCNetwork_.nodeID()][i].y)) {
+
+                            // TODO inject blame message
+                            std::lock_guard<std::mutex> lock(mutex_);
+                            std::cout << "Invalid commitment detected" << std::endl;
+                            break;
+                        }
+
+                        R[i] += r;
+                         */
+                    }
+                    S[slot][slice] += s;
+                }
+            }
+        }
+    }
+
+    std::vector<uint8_t> sharingBroadcast(totalNumSlices * 32);
+    size_t offset = 0;
+    for (int slot = 0; slot < numSlots; slot++) {
+        for (int slice = 0; slice < S[slot].size(); slice++) {
+            S[slot][slice] = S[slot][slice].Modulo(curve.GetSubgroupOrder());
+            S[slot][slice].Encode(&sharingBroadcast[offset], 32);
+            offset += 32;
+        }
+    }
+
+    // Broadcast the added shares in the DC network
+    for (auto &member : DCNetwork_.members()) {
+        if (member.second != SELF) {
+            OutgoingMessage rsBroadcast(member.second, RoundOneSharingPartTwo, DCNetwork_.nodeID(), sharingBroadcast);
+            DCNetwork_.outbox().push(std::make_shared<OutgoingMessage>(rsBroadcast));
+        }
     }
 }
+
+
+std::vector<std::vector<uint8_t>> RoundTwo::resultComputation(size_t totalNumSlices) {
+    size_t numSlots = S.size();
+    for(int remainingShares = 0; remainingShares < k_-1; remainingShares++) {
+        auto sharingBroadcast = DCNetwork_.inbox().pop();
+        if (sharingBroadcast->msgType() != RoundOneSharingPartTwo) {
+            std::lock_guard<std::mutex> lock(mutex_);
+            std::cout << "Inappropriate message received: " << (int) sharingBroadcast->msgType() << std::endl;
+            DCNetwork_.inbox().push(sharingBroadcast);
+            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        } else {
+            int memberIndex = std::distance(DCNetwork_.members().begin(),
+                                            DCNetwork_.members().find(sharingBroadcast->senderID()));
+
+            size_t offset = 0;
+            for (int slot = 0; slot < numSlots; slot++) {
+                for (int slice = 0; slice < S[slot].size(); slice++) {
+
+                    CryptoPP::Integer s(&sharingBroadcast->body()[offset], 32);
+                    offset += 32;
+
+                    // TOOO
+                    /*
+                    // validate r and s
+                    CryptoPP::ECPPoint addedCommitments;
+                    for (auto &c : commitments_)
+                        addedCommitments = curve.GetCurve().Add(addedCommitments, c.second[memberIndex][i]);
+
+                    CryptoPP::ECPPoint rG = curve.GetCurve().ScalarMultiply(G, r);
+                    CryptoPP::ECPPoint sH = curve.GetCurve().ScalarMultiply(H, s);
+                    CryptoPP::ECPPoint commitment = curve.GetCurve().Add(rG, sH);
+
+                    if (commitment.x != addedCommitments.x || commitment.y != addedCommitments.y) {
+                        // TODO inject blame message
+
+                        std::lock_guard<std::mutex> lock(mutex_);
+                        std::cout << "Invalid commitment detected" << std::endl;
+                        break;
+                    }
+                    R[i] += r;
+                    */
+                    S[slot][slice] += s;
+                }
+            }
+        }
+    }
+
+    // validate the intermediate commitments
+    if (securedRound_) {
+        for (int slot = 0; slot < numSlots; slot++) {
+            for (int slice = 0; slice < S[slot].size(); slice++) {
+                S[slot][slice] = S[slot][slice].Modulo(curve.GetSubgroupOrder());
+
+                // TODO
+                /*
+                CryptoPP::ECPPoint rG = curve.GetCurve().ScalarMultiply(G, R[i]);
+                CryptoPP::ECPPoint sH = curve.GetCurve().ScalarMultiply(H, S[i]);
+                CryptoPP::ECPPoint commitment = curve.GetCurve().Add(rG, sH);
+
+                if ((C[i].x != commitment.x) || (C[i].y != commitment.y)) {
+                    std::cout << "Invalid commitment detected" << std::endl;
+                    break;
+                }
+                */
+            }
+        }
+    } else {
+        for (int slot = 0; slot < numSlots; slot++) {
+            for (int slice = 0; slice < S[slot].size(); slice++) {
+                S[slot][slice] = S[slot][slice].Modulo(curve.GetSubgroupOrder());
+            }
+        }
+    }
+
+    // reconstruct the original message
+    std::vector<std::vector<uint8_t>> reconstructedMessageSlots(numSlots);
+    for (int slot = 0; slot < numSlots; slot++) {
+        reconstructedMessageSlots[slot].resize(slots_[slot]);
+        for (int slice = 0; slice < S[slot].size(); slice++) {
+            size_t sliceSize = ((slots_[slot] - 31 * slice > 31) ? 31 : slots_[slot] - 31 * slice);
+            S[slot][slice].Encode(&reconstructedMessageSlots[slot][31 * slice], sliceSize);
+        }
+    }
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        std::cout << "Node: " << DCNetwork_.nodeID() << std::endl;
+        for(auto& slot : reconstructedMessageSlots) {
+            std::cout << "|";
+            for(uint8_t c : slot) {
+                std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) c;
+            }
+            std::cout << "|" << std::endl;
+        }
+    }
+
+    return reconstructedMessageSlots;
+}
+
+
+
+
+
+
+
+
+
+
+
+

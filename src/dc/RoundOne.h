@@ -22,9 +22,9 @@ public:
 private:
     void sharingPartOne(std::vector<std::vector<CryptoPP::Integer>>& shares);
 
-    void sharingPartTwo(size_t numSlices);
+    void sharingPartTwo();
 
-    std::vector<uint8_t> resultComputation(size_t numSlices);
+    std::vector<uint8_t> resultComputation();
 
     void printMessageVector(std::vector<uint8_t>& msgVector);
 

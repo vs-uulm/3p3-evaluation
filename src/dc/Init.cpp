@@ -4,8 +4,6 @@
 #include "Ready.h"
 #include "../datastruct/MessageType.h"
 
-std::mutex c_mutex;
-
 Init::Init(DCNetwork& DCNet) : DCNetwork_(DCNet) {
 }
 

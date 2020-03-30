@@ -9,6 +9,7 @@
 #include "Ready.h"
 
 std::mutex mutex_;
+std::condition_variable_any condVariable;
 
 RoundOne::RoundOne(DCNetwork& DCNet, bool securedRound)
 : DCNetwork_(DCNet), k_(DCNetwork_.k()), securedRound_(securedRound) {
@@ -33,6 +34,17 @@ std::unique_ptr<DCState> RoundOne::executeTask() {
         size_t msgSize = DCNetwork_.submittedMessages().front().size();
         // ensure that the message size does not exceed 2^16 Bytes
         l = msgSize > USHRT_MAX ? USHRT_MAX : msgSize;
+
+        // for tests only
+        // print the submitted message
+        std::lock_guard<std::mutex> lock(mutex_);
+        std::cout << "Message submitted by node " << DCNetwork_.nodeID() << ":" << std::endl;
+        for(uint8_t c : DCNetwork_.submittedMessages().front()) {
+            std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) c;
+        }
+        std::cout << std::endl << std::endl;
+    } else {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
     int p = -1;
@@ -76,7 +88,7 @@ std::unique_ptr<DCState> RoundOne::executeTask() {
     for(int i=0; i<k_-1; i++) {
         shares[i].reserve(numSlices);
         for(int j=0; j<numSlices; j++) {
-            CryptoPP::Integer slice(PRNG, Integer::One(), curve.GetMaxExponent());
+            CryptoPP::Integer slice(PRNG, CryptoPP::Integer::One(), curve.GetMaxExponent());
             shares[k_-1][j] -= slice;
             shares[i].push_back(std::move(slice));
         }
@@ -99,10 +111,10 @@ std::unique_ptr<DCState> RoundOne::executeTask() {
     RoundOne::sharingPartOne(shares);
 
     // collect and validate the shares
-    RoundOne::sharingPartTwo(numSlices);
+    RoundOne::sharingPartTwo();
 
     // collect and validate the final shares
-    std::vector<uint8_t> finalMessageVector = RoundOne::resultComputation(numSlices);
+    std::vector<uint8_t> finalMessageVector = RoundOne::resultComputation();
 
     if(p > -1) {
         // verify that no collision occurred
@@ -288,10 +300,10 @@ void RoundOne::sharingPartOne(std::vector<std::vector<CryptoPP::Integer>>& share
     }
 }
 
-void RoundOne::sharingPartTwo(size_t numSlices) {
+void RoundOne::sharingPartTwo() {
+    size_t numSlices = S.size();
     // collect the shares from the other k-1 members and validate them using the broadcasted commitments
-    size_t remainingShares = k_-1;
-    while(remainingShares > 0) {
+    for(int remainingShares = 0; remainingShares < k_-1; remainingShares++) {
         auto rsMessage = DCNetwork_.inbox().pop();
 
         if(rsMessage->msgType() != RoundOneSharingPartOne) {
@@ -303,11 +315,9 @@ void RoundOne::sharingPartTwo(size_t numSlices) {
             std::vector<uint8_t>& rsPairs = rsMessage->body();
             if(securedRound_) {
                 for (int i = 0; i < numSlices; i++) {
-                    CryptoPP::Integer r;
-                    CryptoPP::Integer s;
                     // extract and decode the random values and the slice of the share
-                    r.Decode(&rsPairs[i * 64], 32);
-                    s.Decode(&rsPairs[i * 64 + 32], 32);
+                    CryptoPP::Integer r(&rsPairs[i * 64], 32);
+                    CryptoPP::Integer s(&rsPairs[i * 64 + 32], 32);
 
                     CryptoPP::ECPPoint rG = curve.GetCurve().ScalarMultiply(G, r);
                     CryptoPP::ECPPoint xH = curve.GetCurve().ScalarMultiply(H, s);
@@ -334,7 +344,6 @@ void RoundOne::sharingPartTwo(size_t numSlices) {
                 }
             }
         }
-        remainingShares--;
     }
 
     std::vector<uint8_t> rsVector;
@@ -365,9 +374,9 @@ void RoundOne::sharingPartTwo(size_t numSlices) {
     }
 }
 
-std::vector<uint8_t> RoundOne::resultComputation(size_t numSlices) {
-    size_t remainingShares = k_-1;
-    while(remainingShares > 0) {
+std::vector<uint8_t> RoundOne::resultComputation() {
+    size_t numSlices = S.size();
+    for(int remainingShares = 0; remainingShares < k_-1; remainingShares++) {
         auto rsBroadcast = DCNetwork_.inbox().pop();
 
         if(rsBroadcast->msgType() != RoundOneSharingPartTwo) {
@@ -381,17 +390,14 @@ std::vector<uint8_t> RoundOne::resultComputation(size_t numSlices) {
 
             if(securedRound_) {
                 for (int i = 0; i < numSlices; i++) {
-                    CryptoPP::Integer r;
-                    CryptoPP::Integer s;
                     // extract and decode the random values and the slice of the share
-                    r.Decode(&rsPairs[i * 64], 32);
-                    s.Decode(&rsPairs[i * 64 + 32], 32);
+                    CryptoPP::Integer r(&rsPairs[i * 64], 32);
+                    CryptoPP::Integer s(&rsPairs[i * 64 + 32], 32);
 
                     // validate r and s
                     CryptoPP::ECPPoint addedCommitments;
-                    for (auto &c : commitments_) {
+                    for (auto &c : commitments_)
                         addedCommitments = curve.GetCurve().Add(addedCommitments, c.second[memberIndex][i]);
-                    }
 
                     CryptoPP::ECPPoint rG = curve.GetCurve().ScalarMultiply(G, r);
                     CryptoPP::ECPPoint sH = curve.GetCurve().ScalarMultiply(H, s);
@@ -415,7 +421,6 @@ std::vector<uint8_t> RoundOne::resultComputation(size_t numSlices) {
                 }
             }
         }
-        remainingShares--;
     }
 
     // validate the intermediate commitments
