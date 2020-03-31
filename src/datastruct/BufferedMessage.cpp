@@ -1,5 +1,5 @@
 #include "BufferedMessage.h"
-#include "../crypto/Utils.h"
+#include "../utils/Utils.h"
 
 #include <algorithm>
 

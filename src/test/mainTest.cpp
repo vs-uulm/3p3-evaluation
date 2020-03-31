@@ -3,7 +3,6 @@
 #include <list>
 #include <iostream>
 
-#include "../crypto/Utils.h"
 #include "../network/P2PConnection.h"
 #include "../network/NetworkManager.h"
 #include "../network/MessageHandler.h"

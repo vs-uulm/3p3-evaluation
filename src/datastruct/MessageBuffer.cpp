@@ -1,6 +1,6 @@
 #include <iostream>
 #include "MessageBuffer.h"
-#include "../crypto/Utils.h"
+#include "../utils/Utils.h"
 
 MessageBuffer::MessageBuffer(size_t max_size) : max_size_(max_size) {}
 

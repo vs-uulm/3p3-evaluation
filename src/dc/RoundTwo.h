@@ -25,7 +25,7 @@ private:
 
     void sharingPartTwo(size_t totalNumSlices);
 
-    std::vector<std::vector<uint8_t>> resultComputation(size_t totalNumSlices);
+    std::vector<std::vector<uint8_t>> resultComputation();
 
     DCNetwork& DCNetwork_;
 
@@ -45,7 +45,10 @@ private:
 
     std::vector<std::vector<std::array<uint8_t, 32>>> seeds_;
 
-    // initial commitments stored with the corresponding senderID
+    // pseudo random values for the commitments
+    std::vector<std::vector<std::vector<std::vector<CryptoPP::Integer>>>> rValues_;
+
+    // received commitments stored along with the corresponding memberID
     std::unordered_map<uint32_t, std::vector<std::vector<std::vector<CryptoPP::ECPPoint>>>> commitments_;
 
     // sum of all shares

@@ -18,7 +18,7 @@ RoundOne::RoundOne(DCNetwork& DCNet, bool securedRound)
     // determine the index of the own nodeID in the ordered member list
     nodeIndex_ = std::distance(DCNetwork_.members().begin(), DCNetwork_.members().find(DCNetwork_.nodeID()));
 
-    if(securedRound)
+    if(securedRound_)
         msgVector_.resize(2*k_ * (4 + 32*k_));
     else
         msgVector_.resize(8*k_);
@@ -312,12 +312,11 @@ void RoundOne::sharingPartTwo() {
             DCNetwork_.inbox().push(rsMessage);
             std::this_thread::sleep_for(std::chrono::milliseconds(20));
         } else {
-            std::vector<uint8_t>& rsPairs = rsMessage->body();
             if(securedRound_) {
                 for (int i = 0; i < numSlices; i++) {
                     // extract and decode the random values and the slice of the share
-                    CryptoPP::Integer r(&rsPairs[i * 64], 32);
-                    CryptoPP::Integer s(&rsPairs[i * 64 + 32], 32);
+                    CryptoPP::Integer r(&rsMessage->body()[i * 64], 32);
+                    CryptoPP::Integer s(&rsMessage->body()[i * 64 + 32], 32);
 
                     CryptoPP::ECPPoint rG = curve.GetCurve().ScalarMultiply(G, r);
                     CryptoPP::ECPPoint xH = curve.GetCurve().ScalarMultiply(H, s);
@@ -339,7 +338,7 @@ void RoundOne::sharingPartTwo() {
             } else {
                 for (int i = 0; i < numSlices; i++) {
                     CryptoPP::Integer s;
-                    s.Decode(&rsPairs[i * 32], 32);
+                    s.Decode(&rsMessage->body()[i * 32], 32);
                     S[i] += s;
                 }
             }
@@ -386,44 +385,44 @@ std::vector<uint8_t> RoundOne::resultComputation() {
             std::this_thread::sleep_for(std::chrono::milliseconds(20));
         } else {
             std::vector<uint8_t>& rsPairs = rsBroadcast->body();
-            int memberIndex = std::distance(DCNetwork_.members().begin(), DCNetwork_.members().find(rsBroadcast->senderID()));
+            uint32_t memberIndex  = std::distance(DCNetwork_.members().begin(), DCNetwork_.members().find(rsBroadcast->senderID()));
 
             if(securedRound_) {
-                for (int i = 0; i < numSlices; i++) {
+                for(int i = 0; i < numSlices; i++) {
                     // extract and decode the random values and the slice of the share
-                    CryptoPP::Integer r(&rsPairs[i * 64], 32);
-                    CryptoPP::Integer s(&rsPairs[i * 64 + 32], 32);
+                    CryptoPP::Integer R_(&rsPairs[i * 64], 32);
+                    CryptoPP::Integer S_(&rsPairs[i * 64 + 32], 32);
 
                     // validate r and s
                     CryptoPP::ECPPoint addedCommitments;
-                    for (auto &c : commitments_)
+                    for (auto& c : commitments_)
                         addedCommitments = curve.GetCurve().Add(addedCommitments, c.second[memberIndex][i]);
 
-                    CryptoPP::ECPPoint rG = curve.GetCurve().ScalarMultiply(G, r);
-                    CryptoPP::ECPPoint sH = curve.GetCurve().ScalarMultiply(H, s);
+                    CryptoPP::ECPPoint rG = curve.GetCurve().ScalarMultiply(G, R_);
+                    CryptoPP::ECPPoint sH = curve.GetCurve().ScalarMultiply(H, S_);
                     CryptoPP::ECPPoint commitment = curve.GetCurve().Add(rG, sH);
 
-                    if (commitment.x != addedCommitments.x || commitment.y != addedCommitments.y) {
+                    if ((commitment.x != addedCommitments.x) || (commitment.y != addedCommitments.y)) {
                         // TODO inject blame message
 
                         std::lock_guard<std::mutex> lock(mutex_);
                         std::cout << "Invalid commitment detected" << std::endl;
                         break;
                     }
-                    R[i] += r;
-                    S[i] += s;
+                    R[i] += R_;
+                    S[i] += S_;
                 }
             } else {
-                for (int i = 0; i < numSlices; i++) {
-                    CryptoPP::Integer s;
-                    s.Decode(&rsPairs[i * 32], 32);
-                    S[i] += s;
+                for(int i = 0; i < numSlices; i++) {
+                    CryptoPP::Integer S_;
+                    S_.Decode(&rsPairs[i * 32], 32);
+                    S[i] += S_;
                 }
             }
         }
     }
 
-    // validate the intermediate commitments
+    // validate the final commitments
     if(securedRound_) {
         for (int i = 0; i < numSlices; i++) {
             R[i] = R[i].Modulo(curve.GetSubgroupOrder());
