@@ -4,8 +4,8 @@
 #include <iostream>
 
 NetworkManager::NetworkManager(io_context& io_context, uint16_t port, MessageQueue<ReceivedMessage>& inbox)
-: io_context_(io_context), ssl_context_(ssl::context::sslv23), inbox_(inbox),
-  maxConnectionID_(0), acceptor_(io_context, tcp::endpoint(tcp::v4(), port)) {
+: io_context_(io_context), ssl_context_(ssl::context::sslv23),
+  acceptor_(io_context, tcp::endpoint(tcp::v4(), port)), maxConnectionID_(0), inbox_(inbox) {
 
     ssl_context_.set_options(ssl::context::default_workarounds |
                              ssl::context::no_sslv2 |

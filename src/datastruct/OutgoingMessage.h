@@ -7,7 +7,7 @@
 
 const uint32_t BROADCAST = 0xFFFFFFFF;
 
-const uint32_t SELF      = 0xFFFFFFFD;
+const uint32_t SELF      = 0xFFFFFFFE;
 
 class OutgoingMessage : public NetworkMessage {
 public:

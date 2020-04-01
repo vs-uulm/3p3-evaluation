@@ -9,6 +9,7 @@
 #include <cryptopp/modes.h>
 #include <unordered_map>
 #include "DCState.h"
+#include "../datastruct/ReceivedMessage.h"
 
 class RoundTwo : public DCState {
 public:
@@ -23,10 +24,15 @@ public:
 private:
     void sharingPartOne(size_t totalNumSlices, std::vector<std::vector<std::vector<CryptoPP::Integer>>>& shares);
 
-    void sharingPartTwo(size_t totalNumSlices);
+    int sharingPartTwo(size_t totalNumSlices);
 
     std::vector<std::vector<uint8_t>> resultComputation();
 
+    inline CryptoPP::ECPPoint commit(CryptoPP::Integer &r, CryptoPP::Integer &s);
+
+    void injectBlameMessage(uint32_t suspectID, uint32_t slot, uint32_t slice, CryptoPP::Integer& s);
+
+    void handleBlameMessage(std::shared_ptr<ReceivedMessage>& blameMessage);
     DCNetwork& DCNetwork_;
 
     // determines if the commitment mechanism is used

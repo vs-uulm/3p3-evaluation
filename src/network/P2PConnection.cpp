@@ -6,7 +6,7 @@
 #include <iomanip>
 
 P2PConnection::P2PConnection(uint32_t connectionID, io_context& io_context_, ssl::context& ssl_context_, MessageQueue<ReceivedMessage>& inbox)
-: connectionID_(connectionID), is_open_(false), ssl_socket_(io_context_, ssl_context_), inbox_(inbox) {}
+: is_open_(false), connectionID_(connectionID), ssl_socket_(io_context_, ssl_context_), inbox_(inbox) {}
 
 P2PConnection::~P2PConnection() {
     disconnect();

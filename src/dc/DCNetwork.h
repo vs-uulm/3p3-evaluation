@@ -6,6 +6,7 @@
 #include <cryptopp/ecp.h>
 #include <cryptopp/eccrypto.h>
 #include <cryptopp/osrng.h>
+#include <unordered_map>
 #include "../datastruct/MessageQueue.h"
 #include "../datastruct/ReceivedMessage.h"
 #include "DCState.h"
@@ -23,6 +24,8 @@ public:
     DCNetwork(uint32_t nodeID, size_t k, MessageQueue<ReceivedMessage>& inbox, MessageQueue<OutgoingMessage>& outbox);
 
     std::map<uint32_t, uint32_t>& members();
+
+    std::unordered_map<uint32_t, uint32_t>& suspiciousMembers();
 
     MessageQueue<ReceivedMessage>& inbox();
 
@@ -43,8 +46,11 @@ private:
 
     size_t k_;
 
-    // mapping the nodeIDs to the connectionIDs
+    // Key: nodeID, value: connectionID
     std::map<uint32_t, uint32_t> members_;
+
+    // Key: suspicious nodeID, value: number of malicious events
+    std::unordered_map<uint32_t, uint32_t> suspiciousMembers_;
 
     MessageQueue<ReceivedMessage>& inbox_;
 

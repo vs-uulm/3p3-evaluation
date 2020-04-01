@@ -11,7 +11,7 @@ DCNetwork::DCNetwork(uint32_t nodeID, size_t k, MessageQueue<ReceivedMessage>& i
 }
 
 void DCNetwork::run() {
-    for(int i = 0; i < 4; i++) {
+    for(int i = 0; i < 5; i++) {
         state_ = state_->executeTask();
     }
 }
@@ -22,6 +22,10 @@ void DCNetwork::submitMessage(std::vector<uint8_t>& msg) {
 
 std::map<uint32_t, uint32_t>& DCNetwork::members() {
     return members_;
+}
+
+std::unordered_map<uint32_t, uint32_t>& DCNetwork::suspiciousMembers() {
+    return suspiciousMembers_;
 }
 
 MessageQueue<ReceivedMessage>& DCNetwork::inbox() {

@@ -9,11 +9,10 @@ enum MessageType {
     CommitmentRoundOne,
     RoundOneSharingPartOne,
     RoundOneSharingPartTwo,
-    RestartRoundOne,
-    BlameMessage,
     CommitmentRoundTwo,
     RoundTwoSharingPartOne,
-    RoundTwoSharingPartTwo
+    RoundTwoSharingPartTwo,
+    BlameMessage
 };
 
 #endif //THREEPP_MESSAGETYPE_H

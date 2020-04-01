@@ -22,11 +22,17 @@ public:
 private:
     void sharingPartOne(std::vector<std::vector<CryptoPP::Integer>>& shares);
 
-    void sharingPartTwo();
+    int sharingPartTwo();
 
     std::vector<uint8_t> resultComputation();
 
+    void injectBlameMessage(uint32_t suspectID, uint32_t slice, CryptoPP::Integer& r, CryptoPP::Integer& s);
+
+    void handleBlameMessage(std::shared_ptr<ReceivedMessage>& blameMessage);
+
     void printMessageVector(std::vector<uint8_t>& msgVector);
+
+    inline CryptoPP::ECPPoint commit(CryptoPP::Integer& r, CryptoPP::Integer& s);
 
     DCNetwork& DCNetwork_;
 
