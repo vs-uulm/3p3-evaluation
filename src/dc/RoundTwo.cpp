@@ -199,8 +199,8 @@ void RoundTwo::sharingPartOne(size_t totalNumSlices, std::vector<std::vector<std
 
         // broadcast the commitments
         for(auto& member : DCNetwork_.members()) {
-            if(member.second != SELF) {
-                OutgoingMessage commitBroadcast(member.second, CommitmentRoundTwo, DCNetwork_.nodeID(),
+            if(member.second.connectionID() != SELF) {
+                OutgoingMessage commitBroadcast(member.second.connectionID(), CommitmentRoundTwo, DCNetwork_.nodeID(),
                                                 commitmentVector);
                 DCNetwork_.outbox().push(std::make_shared<OutgoingMessage>(commitBroadcast));
             }
@@ -249,7 +249,7 @@ void RoundTwo::sharingPartOne(size_t totalNumSlices, std::vector<std::vector<std
     for (auto it = DCNetwork_.members().begin(); it != DCNetwork_.members().end(); it++) {
         uint32_t shareIndex = std::distance(DCNetwork_.members().begin(), it);
 
-        if(it->second != SELF) {
+        if(it->second.connectionID() != SELF) {
             std::vector<uint8_t> sharingMessage(32 * totalNumSlices);
 
             for(uint32_t slot = 0, offset = 0; slot < numSlots; slot++) {
@@ -259,7 +259,7 @@ void RoundTwo::sharingPartOne(size_t totalNumSlices, std::vector<std::vector<std
                     shares[slot][shareIndex][slice].Encode(&sharingMessage[offset], 32);
             }
 
-            OutgoingMessage rsMessage(it->second, RoundTwoSharingPartOne, DCNetwork_.nodeID(), sharingMessage);
+            OutgoingMessage rsMessage(it->second.connectionID(), RoundTwoSharingPartOne, DCNetwork_.nodeID(), sharingMessage);
             DCNetwork_.outbox().push(std::make_shared<OutgoingMessage>(rsMessage));
         }
     }
@@ -313,8 +313,8 @@ int RoundTwo::sharingPartTwo(size_t totalNumSlices) {
 
     // Broadcast the added shares in the DC network
     for (auto &member : DCNetwork_.members()) {
-        if (member.second != SELF) {
-            OutgoingMessage rsBroadcast(member.second, RoundOneSharingPartTwo, DCNetwork_.nodeID(), sharingBroadcast);
+        if (member.second.connectionID() != SELF) {
+            OutgoingMessage rsBroadcast(member.second.connectionID(), RoundOneSharingPartTwo, DCNetwork_.nodeID(), sharingBroadcast);
             DCNetwork_.outbox().push(std::make_shared<OutgoingMessage>(rsBroadcast));
         }
     }
@@ -445,8 +445,8 @@ void RoundTwo::injectBlameMessage(uint32_t suspectID, uint32_t slot, uint32_t sl
     s.Encode(&messageBody[12], 32);
 
     for(auto& member : DCNetwork_.members()) {
-        if(member.second != SELF) {
-            OutgoingMessage blameMessage(member.second, BlameMessage, DCNetwork_.nodeID(), messageBody);
+        if(member.second.connectionID() != SELF) {
+            OutgoingMessage blameMessage(member.second.connectionID(), BlameMessage, DCNetwork_.nodeID(), messageBody);
             DCNetwork_.outbox().push(std::make_shared<OutgoingMessage>(blameMessage));
         }
     }
@@ -508,6 +508,7 @@ void RoundTwo::handleBlameMessage(std::shared_ptr<ReceivedMessage>& blameMessage
         }
     }
 }
+
 
 
 

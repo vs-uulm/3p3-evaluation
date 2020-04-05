@@ -27,6 +27,7 @@ add_executable(
         src/datastruct/NetworkMessage.cpp
         src/dc/RoundOne.cpp
         src/dc/RoundTwo.cpp
+        src/dc/DCMember.cpp
 )
 
 target_link_libraries(

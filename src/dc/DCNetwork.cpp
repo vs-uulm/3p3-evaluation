@@ -7,7 +7,8 @@
 
 DCNetwork::DCNetwork(uint32_t nodeID, size_t k, MessageQueue<ReceivedMessage>& inbox, MessageQueue<OutgoingMessage>& outbox)
 : nodeID_(nodeID), k_(k), inbox_(inbox), outbox_(outbox), state_(std::make_unique<Init>(*this)) {
-    members_.insert(std::pair(nodeID, SELF));
+    DCMember self(nodeID, SELF);
+    members_.insert(std::pair(nodeID, self));
 }
 
 void DCNetwork::run() {
@@ -20,7 +21,7 @@ void DCNetwork::submitMessage(std::vector<uint8_t>& msg) {
     submittedMessages_.push(std::move(msg));
 }
 
-std::map<uint32_t, uint32_t>& DCNetwork::members() {
+std::map<uint32_t, DCMember>& DCNetwork::members() {
     return members_;
 }
 

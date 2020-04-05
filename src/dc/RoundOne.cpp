@@ -26,6 +26,15 @@ RoundOne::RoundOne(DCNetwork &DCNet, bool securedRound)
 RoundOne::~RoundOne() {}
 
 std::unique_ptr<DCState> RoundOne::executeTask() {
+    // TODO test only
+    if(DCNetwork_.nodeID() == 0) {
+        for(auto& member : DCNetwork_.members()) {
+            std::cout << "Node " << member.second.nodeID() << ":" << std::endl;
+            std::cout << std::hex << member.second.publicKey().x << std::endl;
+            std::cout << std::hex << member.second.publicKey().y << std::endl;
+        }
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
     // check if there is a submitted message and determine it's length,
     // but don't remove it from the message queue just yet
     uint16_t l = 0;
@@ -42,9 +51,9 @@ std::unique_ptr<DCState> RoundOne::executeTask() {
             std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) c;
         }
         std::cout << std::endl << std::endl;
-    } else {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     int p = -1;
     if (l > 0) {
@@ -232,8 +241,8 @@ void RoundOne::sharingPartOne(std::vector<std::vector<CryptoPP::Integer>> &share
 
         // broadcast the commitments
         for (auto &member : DCNetwork_.members()) {
-            if (member.second != SELF) {
-                OutgoingMessage commitBroadcast(member.second, CommitmentRoundOne, DCNetwork_.nodeID(), commitments);
+            if (member.second.connectionID() != SELF) {
+                OutgoingMessage commitBroadcast(member.second.connectionID(), CommitmentRoundOne, DCNetwork_.nodeID(), commitments);
                 DCNetwork_.outbox().push(std::make_shared<OutgoingMessage>(commitBroadcast));
             }
         }
@@ -277,7 +286,7 @@ void RoundOne::sharingPartOne(std::vector<std::vector<CryptoPP::Integer>> &share
     for (auto it = DCNetwork_.members().begin(); it != DCNetwork_.members().end(); it++) {
         uint32_t memberIndex = std::distance(DCNetwork_.members().begin(), it);
 
-        if (it->second != SELF) {
+        if (it->second.connectionID() != SELF) {
             std::vector<uint8_t> rsPairs;
 
             if (securedRound_) {
@@ -292,7 +301,7 @@ void RoundOne::sharingPartOne(std::vector<std::vector<CryptoPP::Integer>> &share
                     shares[memberIndex][slice].Encode(&rsPairs[slice * 32], 32);
                 }
             }
-            OutgoingMessage rsMessage(it->second, RoundOneSharingPartOne, DCNetwork_.nodeID(), rsPairs);
+            OutgoingMessage rsMessage(it->second.connectionID(), RoundOneSharingPartOne, DCNetwork_.nodeID(), rsPairs);
             DCNetwork_.outbox().push(std::make_shared<OutgoingMessage>(rsMessage));
         }
     }
@@ -359,8 +368,8 @@ int RoundOne::sharingPartTwo() {
     }
 
     for (auto &member : DCNetwork_.members()) {
-        if (member.second != SELF) {
-            OutgoingMessage rsBroadcast(member.second, RoundOneSharingPartTwo, DCNetwork_.nodeID(), rsVector);
+        if (member.second.connectionID() != SELF) {
+            OutgoingMessage rsBroadcast(member.second.connectionID(), RoundOneSharingPartTwo, DCNetwork_.nodeID(), rsVector);
             DCNetwork_.outbox().push(std::make_shared<OutgoingMessage>(rsBroadcast));
         }
     }
@@ -467,8 +476,8 @@ void RoundOne::injectBlameMessage(uint32_t suspectID, uint32_t slice, CryptoPP::
     s.Encode(&messageBody[40], 32);
 
     for (auto &member : DCNetwork_.members()) {
-        if (member.second != SELF) {
-            OutgoingMessage blameMessage(member.second, BlameMessage, DCNetwork_.nodeID(), messageBody);
+        if (member.second.connectionID() != SELF) {
+            OutgoingMessage blameMessage(member.second.connectionID(), BlameMessage, DCNetwork_.nodeID(), messageBody);
             DCNetwork_.outbox().push(std::make_shared<OutgoingMessage>(blameMessage));
         }
     }

@@ -11,6 +11,7 @@
 #include "../datastruct/ReceivedMessage.h"
 #include "DCState.h"
 #include "../datastruct/OutgoingMessage.h"
+#include "DCMember.h"
 
 const CryptoPP::ECPPoint G(CryptoPP::Integer("362dc3caf8a0e8afd06f454a6da0cdce6e539bc3f15e79a15af8aa842d7e3ec2h"),
                 CryptoPP::Integer("b9f8addb295b0fd4d7c49a686eac7b34a9a11ed2d6d243ad065282dc13bce575h"));
@@ -18,12 +19,11 @@ const CryptoPP::ECPPoint G(CryptoPP::Integer("362dc3caf8a0e8afd06f454a6da0cdce6e
 const CryptoPP::ECPPoint H(CryptoPP::Integer("a3cf0a4b6e1d9146c73e9a82e4bfdc37ee1587bc2bf3b0c19cb159ae362e38beh"),
                 CryptoPP::Integer("db4369fabd3d770dd4c19d81ac69a1749963d69c687d7c4e12d186548b94cb2ah"));
 
-
 class DCNetwork {
 public:
     DCNetwork(uint32_t nodeID, size_t k, MessageQueue<ReceivedMessage>& inbox, MessageQueue<OutgoingMessage>& outbox);
 
-    std::map<uint32_t, uint32_t>& members();
+    std::map<uint32_t, DCMember>& members();
 
     std::unordered_map<uint32_t, uint32_t>& suspiciousMembers();
 
@@ -47,7 +47,7 @@ private:
     size_t k_;
 
     // Key: nodeID, value: connectionID
-    std::map<uint32_t, uint32_t> members_;
+    std::map<uint32_t, DCMember> members_;
 
     // Key: suspicious nodeID, value: number of malicious events
     std::unordered_map<uint32_t, uint32_t> suspiciousMembers_;

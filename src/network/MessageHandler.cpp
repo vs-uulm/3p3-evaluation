@@ -9,6 +9,7 @@ MessageHandler::MessageHandler(uint32_t nodeID, MessageQueue<ReceivedMessage> &i
 void MessageHandler::run() {
     for(;;) {
         auto receivedMessage = inbox_.pop();
+
         switch(receivedMessage->msgType()) {
             case HelloMessage: {
                 inboxDCNet_.push(receivedMessage);

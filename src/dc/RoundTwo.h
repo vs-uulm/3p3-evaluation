@@ -33,6 +33,7 @@ private:
     void injectBlameMessage(uint32_t suspectID, uint32_t slot, uint32_t slice, CryptoPP::Integer& s);
 
     void handleBlameMessage(std::shared_ptr<ReceivedMessage>& blameMessage);
+
     DCNetwork& DCNetwork_;
 
     // determines if the commitment mechanism is used

@@ -2,6 +2,8 @@
 #define THREEPP_MESSAGETYPE_H
 
 enum MessageType {
+    RegisterMessage,
+    NodeInfoMessage,
     HelloMessage,
     HelloResponse,
     ReadyMessage,

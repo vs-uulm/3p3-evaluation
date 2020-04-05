@@ -40,7 +40,7 @@ std::unique_ptr<DCState> Ready::executeTask() {
         DCNetwork_.outbox().push(std::make_shared<OutgoingMessage>(startDCRound));
     }
     else {
-        uint32_t groupManager = DCNetwork_.members().at(minimumID);
+        uint32_t groupManager = DCNetwork_.members().at(minimumID).connectionID();
 
         // send a ready message
         OutgoingMessage readyMessage(groupManager, ReadyMessage, DCNetwork_.nodeID());
@@ -52,5 +52,5 @@ std::unique_ptr<DCState> Ready::executeTask() {
             std::cout << "inappropriate message received" << std::endl;
     }
     // perform a state transition
-    return std::make_unique<RoundOne>(DCNetwork_, true);
+    return std::make_unique<RoundOne>(DCNetwork_, false);
 }

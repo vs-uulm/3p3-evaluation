@@ -16,7 +16,7 @@ class NetworkManager {
 public:
     NetworkManager(io_context& io_context_, uint16_t port_, MessageQueue<ReceivedMessage>& inbox);
 
-    uint32_t addNeighbor(uint32_t nodeID, const Node& node);
+    int addNeighbor(uint32_t nodeID, const Node& node);
 
     int sendMessage(OutgoingMessage& msg);
 private:
