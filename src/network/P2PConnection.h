@@ -43,6 +43,10 @@ private:
 
     void read_body(const boost::system::error_code& e, std::shared_ptr<ReceivedMessage> msg);
 
+    void write_header(const boost::system::error_code& e, NetworkMessage msg);
+
+    void write_body(const boost::system::error_code& e);
+
     bool is_open_;
 
     uint32_t connectionID_;

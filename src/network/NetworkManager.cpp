@@ -84,13 +84,13 @@ int NetworkManager::sendMessage(OutgoingMessage msg) {
     if(msg.receiverID() == BROADCAST) {
         for (auto& connection : connections_) {
             if (connection.second->is_open()) {
-                connection.second->send_msg(msg);
+                connection.second->send_msg(std::move(msg));
             }
         }
     } else {
         if (!connections_[msg.receiverID()]->is_open())
             return -1;
-        connections_[msg.receiverID()]->send_msg(msg);
+        connections_[msg.receiverID()]->send_msg(std::move(msg));
     }
     return 0;
 }

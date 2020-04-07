@@ -84,21 +84,36 @@ void P2PConnection::read_body(const boost::system::error_code& e, std::shared_pt
             std::cerr << std::hex << std::setw(2) << std::setfill('0') << (int) c << " ";
         std::cerr << std::endl;
     }
-    inbox_.push(*received_msg);
+    inbox_.push(std::move(*received_msg));
     read();
 
 }
 
+void P2PConnection::write_header(const boost::system::error_code &e, NetworkMessage msg) {
+    if(e) {
+        std::cerr << "Could not write message header: " << connectionID_ << std::endl;
+    }
+    boost::asio::async_write(ssl_socket_,
+                            boost::asio::buffer(msg.body()),
+                            boost::bind(&P2PConnection::write_body,
+                                        this,
+                                        boost::asio::placeholders::error));
+
+}
+
+void P2PConnection::write_body(const boost::system::error_code &e) {
+    if(e) {
+        std::cerr << "Could not write message body: " << connectionID_ << std::endl;
+    }
+}
+
 void P2PConnection::send_msg(NetworkMessage msg) {
-    boost::system::error_code error;
-    boost::asio::write(ssl_socket_, boost::asio::buffer(msg.header()), error);
-    if(error) {
-        std::cerr << "Error: could not write header" << std::endl;
-    }
-    boost::asio::write(ssl_socket_, boost::asio::buffer(msg.body()), error);
-    if(error) {
-        std::cerr << "Error: could not write body" << std::endl;
-    }
+    boost::asio::async_write(ssl_socket_,
+            boost::asio::buffer(msg.header()),
+            boost::bind(&P2PConnection::write_header,
+                    this,
+                    boost::asio::placeholders::error,
+                    msg));
 }
 
 bool P2PConnection::is_open() {

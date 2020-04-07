@@ -245,7 +245,7 @@ void RoundOne::sharingPartOne(std::vector<std::vector<CryptoPP::Integer>> &share
         for (auto &member : DCNetwork_.members()) {
             if (member.second.connectionID() != SELF) {
                 OutgoingMessage commitBroadcast(member.second.connectionID(), CommitmentRoundOne, DCNetwork_.nodeID(), commitments);
-                DCNetwork_.outbox().push(commitBroadcast);
+                DCNetwork_.outbox().push(std::move(commitBroadcast));
             }
         }
 

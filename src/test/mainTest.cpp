@@ -15,7 +15,7 @@
 
 std::mutex cout_mutex;
 
-const uint32_t INSTANCES = 6;
+const uint32_t INSTANCES = 12;
 
 void instance(int ID) {
     CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> curve;
@@ -147,7 +147,7 @@ void instance(int ID) {
 
 
     // node 0 will always submit a message
-    if (nodeID_ == 0) {
+    if (nodeID_ == 0 || nodeID_ == 1) {
         uint16_t length = PRNG.GenerateWord32(0, 128);
         std::vector<uint8_t> message(length);
         PRNG.GenerateBlock(message.data(), length);
@@ -219,7 +219,7 @@ void nodeAuthority() {
             }
         }
         OutgoingMessage nodeInfoMessage(i, NodeInfoMessage, 0, nodeInfo);
-        networkManager.sendMessage(nodeInfoMessage);
+        networkManager.sendMessage(std::move(nodeInfoMessage));
     }
 
     networkThread.join();
