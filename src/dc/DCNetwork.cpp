@@ -5,10 +5,9 @@
 
 #include <iostream>
 
-DCNetwork::DCNetwork(uint32_t nodeID, size_t k, MessageQueue<ReceivedMessage>& inbox, MessageQueue<OutgoingMessage>& outbox)
-: nodeID_(nodeID), k_(k), inbox_(inbox), outbox_(outbox), state_(std::make_unique<Init>(*this)) {
-    DCMember self(nodeID, SELF);
-    members_.insert(std::pair(nodeID, self));
+DCNetwork::DCNetwork(DCMember self, size_t k, std::unordered_map<uint32_t, Node>& neigbors, MessageQueue<ReceivedMessage>& inbox, MessageQueue<OutgoingMessage>& outbox)
+: nodeID_(self.nodeID()), k_(k), neighbors_(neigbors), inbox_(inbox), outbox_(outbox), state_(std::make_unique<Init>(*this)) {
+    members_.insert(std::pair(nodeID_, self));
 }
 
 void DCNetwork::run() {
@@ -27,6 +26,10 @@ std::map<uint32_t, DCMember>& DCNetwork::members() {
 
 std::unordered_map<uint32_t, uint32_t>& DCNetwork::suspiciousMembers() {
     return suspiciousMembers_;
+}
+
+std::unordered_map<uint32_t, Node>& DCNetwork::neighbors() {
+    return neighbors_;
 }
 
 MessageQueue<ReceivedMessage>& DCNetwork::inbox() {

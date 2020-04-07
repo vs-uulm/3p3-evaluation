@@ -16,12 +16,15 @@ class NetworkManager {
 public:
     NetworkManager(io_context& io_context_, uint16_t port_, MessageQueue<ReceivedMessage>& inbox);
 
-    int addNeighbor(uint32_t nodeID, const Node& node);
+    int addNeighbor(const Node& node);
 
-    int sendMessage(OutgoingMessage& msg);
-private:
+    int connectToCA(const std::string& ip_address, uint16_t port);
+
+    int sendMessage(OutgoingMessage msg);
+
     void start_accept();
 
+private:
     void accept_handler(const boost::system::error_code& e, std::shared_ptr<P2PConnection> connection);
 
     std::mutex mutex_;

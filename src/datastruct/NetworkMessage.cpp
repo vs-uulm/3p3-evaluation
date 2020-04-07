@@ -12,7 +12,7 @@ NetworkMessage::NetworkMessage(uint8_t msgType, uint32_t senderID) : header_{0} 
     header_[7] = (senderID & 0x000000FF);
 }
 
-NetworkMessage::NetworkMessage(uint8_t msgType, uint32_t senderID, std::vector<uint8_t>& body)
+NetworkMessage::NetworkMessage(uint8_t msgType, uint32_t senderID, std::vector<uint8_t> body)
 : body_(body) {
     if(body.size() > 0x00FFFFFF)
         throw std::invalid_argument("Body length is limited to 2^24 Bytes");

@@ -27,6 +27,7 @@ RoundOne::~RoundOne() {}
 
 std::unique_ptr<DCState> RoundOne::executeTask() {
     // TODO test only
+    /*
     if(DCNetwork_.nodeID() == 0) {
         for(auto& member : DCNetwork_.members()) {
             std::cout << "Node " << member.second.nodeID() << ":" << std::endl;
@@ -34,6 +35,7 @@ std::unique_ptr<DCState> RoundOne::executeTask() {
             std::cout << std::hex << member.second.publicKey().y << std::endl;
         }
     }
+     */
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     // check if there is a submitted message and determine it's length,
     // but don't remove it from the message queue just yet

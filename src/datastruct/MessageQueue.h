@@ -10,6 +10,7 @@
 template<class T>
 class MessageQueue {
 public:
+
     void push(std::shared_ptr<T> msg) {
         std::lock_guard<std::mutex> lock(mutex_);
         msg_queue_.push(msg);

@@ -259,7 +259,7 @@ void RoundTwo::sharingPartOne(size_t totalNumSlices, std::vector<std::vector<std
                     shares[slot][shareIndex][slice].Encode(&sharingMessage[offset], 32);
             }
 
-            OutgoingMessage rsMessage(it->second.connectionID(), RoundTwoSharingPartOne, DCNetwork_.nodeID(), sharingMessage);
+            OutgoingMessage rsMessage(it->second.connectionID(), RoundTwoSharingPartOne, DCNetwork_.nodeID(), std::move(sharingMessage));
             DCNetwork_.outbox().push(std::make_shared<OutgoingMessage>(rsMessage));
         }
     }

@@ -7,8 +7,7 @@
 #include <chrono>
 
 
-Ready::Ready(DCNetwork& DCNet) : DCNetwork_(DCNet) {
-}
+Ready::Ready(DCNetwork& DCNet) : DCNetwork_(DCNet) {}
 
 Ready::~Ready() {}
 
@@ -28,6 +27,9 @@ std::unique_ptr<DCState> Ready::executeTask() {
             auto readyMessage = DCNetwork_.inbox().pop();
             if(readyMessage->msgType() != ReadyMessage) {
                 std::cout << "Inappropriate message received: " << (int) readyMessage->msgType() << std::endl;
+                DCNetwork_.inbox().push(readyMessage);
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                readyMessage = DCNetwork_.inbox().pop();
             }
             else {
                 auto position = std::find(readyNodes.begin(), readyNodes.end(), readyMessage->connectionID());

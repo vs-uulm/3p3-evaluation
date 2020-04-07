@@ -10,7 +10,7 @@ public:
 
     NetworkMessage(uint8_t msgType, uint32_t senderID);
 
-    NetworkMessage(uint8_t msgType, uint32_t senderID, std::vector<uint8_t>& body);
+    NetworkMessage(uint8_t msgType, uint32_t senderID, std::vector<uint8_t> body);
 
     std::array<uint8_t, 8>& header();
 

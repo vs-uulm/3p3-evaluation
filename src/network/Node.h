@@ -9,17 +9,17 @@ using namespace boost::asio;
 
 class Node {
 public:
-    Node(uint32_t nodeID, uint16_t port, const std::string& ip_address);
+    Node();
 
-    Node(uint32_t nodeID, CryptoPP::Integer& privateKey, CryptoPP::ECPPoint& publicKey, uint16_t port, const std::string& ip_address);
+    Node(uint32_t nodeID, uint16_t port, const ip::address_v4& ip_address);
+
+    Node(uint32_t nodeID, const CryptoPP::ECPPoint& PublicKey, uint16_t port, const ip::address_v4& ip_address);
 
     uint32_t nodeID() const;
 
     uint16_t port() const;
 
-    const std::string& ip_address() const;
-
-    const CryptoPP::Integer& privateKey() const;
+    const ip::address_v4& ip_address() const;
 
     const CryptoPP::ECPPoint& publicKey() const;
 private:
@@ -27,9 +27,7 @@ private:
 
     uint16_t port_;
 
-    std::string ip_address_;
-
-    CryptoPP::Integer privateKey_;
+    ip::address_v4 ip_address_;
 
     CryptoPP::ECPPoint publicKey_;
 };

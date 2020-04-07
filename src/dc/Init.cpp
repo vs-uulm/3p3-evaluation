@@ -20,7 +20,8 @@ std::unique_ptr<DCState> Init::executeTask() {
             receivedMessage = DCNetwork_.inbox().pop();
         }
 
-        DCMember member(receivedMessage->senderID(), receivedMessage->connectionID(), receivedMessage->body());
+        uint32_t nodeID = receivedMessage->senderID();
+        DCMember member(nodeID, receivedMessage->connectionID(), DCNetwork_.neighbors()[nodeID].publicKey());
         DCNetwork_.members().insert(std::make_pair(receivedMessage->senderID(), member));
     }
     // perform a state transition

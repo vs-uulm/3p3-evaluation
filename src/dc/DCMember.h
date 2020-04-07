@@ -10,7 +10,7 @@ class DCMember {
 public:
     DCMember(uint32_t nodeID, uint32_t connectionID);
 
-    DCMember(uint32_t nodeID, uint32_t connectionID, std::vector<uint8_t> encodedPK);
+    DCMember(uint32_t nodeID, uint32_t connectionID, CryptoPP::ECPPoint publicKey);
 
     uint32_t nodeID();
 

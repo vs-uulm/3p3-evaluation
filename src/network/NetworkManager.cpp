@@ -40,21 +40,23 @@ void NetworkManager::accept_handler(const boost::system::error_code& e, std::sha
     }
 }
 
-int NetworkManager::addNeighbor(uint32_t nodeID, const Node &node) {
+int NetworkManager::addNeighbor(const Node &node) {
     uint32_t connectionID;
     {
         std::lock_guard<std::mutex> lock(mutex_);
         connectionID = maxConnectionID_;
         maxConnectionID_++;
     }
+
     auto connection = std::make_shared<P2PConnection>(connectionID, io_context_, ssl_context_, inbox_);
 
     for(int retryCount = 3; retryCount > 0; retryCount--) {
-        if (connection->connect(ip::address::from_string(node.ip_address()), node.port()) == 0) {
-            connections_.insert(std::pair(connection->connectionID(), connection));
+        if (connection->connect(node.ip_address(), node.port()) == 0) {
+            connections_.insert(std::pair(connectionID, connection));
             return connectionID;
         }
-
+        std::cout << "ConnectionID" << connectionID << std::endl;
+        std::cout << "IP: " << node.ip_address().to_string() << " , Port: " << node.port() << std::endl;
         std::cout << "Connection refused: retrying after 500 milliseconds" << std::endl;
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
@@ -62,7 +64,23 @@ int NetworkManager::addNeighbor(uint32_t nodeID, const Node &node) {
     return -1;
 }
 
-int NetworkManager::sendMessage(OutgoingMessage& msg) {
+int NetworkManager::connectToCA(const std::string& ip_address, uint16_t port) {
+    uint32_t connectionID;
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        connectionID = maxConnectionID_;
+        maxConnectionID_++;
+    }
+
+    auto connection = std::make_shared<P2PConnection>(connectionID, io_context_, ssl_context_, inbox_);
+    if (connection->connect(ip::address_v4::from_string(ip_address), port) == 0) {
+        connections_.insert(std::pair(connectionID, connection));
+        return connectionID;
+    }
+    return -1;
+}
+
+int NetworkManager::sendMessage(OutgoingMessage msg) {
     if(msg.receiverID() == BROADCAST) {
         for (auto& connection : connections_) {
             if (connection.second->is_open()) {

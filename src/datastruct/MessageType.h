@@ -3,6 +3,7 @@
 
 enum MessageType {
     RegisterMessage,
+    RegisterResponse,
     NodeInfoMessage,
     HelloMessage,
     HelloResponse,

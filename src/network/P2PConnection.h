@@ -20,13 +20,13 @@ public:
 
     ~P2PConnection();
 
-    int connect(ip::address ip_address, uint16_t port);
+    int connect(ip::address_v4 ip_address, uint16_t port);
 
     void disconnect();
 
     void async_handshake();
 
-    void send_msg(NetworkMessage& msg);
+    void send_msg(NetworkMessage msg);
 
     bool is_open();
 
@@ -37,7 +37,7 @@ public:
 private:
     void handshake_handler(const boost::system::error_code& e);
 
-    void async_read();
+    void read();
 
     void read_header(const boost::system::error_code& e, std::shared_ptr<ReceivedMessage> msg);
 
