@@ -66,7 +66,6 @@ void P2PConnection::read() {
 void P2PConnection::read_header(const boost::system::error_code& e, std::shared_ptr<ReceivedMessage> received_msg) {
     if(e) {
         std::cerr << "Could not read the message header from connection: " << connectionID_ << std::endl;
-        std::cerr << "Error message: " << e.message() << std::endl;
     } else {
         received_msg->resizeBody();
         boost::asio::async_read(ssl_socket_,
@@ -81,14 +80,13 @@ void P2PConnection::read_header(const boost::system::error_code& e, std::shared_
 void P2PConnection::read_body(const boost::system::error_code& e, std::shared_ptr<ReceivedMessage> received_msg) {
     if(e) {
         std::cerr << "Could not read the message body from connection: " << connectionID_ << std::endl;
-        std::cerr << "Error message: " << e.message() << std::endl;
-        for(uint8_t c : received_msg->header())
+        for (uint8_t c : received_msg->header())
             std::cerr << std::hex << std::setw(2) << std::setfill('0') << (int) c << " ";
         std::cerr << std::endl;
-    } else {
-        inbox_.push(received_msg);
-        read();
     }
+    inbox_.push(*received_msg);
+    read();
+
 }
 
 void P2PConnection::send_msg(NetworkMessage msg) {

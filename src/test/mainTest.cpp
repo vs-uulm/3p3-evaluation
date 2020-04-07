@@ -15,7 +15,7 @@
 
 std::mutex cout_mutex;
 
-const uint32_t INSTANCES = 4;
+const uint32_t INSTANCES = 6;
 
 void instance(int ID) {
     CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> curve;
@@ -61,20 +61,20 @@ void instance(int ID) {
     networkManager.sendMessage(registerMessage);
 
     auto registerResponse = inbox.pop();
-    if(registerResponse->msgType() != RegisterResponse)
+    if(registerResponse.msgType() != RegisterResponse)
         return;
 
     // decode the received nodeID
-    uint32_t nodeID_ = ((registerResponse->body()[0]) << 24) | (registerResponse->body()[1] << 16)
-                            | (registerResponse->body()[2] << 8) | registerResponse->body()[3];
+    uint32_t nodeID_ = ((registerResponse.body()[0]) << 24) | (registerResponse.body()[1] << 16)
+                            | (registerResponse.body()[2] << 8) | registerResponse.body()[3];
 
     // wait until the nodeInfo message arrives
     auto nodeInfo = inbox.pop();
-    if(nodeInfo->msgType() != NodeInfoMessage)
+    if(nodeInfo.msgType() != NodeInfoMessage)
         return;
 
     // First determine the number of nodes received
-    uint32_t numNodes = (nodeInfo->body()[0] << 24) | (nodeInfo->body()[1] << 16) | (nodeInfo->body()[2] << 8) | (nodeInfo->body()[3]);
+    uint32_t numNodes = (nodeInfo.body()[0] << 24) | (nodeInfo.body()[1] << 16) | (nodeInfo.body()[2] << 8) | (nodeInfo.body()[3]);
 
     std::unordered_map<uint32_t, Node> neighbors;
     neighbors.reserve(numNodes);
@@ -83,20 +83,20 @@ void instance(int ID) {
     size_t infoSize = 10 + curve.GetCurve().EncodedPointSize(true);
     for(uint32_t i = 0, offset = 4; i < numNodes; i++, offset += infoSize) {
         // extract the nodeID
-        uint32_t nodeID = (nodeInfo->body()[offset] << 24) | (nodeInfo->body()[offset+1] << 16)
-                            | (nodeInfo->body()[offset+2] << 8) | (nodeInfo->body()[offset+3]);
+        uint32_t nodeID = (nodeInfo.body()[offset] << 24) | (nodeInfo.body()[offset+1] << 16)
+                            | (nodeInfo.body()[offset+2] << 8) | (nodeInfo.body()[offset+3]);
 
         // extract the port
-        uint16_t port = (nodeInfo->body()[offset+4] << 8) | nodeInfo->body()[offset+5];
+        uint16_t port = (nodeInfo.body()[offset+4] << 8) | nodeInfo.body()[offset+5];
 
         // extract the IP adddress
         std::array<uint8_t, 4> decodedIP;
-        std::copy(&nodeInfo->body()[offset+6], &nodeInfo->body()[offset+10], &decodedIP[0]);
+        std::copy(&nodeInfo.body()[offset+6], &nodeInfo.body()[offset+10], &decodedIP[0]);
         ip::address_v4 ip_address(decodedIP);
 
         // decode the public key
         CryptoPP::ECPPoint publicKey;
-        curve.GetCurve().DecodePoint(publicKey, &nodeInfo->body()[offset+10], curve.GetCurve().EncodedPointSize(true));
+        curve.GetCurve().DecodePoint(publicKey, &nodeInfo.body()[offset+10], curve.GetCurve().EncodedPointSize(true));
 
         // Node(uint32_t nodeID, const CryptoPP::ECPPoint& PublicKey, uint16_t port, const ip::address_v4& ip_address);
         Node neighbor(nodeID, publicKey, port, ip_address);
@@ -131,7 +131,7 @@ void instance(int ID) {
     std::thread writerThread([&]() {
         for (;;) {
             auto message = outbox.pop();
-            int result = networkManager.sendMessage(*message);
+            int result = networkManager.sendMessage(message);
             if (result < 0) {
                 std::cout << "Error: could not send message" << std::endl;
             }
@@ -182,12 +182,12 @@ void nodeAuthority() {
     // accept register messages until the threshold of nodes is reached
     for(uint32_t nodeID = 0; nodeID < INSTANCES; nodeID++) {
         auto receivedMessage = inbox.pop();
-        if(receivedMessage->msgType() != RegisterMessage) {
-            std::cout << "Unknown message type received: " << receivedMessage->msgType() << std::endl;
+        if(receivedMessage.msgType() != RegisterMessage) {
+            std::cout << "Unknown message type received: " << receivedMessage.msgType() << std::endl;
             continue;
         }
         // store the encoded information for each node
-        registeredNodes.push_back(std::move(receivedMessage->body()));
+        registeredNodes.push_back(std::move(receivedMessage.body()));
         std::vector<uint8_t> encodedNodeID(4);
         encodedNodeID[0] = (nodeID & 0xFF000000) >> 24;
         encodedNodeID[1] = (nodeID & 0x00FF0000) >> 16;

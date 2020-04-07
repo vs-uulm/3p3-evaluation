@@ -13,9 +13,9 @@
 
 class RoundTwo : public DCState {
 public:
-    RoundTwo(DCNetwork& DCNet, int slotIndex, std::vector<uint16_t>& slots);
+    RoundTwo(DCNetwork& DCNet, int slotIndex, std::vector<uint16_t> slots);
 
-    RoundTwo(DCNetwork& DCNet, int slotIndex, std::vector<uint16_t>& slots, std::vector<std::vector<std::array<uint8_t, 32>>>& seeds);
+    RoundTwo(DCNetwork& DCNet, int slotIndex, std::vector<uint16_t> slots, std::vector<std::vector<std::array<uint8_t, 32>>> seeds);
 
     virtual ~RoundTwo();
 

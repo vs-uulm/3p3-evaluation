@@ -25,34 +25,34 @@ std::unique_ptr<DCState> Ready::executeTask() {
 
         while(readyNodes.size() < memberCount - 1) {
             auto readyMessage = DCNetwork_.inbox().pop();
-            if(readyMessage->msgType() != ReadyMessage) {
-                std::cout << "Inappropriate message received: " << (int) readyMessage->msgType() << std::endl;
+            if(readyMessage.msgType() != ReadyMessage) {
+                std::cout << "Inappropriate message received: " << (int) readyMessage.msgType() << std::endl;
                 DCNetwork_.inbox().push(readyMessage);
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
                 readyMessage = DCNetwork_.inbox().pop();
             }
             else {
-                auto position = std::find(readyNodes.begin(), readyNodes.end(), readyMessage->connectionID());
+                auto position = std::find(readyNodes.begin(), readyNodes.end(), readyMessage.connectionID());
                 if(position == readyNodes.end())
-                    readyNodes.push_back(readyMessage->connectionID());
+                    readyNodes.push_back(readyMessage.connectionID());
             }
         }
         // the loop is terminated when all members of the DC network are ready
         OutgoingMessage startDCRound(BROADCAST, StartDCRound, DCNetwork_.nodeID());
-        DCNetwork_.outbox().push(std::make_shared<OutgoingMessage>(startDCRound));
+        DCNetwork_.outbox().push(startDCRound);
     }
     else {
         uint32_t groupManager = DCNetwork_.members().at(minimumID).connectionID();
 
         // send a ready message
         OutgoingMessage readyMessage(groupManager, ReadyMessage, DCNetwork_.nodeID());
-        DCNetwork_.outbox().push(std::make_shared<OutgoingMessage>(readyMessage));
+        DCNetwork_.outbox().push(readyMessage);
 
         // wait for the round start message
         auto receivedMessage = DCNetwork_.inbox().pop();
-        if(receivedMessage->msgType() != StartDCRound)
+        if(receivedMessage.msgType() != StartDCRound)
             std::cout << "inappropriate message received" << std::endl;
     }
     // perform a state transition
-    return std::make_unique<RoundOne>(DCNetwork_, false);
+    return std::make_unique<RoundOne>(DCNetwork_, true);
 }

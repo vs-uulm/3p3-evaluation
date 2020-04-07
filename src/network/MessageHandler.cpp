@@ -10,11 +10,11 @@ void MessageHandler::run() {
     for(;;) {
         auto receivedMessage = inbox_.pop();
 
-        switch(receivedMessage->msgType()) {
+        switch(receivedMessage.msgType()) {
             case HelloMessage: {
                 inboxDCNet_.push(receivedMessage);
-                OutgoingMessage response(receivedMessage->connectionID(), HelloResponse, nodeID_);
-                outbox_.push(std::make_shared<OutgoingMessage>(response));
+                OutgoingMessage response(receivedMessage.connectionID(), HelloResponse, nodeID_);
+                outbox_.push(response);
                 break;
             }
             case HelloResponse:
