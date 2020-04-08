@@ -18,25 +18,14 @@ RoundOne::RoundOne(DCNetwork &DCNet, bool securedRound)
     nodeIndex_ = std::distance(DCNetwork_.members().begin(), DCNetwork_.members().find(DCNetwork_.nodeID()));
 
     if (securedRound_)
-        msgVector_.resize(2 * k_ * (4 + 32 * k_));
+        msgVector_.resize(2*k_ * (8 + 32*k_));
     else
-        msgVector_.resize(8 * k_);
+        msgVector_.resize(2*k_ * 8);
 }
 
 RoundOne::~RoundOne() {}
 
 std::unique_ptr<DCState> RoundOne::executeTask() {
-    // TODO test only
-    /*
-    if(DCNetwork_.nodeID() == 0) {
-        for(auto& member : DCNetwork_.members()) {
-            std::cout << "Node " << member.second.nodeID() << ":" << std::endl;
-            std::cout << std::hex << member.second.publicKey().x << std::endl;
-            std::cout << std::hex << member.second.publicKey().y << std::endl;
-        }
-    }
-     */
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
     // check if there is a submitted message and determine it's length,
     // but don't remove it from the message queue just yet
     uint16_t l = 0;
@@ -55,23 +44,29 @@ std::unique_ptr<DCState> RoundOne::executeTask() {
         std::cout << std::endl << std::endl;
     }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
 
     int p = -1;
     if (l > 0) {
         uint16_t r = PRNG.GenerateWord32(0, USHRT_MAX);
-        p = PRNG.GenerateWord32(0, 2 * k_ - 1);
+        p = PRNG.GenerateWord32(0, 2*k_-1);
 
         // set the values in Big Endian format
-        msgVector_[4 * p] = static_cast<uint8_t>((r & 0xFF00) >> 8);
-        msgVector_[4 * p + 1] = static_cast<uint8_t>((r & 0x00FF));
-        msgVector_[4 * p + 2] = static_cast<uint8_t>((l & 0xFF00) >> 8);
-        msgVector_[4 * p + 3] = static_cast<uint8_t>((l & 0x00FF));
+        msgVector_[8*p + 4] = static_cast<uint8_t>((r & 0xFF00) >> 8);
+        msgVector_[8*p + 5] = static_cast<uint8_t>((r & 0x00FF));
+        msgVector_[8*p + 6] = static_cast<uint8_t>((l & 0xFF00) >> 8);
+        msgVector_[8*p + 7] = static_cast<uint8_t>((l & 0x00FF));
 
-        // generate k random K values used as seeds
-        // for the commitments in the second round
-        if (securedRound_)
-            PRNG.GenerateBlock(&msgVector_[8 * k_ + p * 32 * k_], 32 * k_);
+        // generate k random seeds, required for the commitments in the second round
+        if(securedRound_)
+            PRNG.GenerateBlock(&msgVector_[16*k_ + p*32*k_], 32*k_);
+
+        // Calculate the CRC
+        CRC32_.Update(&msgVector_[8*p + 4], 4);
+        if(securedRound_)
+            CRC32_.Update(&msgVector_[16*k_ + p*32*k_], 32*k_);
+
+        CRC32_.Final(&msgVector_[8*p]);
     }
 
     // Split the message vector into slices of 31 Bytes
@@ -130,34 +125,36 @@ std::unique_ptr<DCState> RoundOne::executeTask() {
     // collect and validate the final shares
     std::vector<uint8_t> finalMessageVector = RoundOne::resultComputation();
 
-    if (p > -1) {
-        // verify that no collision occurred
-        if ((msgVector_[4 * p] != finalMessageVector[4 * p]) ||
-            (msgVector_[4 * p + 1] != finalMessageVector[4 * p + 1])) {
-            std::lock_guard<std::mutex> lock(mutex_);
-            std::cout << "A collision occurred at position: " << std::dec << p + 1 << std::endl;
-            // TODO handle the collision
-        }
-    }
-
     // prepare round two
     std::vector<uint16_t> slots;
     std::vector<std::vector<std::array<uint8_t, 32>>> seeds;
     // determine the non-empty slots in the message vector
     // and calculate the index of the own slot if present
     int slotIndex = -1;
-    for (uint32_t i = 0; i < 2 * k_; i++) {
+    for (uint32_t i = 0; i < 2*k_; i++) {
         if (p == i) {
             slotIndex = slots.size();
         }
-        uint16_t slotSize = (finalMessageVector[4 * i + 2] << 8) | finalMessageVector[4 * i + 3];
+        uint16_t slotSize = (finalMessageVector[8*i + 6] << 8) | finalMessageVector[8*i + 7];
         if (slotSize > 0) {
+            // verify the CRC
+            CRC32_.Update(&finalMessageVector[8*i + 4], 4);
+            CRC32_.Update(&finalMessageVector[16*k_ + 32*k_* i ], 32*k_);
+            bool valid = CRC32_.Verify(&finalMessageVector[8*i]);
+
+            if(!valid) {
+                // TODO test
+                std::cout << "Invalid CRC detected." << std::endl;
+                std::cout << "Restarting Round One." << std::endl;
+                return std::make_unique<Ready>(DCNetwork_);
+            }
+
             // extract the seeds for the corresponding slot
             std::vector<std::array<uint8_t, 32>> K;
             K.reserve(k_);
             for (uint32_t j = 0; j < k_; j++) {
                 std::array<uint8_t, 32> K_;
-                std::copy(&finalMessageVector[8 * k_ + 32 * j], &finalMessageVector[8 * k_ + 32 * j] + 32, K_.data());
+                std::copy(&finalMessageVector[16*k_ + 32*k_*i + 32*j], &finalMessageVector[16*k_ + 32*k_*i + 32*j] + 32, K_.data());
                 K.push_back(std::move(K_));
             }
             seeds.push_back(std::move(K));
@@ -551,14 +548,19 @@ void RoundOne::printMessageVector(std::vector<uint8_t> &msgVector) {
     std::lock_guard<std::mutex> lock(mutex_);
 
     std::cout << std::dec << "Node: " << DCNetwork_.nodeID() << std::endl;
-    std::cout << "|";
+    std::cout << "| ";
     for (int i = 0; i < 2 * k_; i++) {
-        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) msgVector[4 * i];
-        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) msgVector[4 * i + 1];
+        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) msgVector[8*i];
+        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) msgVector[8*i + 1];
+        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) msgVector[8*i + 2];
+        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) msgVector[8*i + 3];
         std::cout << " ";
-        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) msgVector[4 * i + 2];
-        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) msgVector[4 * i + 3];
-        std::cout << "|";
+        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) msgVector[8*i + 4];
+        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) msgVector[8*i + 5];
+        std::cout << " ";
+        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) msgVector[8*i + 6];
+        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) msgVector[8*i + 7];
+        std::cout << " | ";
     }
     std::cout << std::endl << std::endl;
 }

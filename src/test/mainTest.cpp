@@ -3,7 +3,6 @@
 #include <list>
 #include <iostream>
 #include <cryptopp/oids.h>
-#include <iomanip>
 
 #include "../network/P2PConnection.h"
 #include "../network/NetworkManager.h"
@@ -11,11 +10,9 @@
 #include "../dc/DCNetwork.h"
 #include "../datastruct/MessageType.h"
 
-//std::vector<Node> Nodes;
-
 std::mutex cout_mutex;
 
-const uint32_t INSTANCES = 12;
+const uint32_t INSTANCES = 6;
 
 void instance(int ID) {
     CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> curve;
@@ -230,16 +227,6 @@ int main() {
     curve.Initialize(CryptoPP::ASN1::secp256k1());
 
     std::list<std::thread> threads;
-    /*
-    CryptoPP::AutoSeededRandomPool PRNG;
-    for (int i = 0; i < INSTANCES; i++) {
-        CryptoPP::Integer privateKey(PRNG, CryptoPP::Integer::One(), curve.GetMaxExponent());
-        CryptoPP::ECPPoint publicKey = curve.ExponentiateBase(privateKey);
-
-        //Node node(i, privateKey, publicKey, 5555 + i, "127.0.0.1");
-        Nodes.push_back(std::move(node));
-    }
-    */
 
     std::thread nodeAuthorityThread(nodeAuthority);
     threads.push_back(std::move(nodeAuthorityThread));

@@ -1,6 +1,7 @@
 #include <cryptopp/eccrypto.h>
 #include <cryptopp/ecpoint.h>
 #include <cryptopp/asn.h>
+#include <cryptopp/crc.h>
 #include <cryptopp/oids.h>
 #include <cryptopp/osrng.h>
 #include <cryptopp/drbg.h>
@@ -19,6 +20,41 @@ int main() {
 
     CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> ec_group;
     ec_group.Initialize(CryptoPP::ASN1::secp256k1());
+
+    CryptoPP::CRC32 crc32;
+
+    uint8_t data[32] = {0};
+    //PRNG.GenerateBlock(data, 32);
+    for(uint8_t c : data) {
+        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int ) c;
+    }
+    std::cout << std::endl;
+
+    uint8_t additionalData[64] = {0};
+    //PRNG.GenerateBlock(additionalData, 64);
+
+    crc32.Update(data, 32);
+    //crc32.Update(additionalData, 64);
+    uint32_t digestSize = crc32.DigestSize();
+
+    uint8_t digest[digestSize];
+    crc32.Final(digest);
+    //crc32.Restart();
+    std::cout << "Digest size: " << digestSize << std::endl;
+    for(uint8_t c : digest) {
+        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) c;
+    }
+    std::cout << std::endl;
+
+    //bool valid = crc32.VerifyDigest(digest, data, 32);
+    crc32.Update(data, 32);
+    //crc32.Update(additionalData, 64);
+    bool valid = crc32.Verify(digest);
+    std::cout << "Cipher validation: " << valid << std::endl;
+
+
+
+    /*
 
     CryptoPP::ECIES<CryptoPP::ECP>::Decryptor privateKey(PRNG, CryptoPP::ASN1::secp384r1());
 
@@ -51,6 +87,7 @@ int main() {
     std::cout << "(B): " << std::hex << ssb << std::endl;
 
     std::cout << "Agreed to shared secret" << std::endl;
+    */
 
     /*
     CryptoPP::Integer maximum_k1 = ec_group.GetMaxExponent();

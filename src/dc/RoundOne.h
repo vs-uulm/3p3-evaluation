@@ -2,6 +2,7 @@
 #define THREEPP_ROUNDONE_H
 
 #include <cryptopp/ecpoint.h>
+#include <cryptopp/crc.h>
 #include <cryptopp/osrng.h>
 #include <cryptopp/eccrypto.h>
 
@@ -58,6 +59,8 @@ private:
 
     // sum of all commitments
     std::vector<CryptoPP::ECPPoint> C;
+
+    CryptoPP::CRC32 CRC32_;
 
     CryptoPP::AutoSeededRandomPool PRNG;
 
