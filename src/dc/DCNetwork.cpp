@@ -11,7 +11,7 @@ DCNetwork::DCNetwork(DCMember self, size_t k, std::unordered_map<uint32_t, Node>
 }
 
 void DCNetwork::run() {
-    for(int i = 0; i < 5; i++) {
+    for(;;) {
         state_ = state_->executeTask();
     }
 }

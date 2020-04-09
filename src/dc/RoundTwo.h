@@ -15,7 +15,7 @@ class RoundTwo : public DCState {
 public:
     RoundTwo(DCNetwork& DCNet, int slotIndex, std::vector<uint16_t> slots);
 
-    RoundTwo(DCNetwork& DCNet, int slotIndex, std::vector<uint16_t> slots, std::vector<std::vector<std::array<uint8_t, 32>>> seeds);
+    RoundTwo(DCNetwork& DCNet, int slotIndex, std::vector<uint16_t> slots, std::vector<std::array<uint8_t, 32>> submittedSeeds, std::vector<std::array<uint8_t, 32>> receivedSeeds);
 
     virtual ~RoundTwo();
 
@@ -50,10 +50,12 @@ private:
 
     std::vector<uint16_t> slots_;
 
-    std::vector<std::vector<std::array<uint8_t, 32>>> seeds_;
+    std::vector<std::array<uint8_t, 32>> submittedSeeds_;
+
+    std::vector<std::array<uint8_t, 32>> seeds_;
 
     // pseudo random values for the commitments
-    std::vector<std::vector<std::vector<std::vector<CryptoPP::Integer>>>> rValues_;
+    std::vector<std::vector<std::vector<CryptoPP::Integer>>> rValues_;
 
     // received commitments stored along with the corresponding memberID
     std::unordered_map<uint32_t, std::vector<std::vector<std::vector<CryptoPP::ECPPoint>>>> commitments_;

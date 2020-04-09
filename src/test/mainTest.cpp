@@ -215,6 +215,7 @@ void nodeAuthority() {
                 offset += infoSize;
             }
         }
+        // TODO check for bug here
         OutgoingMessage nodeInfoMessage(i, NodeInfoMessage, 0, nodeInfo);
         networkManager.sendMessage(std::move(nodeInfoMessage));
     }

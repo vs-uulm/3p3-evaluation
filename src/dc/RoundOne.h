@@ -60,6 +60,8 @@ private:
     // sum of all commitments
     std::vector<CryptoPP::ECPPoint> C;
 
+    std::vector<std::array<uint8_t, 32>> submittedSeeds_;
+
     CryptoPP::CRC32 CRC32_;
 
     CryptoPP::AutoSeededRandomPool PRNG;

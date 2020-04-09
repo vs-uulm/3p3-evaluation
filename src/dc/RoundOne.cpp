@@ -58,8 +58,19 @@ std::unique_ptr<DCState> RoundOne::executeTask() {
         msgVector_[8*p + 7] = static_cast<uint8_t>((l & 0x00FF));
 
         // generate k random seeds, required for the commitments in the second round
-        if(securedRound_)
-            PRNG.GenerateBlock(&msgVector_[16*k_ + p*32*k_], 32*k_);
+        if(securedRound_) {
+            submittedSeeds_.reserve(k_);
+            for(uint32_t i = 0; i < k_; i++) {
+                std::array<uint8_t, 32> seed;
+                PRNG.GenerateBlock(seed.data(), 32);
+
+                // copy the seed to the message vector
+                std::copy(seed.begin(), seed.end(), &msgVector_[16*k_ + p*32*k_ + 32*i]);
+
+                // store the seed
+                submittedSeeds_.push_back(std::move(seed));
+            }
+        }
 
         // Calculate the CRC
         CRC32_.Update(&msgVector_[8*p + 4], 4);
@@ -127,50 +138,54 @@ std::unique_ptr<DCState> RoundOne::executeTask() {
 
     // prepare round two
     std::vector<uint16_t> slots;
-    std::vector<std::vector<std::array<uint8_t, 32>>> seeds;
+    std::vector<std::array<uint8_t, 32>> receivedSeeds;
+
     // determine the non-empty slots in the message vector
     // and calculate the index of the own slot if present
     int slotIndex = -1;
     for (uint32_t i = 0; i < 2*k_; i++) {
-        if (p == i) {
+        if(p == i)
             slotIndex = slots.size();
-        }
         uint16_t slotSize = (finalMessageVector[8*i + 6] << 8) | finalMessageVector[8*i + 7];
         if (slotSize > 0) {
             // verify the CRC
             CRC32_.Update(&finalMessageVector[8*i + 4], 4);
-            CRC32_.Update(&finalMessageVector[16*k_ + 32*k_* i ], 32*k_);
+
+            if(securedRound_)
+                CRC32_.Update(&finalMessageVector[16*k_ + 32*k_* i ], 32*k_);
+
             bool valid = CRC32_.Verify(&finalMessageVector[8*i]);
 
             if(!valid) {
-                // TODO test
-                std::cout << "Invalid CRC detected." << std::endl;
-                std::cout << "Restarting Round One." << std::endl;
-                return std::make_unique<Ready>(DCNetwork_);
+                {
+                    std::lock_guard<std::mutex> lock(mutex_);
+                    std::cout << "Invalid CRC detected." << std::endl;
+                    std::cout << "Restarting Round One." << std::endl;
+                }
+                std::this_thread::sleep_for(std::chrono::seconds(60));
+                return std::make_unique<RoundOne>(DCNetwork_, securedRound_);
             }
 
-            // extract the seeds for the corresponding slot
-            std::vector<std::array<uint8_t, 32>> K;
-            K.reserve(k_);
-            for (uint32_t j = 0; j < k_; j++) {
-                std::array<uint8_t, 32> K_;
-                std::copy(&finalMessageVector[16*k_ + 32*k_*i + 32*j], &finalMessageVector[16*k_ + 32*k_*i + 32*j] + 32, K_.data());
-                K.push_back(std::move(K_));
+            if(securedRound_) {
+                // extract the own seed for the each slot
+                std::array<uint8_t, 32> seed;
+                std::copy(&finalMessageVector[16*k_ + 32*k_*i + 32*nodeIndex_],
+                          &finalMessageVector[16*k_ + 32*k_*i + 32*nodeIndex_] + 32, seed.data());
+                receivedSeeds.push_back(std::move(seed));
             }
-            seeds.push_back(std::move(K));
 
             // store the size of the slot along with the seed
             slots.push_back(slotSize);
         }
     }
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
-    // if no member wants to send a message, return to the Ready state
 
+    // if no member wants to send a message, return to the Ready state
     if (slots.size() == 0) {
         return std::make_unique<Ready>(DCNetwork_);
     } else {
+        // TODO undo
         if (securedRound_)
-            return std::make_unique<RoundTwo>(DCNetwork_, slotIndex, std::move(slots), std::move(seeds));
+            return std::make_unique<RoundTwo>(DCNetwork_, slotIndex, std::move(slots), std::move(submittedSeeds_), std::move(receivedSeeds));
         else
             return std::make_unique<RoundTwo>(DCNetwork_, slotIndex, std::move(slots));
     }
@@ -314,30 +329,29 @@ int RoundOne::sharingPartTwo() {
 
         if (rsMessage.msgType() == RoundOneSharingPartOne) {
             if (securedRound_) {
-                for (int i = 0; i < numSlices; i++) {
+                for (int slice = 0; slice < numSlices; slice++) {
                     // extract and decode the random values and the slice of the share
-                    CryptoPP::Integer r(&rsMessage.body()[i * 64], 32);
-                    CryptoPP::Integer s(&rsMessage.body()[i * 64 + 32], 32);
+                    CryptoPP::Integer r(&rsMessage.body()[slice*64], 32);
+                    CryptoPP::Integer s(&rsMessage.body()[slice*64 + 32], 32);
 
                     CryptoPP::ECPPoint commitment = commit(r, s);
 
                     // verify that the commitment is valid
-                    if ((commitment.x != commitments_[rsMessage.senderID()][DCNetwork_.nodeID()][i].x)
-                        || (commitment.y != commitments_[rsMessage.senderID()][DCNetwork_.nodeID()][i].y)) {
+                    if ((commitment.x != commitments_[rsMessage.senderID()][DCNetwork_.nodeID()][slice].x)
+                        || (commitment.y != commitments_[rsMessage.senderID()][DCNetwork_.nodeID()][slice].y)) {
 
                         // broadcast a blame message which contains the invalid share along with the corresponding r value
-                        RoundOne::injectBlameMessage(rsMessage.senderID(), i, r, s);
+                        RoundOne::injectBlameMessage(rsMessage.senderID(), slice, r, s);
                         return -1;
                     }
 
-                    R[i] += r;
-                    S[i] += s;
+                    R[slice] += r;
+                    S[slice] += s;
                 }
             } else {
-                for (int i = 0; i < numSlices; i++) {
-                    CryptoPP::Integer s;
-                    s.Decode(&rsMessage.body()[i * 32], 32);
-                    S[i] += s;
+                for (int slice = 0; slice < numSlices; slice++) {
+                    CryptoPP::Integer s(&rsMessage.body()[slice*32], 32);
+                    S[slice] += s;
                 }
             }
         } else {
@@ -408,8 +422,7 @@ std::vector<uint8_t> RoundOne::resultComputation() {
                 }
             } else {
                 for (int i = 0; i < numSlices; i++) {
-                    CryptoPP::Integer S_;
-                    S_.Decode(&rsBroadcast.body()[i * 32], 32);
+                    CryptoPP::Integer S_(&rsBroadcast.body()[i * 32], 32);
                     S[i] += S_;
                 }
             }
