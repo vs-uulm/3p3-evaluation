@@ -21,39 +21,23 @@ int main() {
     CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> ec_group;
     ec_group.Initialize(CryptoPP::ASN1::secp256k1());
 
-    CryptoPP::CRC32 crc32;
+    CryptoPP::Integer i1("ca4008a166e15972f9c1946d08b0c2721c338bea641b3459bae2035ee2d9bc6ah");
+    CryptoPP::Integer i2("ec8eefc93a629b18491d50c8c5711996ef6c76ec9e7e1c746037755cbdee5879h");
+    CryptoPP::Integer i3("1085cef067ab4793497be9a8301e3dfb6a43e3293179d0474212931b99bae413h");
+    CryptoPP::Integer i4("bd24af1a7cb50dc08dd708f6a105f163a8ffdc905d03e1fcb30687d8ef9b6b37h");
+    CryptoPP::Integer i5("a607f184db629de795c3de2e3c44a4c7afe5b8adcda57e682f8831fbc14ff2fch");
+    CryptoPP::Integer i6("4d91cf4a80e5a178acc2deb9e87e881f9cdb3444fc970d86057926be7652a8cch");
 
-    uint8_t data[32] = {0};
-    //PRNG.GenerateBlock(data, 32);
-    for(uint8_t c : data) {
-        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int ) c;
-    }
-    std::cout << std::endl;
+    CryptoPP::Integer result;
+    result += i1;
+    result += i2;
+    result += i3;
+    result += i4;
+    result += i5;
+    result += i6;
 
-    uint8_t additionalData[64] = {0};
-    //PRNG.GenerateBlock(additionalData, 64);
-
-    crc32.Update(data, 32);
-    //crc32.Update(additionalData, 64);
-    uint32_t digestSize = crc32.DigestSize();
-
-    uint8_t digest[digestSize];
-    crc32.Final(digest);
-    //crc32.Restart();
-    std::cout << "Digest size: " << digestSize << std::endl;
-    for(uint8_t c : digest) {
-        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) c;
-    }
-    std::cout << std::endl;
-
-    //bool valid = crc32.VerifyDigest(digest, data, 32);
-    crc32.Update(data, 32);
-    //crc32.Update(additionalData, 64);
-    bool valid = crc32.Verify(digest);
-    std::cout << "Cipher validation: " << valid << std::endl;
-
-
-
+    result = result.Modulo(ec_group.GetSubgroupOrder());
+    std::cout << "Result: " << std::hex << result << std::endl;
     /*
 
     CryptoPP::ECIES<CryptoPP::ECP>::Decryptor privateKey(PRNG, CryptoPP::ASN1::secp384r1());

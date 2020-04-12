@@ -24,10 +24,6 @@ std::map<uint32_t, DCMember>& DCNetwork::members() {
     return members_;
 }
 
-std::unordered_map<uint32_t, uint32_t>& DCNetwork::suspiciousMembers() {
-    return suspiciousMembers_;
-}
-
 std::unordered_map<uint32_t, Node>& DCNetwork::neighbors() {
     return neighbors_;
 }

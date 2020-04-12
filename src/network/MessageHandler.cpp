@@ -30,7 +30,7 @@ void MessageHandler::run() {
                 inboxDCNet_.push(receivedMessage);
                 break;
             default:
-                std::cout << "Unknown message type received: " << std::endl;
+                std::cout << "Unknown message type received: " << receivedMessage.msgType() << std::endl;
         }
     }
 }

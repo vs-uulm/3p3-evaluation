@@ -82,6 +82,7 @@ std::unique_ptr<DCState> RoundOne::executeTask() {
 
     // Split the message vector into slices of 31 Bytes
     size_t numSlices = std::ceil(msgVector_.size() / 31.0);
+
     std::vector<CryptoPP::Integer> msgSlices;
     msgSlices.reserve(numSlices);
 
@@ -135,6 +136,15 @@ std::unique_ptr<DCState> RoundOne::executeTask() {
 
     // collect and validate the final shares
     std::vector<uint8_t> finalMessageVector = RoundOne::resultComputation();
+    // Check if the protocol's execution has been interrupted by a blame message
+    if(finalMessageVector.size() == 0) {
+        // a blame message indicates that a member may have been excluded from the group
+        // therefore a transition to the init state is performed,
+        // which will execute a group membership protocol
+        // TODO clean up the inbox
+        std::this_thread::sleep_for(std::chrono::seconds(60));
+        return std::make_unique<Init>(DCNetwork_);
+    }
 
     // prepare round two
     std::vector<uint16_t> slots;
@@ -162,7 +172,6 @@ std::unique_ptr<DCState> RoundOne::executeTask() {
                     std::cout << "Invalid CRC detected." << std::endl;
                     std::cout << "Restarting Round One." << std::endl;
                 }
-                std::this_thread::sleep_for(std::chrono::seconds(60));
                 return std::make_unique<RoundOne>(DCNetwork_, securedRound_);
             }
 
@@ -291,7 +300,7 @@ void RoundOne::sharingPartOne(std::vector<std::vector<CryptoPP::Integer>> &share
                 commitments_.insert(std::pair(commitBroadcast.senderID(), std::move(commitmentMatrix)));
             } else {
                 DCNetwork_.inbox().push(commitBroadcast);
-                std::this_thread::sleep_for(std::chrono::milliseconds(20));
+                std::this_thread::sleep_for(std::chrono::milliseconds(5));
             }
         }
     }
@@ -324,7 +333,8 @@ void RoundOne::sharingPartOne(std::vector<std::vector<CryptoPP::Integer>> &share
 int RoundOne::sharingPartTwo() {
     size_t numSlices = S.size();
     // collect the shares from the other k-1 members and validate them using the broadcasted commitments
-    for (int remainingShares = 0; remainingShares < k_ - 1; remainingShares++) {
+    uint32_t remainingShares = k_-1;
+    while(remainingShares > 0) {
         auto rsMessage = DCNetwork_.inbox().pop();
 
         if (rsMessage.msgType() == RoundOneSharingPartOne) {
@@ -340,7 +350,7 @@ int RoundOne::sharingPartTwo() {
                     if ((commitment.x != commitments_[rsMessage.senderID()][DCNetwork_.nodeID()][slice].x)
                         || (commitment.y != commitments_[rsMessage.senderID()][DCNetwork_.nodeID()][slice].y)) {
 
-                        // broadcast a blame message which contains the invalid share along with the corresponding r value
+                        std::cout << "invalid commitment detected" << std::endl;
                         RoundOne::injectBlameMessage(rsMessage.senderID(), slice, r, s);
                         return -1;
                     }
@@ -354,9 +364,10 @@ int RoundOne::sharingPartTwo() {
                     S[slice] += s;
                 }
             }
+            remainingShares--;
         } else {
             DCNetwork_.inbox().push(rsMessage);
-            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
         }
     }
 
@@ -392,7 +403,8 @@ int RoundOne::sharingPartTwo() {
 std::vector<uint8_t> RoundOne::resultComputation() {
     size_t numSlices = S.size();
     // collect the added shares from the other k-1 members and validate them by adding the corresponding commitments
-    for (int remainingShares = 0; remainingShares < k_ - 1; remainingShares++) {
+    uint32_t remainingShares = k_-1;
+    while(remainingShares > 0) {
         auto rsBroadcast = DCNetwork_.inbox().pop();
 
         if (rsBroadcast.msgType() == RoundOneSharingPartTwo) {
@@ -426,6 +438,7 @@ std::vector<uint8_t> RoundOne::resultComputation() {
                     S[i] += S_;
                 }
             }
+            remainingShares--;
         } else if (rsBroadcast.msgType() == BlameMessage) {
             //RoundOne::handleBlameMessage(rsBroadcast);
             std::cout << "Blame message received" << std::endl;
@@ -433,7 +446,7 @@ std::vector<uint8_t> RoundOne::resultComputation() {
             return std::vector<uint8_t>();
         } else {
             DCNetwork_.inbox().push(rsBroadcast);
-            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
         }
     }
 
@@ -494,7 +507,7 @@ void RoundOne::injectBlameMessage(uint32_t suspectID, uint32_t slice, CryptoPP::
         }
     }
 }
-
+/*
 void RoundOne::handleBlameMessage(std::shared_ptr<ReceivedMessage>& blameMessage) {
     std::vector<uint8_t>& body = blameMessage->body();
     // check which node is addressed by the blame message
@@ -548,6 +561,7 @@ void RoundOne::handleBlameMessage(std::shared_ptr<ReceivedMessage>& blameMessage
         }
     }
 }
+*/
 
 inline CryptoPP::ECPPoint RoundOne::commit(CryptoPP::Integer &r, CryptoPP::Integer &s) {
     CryptoPP::ECPPoint rG = curve.GetCurve().ScalarMultiply(G, r);

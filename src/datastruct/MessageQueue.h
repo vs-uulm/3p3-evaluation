@@ -10,26 +10,6 @@
 template<class T>
 class MessageQueue {
 public:
-    /*
-    void push(std::shared_ptr<T> msg) {
-        std::lock_guard<std::mutex> lock(mutex_);
-        msg_queue_.push(msg);
-        // notify the consumer thread
-        cond_var_.notify_one();
-    }
-
-    std::shared_ptr<T> pop() {
-        std::unique_lock<std::mutex> lock(mutex_);
-        cond_var_.wait(lock, [&](){
-            // deal with a spurious wakeup
-            return !msg_queue_.empty();
-        });
-        std::shared_ptr<T> msg = msg_queue_.front();
-        msg_queue_.pop();
-        lock.unlock();
-        return msg;
-    }
-    */
     void push(T msg) {
         std::lock_guard<std::mutex> lock(mutex_);
         msg_queue_.push(msg);
@@ -54,9 +34,16 @@ public:
         return msg_queue_.empty();
     }
 
+    size_t size() {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return msg_queue_.size();
+    }
+
 private:
     std::mutex mutex_;
+
     std::condition_variable cond_var_;
+
     std::queue<T> msg_queue_;
 };
 

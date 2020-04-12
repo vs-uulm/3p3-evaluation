@@ -26,8 +26,6 @@ public:
 
     std::map<uint32_t, DCMember>& members();
 
-    std::unordered_map<uint32_t, uint32_t>& suspiciousMembers();
-
     std::unordered_map<uint32_t, Node>& neighbors();
 
     MessageQueue<ReceivedMessage>& inbox();
@@ -49,11 +47,8 @@ private:
 
     size_t k_;
 
-    // Key: nodeID, value: connectionID
+    // Key: nodeID
     std::map<uint32_t, DCMember> members_;
-
-    // Key: suspicious nodeID, value: number of malicious events
-    std::unordered_map<uint32_t, uint32_t> suspiciousMembers_;
 
     std::unordered_map<uint32_t, Node>& neighbors_;
 

@@ -50,3 +50,26 @@ target_link_libraries(
         -pthread
         -lcryptopp
 )
+
+add_executable(
+        networkTest
+        src/test/networkTest.cpp
+        src/network/Node.cpp
+        src/network/NetworkManager.cpp
+        src/network/P2PConnection.cpp
+        src/datastruct/NetworkMessage.cpp
+        src/datastruct/ReceivedMessage.cpp
+        src/datastruct/OutgoingMessage.cpp
+)
+
+target_link_libraries(
+        networkTest
+        -L/usr/local/lib
+        -pthread
+        -lcrypto
+        -lssl
+        -lcryptopp
+)
+
+
+

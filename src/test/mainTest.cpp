@@ -97,7 +97,16 @@ void instance(int ID) {
 
         // Node(uint32_t nodeID, const CryptoPP::ECPPoint& PublicKey, uint16_t port, const ip::address_v4& ip_address);
         Node neighbor(nodeID, publicKey, port, ip_address);
-        neighbors.insert(std::pair(nodeID, std::move(neighbor)));
+        neighbors.insert(std::pair(nodeID, neighbor));
+    }
+
+    // TODO remove
+    for(uint32_t nodeID = 0; nodeID < numNodes; nodeID++) {
+        if(nodeID != nodeID_) {
+            if(neighbors.find(nodeID) == neighbors.end()) {
+                throw std::invalid_argument("An error occured");
+            }
+        }
     }
 
     // wait until all nodes have received the information
@@ -145,7 +154,7 @@ void instance(int ID) {
 
     // node 0 will always submit a message
     if (nodeID_ == 0 || nodeID_ == 1) {
-        uint16_t length = PRNG.GenerateWord32(0, 128);
+        uint16_t length = PRNG.GenerateWord32(512, 1024);
         std::vector<uint8_t> message(length);
         PRNG.GenerateBlock(message.data(), length);
         DCNet.submitMessage(message);
@@ -211,13 +220,13 @@ void nodeAuthority() {
                 nodeInfo[offset+2] = (nodeID & 0x0000FF00) >> 8;
                 nodeInfo[offset+3] = (nodeID & 0x000000FF);
 
-                std::copy(&registeredNodes[nodeID][0], &registeredNodes[nodeID][infoSize], &nodeInfo[offset+4]);
+                std::copy(registeredNodes[nodeID].begin(), registeredNodes[nodeID].end(), &nodeInfo[offset+4]);
                 offset += infoSize;
             }
         }
-        // TODO check for bug here
+
         OutgoingMessage nodeInfoMessage(i, NodeInfoMessage, 0, nodeInfo);
-        networkManager.sendMessage(std::move(nodeInfoMessage));
+        networkManager.sendMessage(nodeInfoMessage);
     }
 
     networkThread.join();
@@ -231,6 +240,8 @@ int main() {
 
     std::thread nodeAuthorityThread(nodeAuthority);
     threads.push_back(std::move(nodeAuthorityThread));
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
     for(int i=0; i<INSTANCES; i++) {
         std::thread t(instance, i);

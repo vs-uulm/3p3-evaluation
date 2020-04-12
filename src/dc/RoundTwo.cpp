@@ -280,14 +280,14 @@ void RoundTwo::sharingPartOne(size_t totalNumSlices, std::vector<std::vector<std
                 commitments_.insert(std::pair(commitBroadcast.senderID(), std::move(commitments)));
             } else {
                 DCNetwork_.inbox().push(commitBroadcast);
-                std::this_thread::sleep_for(std::chrono::milliseconds(20));
+                std::this_thread::sleep_for(std::chrono::milliseconds(5));
             }
         }
     }
 
     // distribute the shares to the individual members
     for (auto it = DCNetwork_.members().begin(); it != DCNetwork_.members().end(); it++) {
-        uint32_t shareIndex = std::distance(DCNetwork_.members().begin(), it);
+        uint32_t memberIndex = std::distance(DCNetwork_.members().begin(), it);
 
         if (it->second.connectionID() != SELF) {
             std::vector<uint8_t> sharingMessage;
@@ -297,15 +297,15 @@ void RoundTwo::sharingPartOne(size_t totalNumSlices, std::vector<std::vector<std
                 sharingMessage.resize(32 * totalNumSlices);
 
             for (uint32_t slot = 0, offset = 0; slot < numSlots; slot++) {
-                size_t numSlices = shares[slot][shareIndex].size();
+                size_t numSlices = shares[slot][memberIndex].size();
 
                 for (uint32_t slice = 0; slice < numSlices; slice++) {
                     if (securedRound_) {
-                        rValues_[slot][shareIndex][slice].Encode(&sharingMessage[offset], 32);
-                        shares[slot][shareIndex][slice].Encode(&sharingMessage[offset + 32], 32);
+                        rValues_[slot][memberIndex][slice].Encode(&sharingMessage[offset], 32);
+                        shares[slot][memberIndex][slice].Encode(&sharingMessage[offset + 32], 32);
                         offset += 64;
                     } else {
-                        shares[slot][shareIndex][slice].Encode(&sharingMessage[offset], 32);
+                        shares[slot][memberIndex][slice].Encode(&sharingMessage[offset], 32);
                         offset += 32;
                     }
                 }
@@ -322,7 +322,8 @@ int RoundTwo::sharingPartTwo(size_t totalNumSlices) {
     size_t numSlots = slots_.size();
 
     // collect the shares from the other k-1 members and validate them using the broadcasted commitments
-    for (uint32_t remainingShares = k_ - 1; remainingShares > 0; remainingShares--) {
+    uint32_t remainingShares = k_-1;
+    while(remainingShares > 0) {
         auto sharingMessage = DCNetwork_.inbox().pop();
 
         if (sharingMessage.msgType() == RoundTwoSharingPartOne) {
@@ -330,20 +331,16 @@ int RoundTwo::sharingPartTwo(size_t totalNumSlices) {
                 size_t numSlices = S[slot].size();
 
                 for (uint32_t slice = 0; slice < numSlices; slice++) {
-                    CryptoPP::Integer s;
-
                     if (securedRound_) {
                         CryptoPP::Integer r(&sharingMessage.body()[offset], 32);
-                        s.Decode(&sharingMessage.body()[offset + 32], 32);
+                        CryptoPP::Integer s(&sharingMessage.body()[offset + 32], 32);
                         offset += 64;
 
                         // verify that the corresponding commitment is valid
                         CryptoPP::ECPPoint commitment = commit(r, s);
                         // if the commitment is invalid, blame the sender
-                        if ((commitment.x !=
-                             commitments_[sharingMessage.senderID()][slot][DCNetwork_.nodeID()][slice].x)
-                            || (commitment.y !=
-                                commitments_[sharingMessage.senderID()][slot][DCNetwork_.nodeID()][slice].y)) {
+                        if ((commitment.x != commitments_[sharingMessage.senderID()][slot][DCNetwork_.nodeID()][slice].x)
+                            || (commitment.y != commitments_[sharingMessage.senderID()][slot][DCNetwork_.nodeID()][slice].y)) {
 
                             RoundTwo::injectBlameMessage(sharingMessage.senderID(), slot, slice, s);
                             std::lock_guard<std::mutex> lock(mutex_);
@@ -351,19 +348,19 @@ int RoundTwo::sharingPartTwo(size_t totalNumSlices) {
                             return -1;
                         }
                         R[slot][slice] += r;
+                        S[slot][slice] += s;
                     } else {
-                        s.Decode(&sharingMessage.body()[offset], 32);
+                        CryptoPP::Integer s(&sharingMessage.body()[offset], 32);
+                        S[slot][slice] += s;
                         offset += 32;
                     }
-
-                    S[slot][slice] += s;
                 }
 
             }
+            remainingShares--;
         } else {
             DCNetwork_.inbox().push(sharingMessage);
-            std::this_thread::sleep_for(std::chrono::milliseconds(20)
-            );
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
         }
     }
 
@@ -393,7 +390,7 @@ int RoundTwo::sharingPartTwo(size_t totalNumSlices) {
     // Broadcast the added shares in the DC network
     for (auto &member : DCNetwork_.members()) {
         if (member.second.connectionID() != SELF) {
-            OutgoingMessage rsBroadcast(member.second.connectionID(), RoundOneSharingPartTwo, DCNetwork_.nodeID(),
+            OutgoingMessage rsBroadcast(member.second.connectionID(), RoundTwoSharingPartTwo, DCNetwork_.nodeID(),
                                         sharingBroadcast);
             DCNetwork_.outbox().push(std::move(rsBroadcast));
         }
@@ -403,10 +400,12 @@ int RoundTwo::sharingPartTwo(size_t totalNumSlices) {
 
 std::vector<std::vector<uint8_t>> RoundTwo::resultComputation() {
     size_t numSlots = S.size();
-    for (uint32_t remainingShares = k_ - 1; remainingShares > 0; remainingShares--) {
+
+    uint32_t remainingShares = k_-1;
+    while(remainingShares > 0) {
         auto sharingBroadcast = DCNetwork_.inbox().pop();
 
-        if (sharingBroadcast.msgType() == RoundOneSharingPartTwo) {
+        if (sharingBroadcast.msgType() == RoundTwoSharingPartTwo) {
             uint32_t memberIndex = std::distance(DCNetwork_.members().begin(),
                                                  DCNetwork_.members().find(sharingBroadcast.senderID()));
 
@@ -429,9 +428,9 @@ std::vector<std::vector<uint8_t>> RoundTwo::resultComputation() {
 
                         // if the commitment is invalid, blame the sender
                         if ((commitment.x != C_.x) || (commitment.y != C_.y)) {
+                            std::cout << "Invalid commitment detected" << std::endl;
                             RoundTwo::injectBlameMessage(sharingBroadcast.senderID(), slot, slice, S_);
-                            std::lock_guard<std::mutex> lock(mutex_);
-                            std::cout << "Invalid commitment detected 2" << std::endl;
+
                             return std::vector<std::vector<uint8_t>>();
                         }
                     } else {
@@ -441,13 +440,13 @@ std::vector<std::vector<uint8_t>> RoundTwo::resultComputation() {
                     S[slot][slice] += S_;
                 }
             }
+            remainingShares--;
         } else if (sharingBroadcast.msgType() == BlameMessage) {
             //RoundTwo::handleBlameMessage(sharingBroadcast);
             return std::vector<std::vector<uint8_t>>();
         } else {
             DCNetwork_.inbox().push(sharingBroadcast);
-            std::this_thread::sleep_for(std::chrono::milliseconds(20));
-
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
         }
     }
 
@@ -486,7 +485,7 @@ std::vector<std::vector<uint8_t>> RoundTwo::resultComputation() {
     // print the reconstructed message slots
     {
         std::lock_guard<std::mutex> lock(mutex_);
-        std::cout << "Node: " << DCNetwork_.nodeID() << std::endl;
+        std::cout << "Node: " << std::dec << DCNetwork_.nodeID() << std::endl;
         for (auto &slot : reconstructedMessageSlots) {
             std::cout << "|";
             for (uint8_t c : slot) {

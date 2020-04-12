@@ -51,7 +51,7 @@ std::unique_ptr<DCState> Ready::executeTask() {
         // wait for the round start message
         auto receivedMessage = DCNetwork_.inbox().pop();
         if(receivedMessage.msgType() != StartDCRound)
-            std::cout << "inappropriate message received" << std::endl;
+            std::cout << "Ready State: inappropriate message received" << std::endl;
     }
     // perform a state transition
     return std::make_unique<RoundOne>(DCNetwork_, true);
