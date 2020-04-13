@@ -18,7 +18,7 @@ RoundOne::RoundOne(DCNetwork &DCNet, bool securedRound)
     nodeIndex_ = std::distance(DCNetwork_.members().begin(), DCNetwork_.members().find(DCNetwork_.nodeID()));
 
     if (securedRound_)
-        msgVector_.resize(2*k_ * (8 + 32*k_));
+        msgVector_.resize(2*k_ * (8 + 65*k_));
     else
         msgVector_.resize(2*k_ * 8);
 }
@@ -60,13 +60,29 @@ std::unique_ptr<DCState> RoundOne::executeTask() {
         // generate k random seeds, required for the commitments in the second round
         if(securedRound_) {
             submittedSeeds_.reserve(k_);
-            for(uint32_t i = 0; i < k_; i++) {
+            CryptoPP::ECB_Mode<CryptoPP::AES>::Encryption encryptAES;
+            for(auto it = DCNetwork_.members().begin(); it != DCNetwork_.members().end(); it++) {
+                uint32_t memberIndex = std::distance(DCNetwork_.members().begin(), it);
+
                 std::array<uint8_t, 32> seed;
                 PRNG.GenerateBlock(seed.data(), 32);
 
-                // copy the seed to the message vector
-                std::copy(seed.begin(), seed.end(), &msgVector_[16*k_ + p*32*k_ + 32*i]);
+                // generate an ephemeral EC key pair
+                CryptoPP::Integer r(PRNG, CryptoPP::Integer::One(), curve.GetMaxExponent());
+                CryptoPP::ECPPoint rG = curve.ExponentiateBase(r);
 
+                // Perform an ephemeral ECDH KE with the given public key
+                CryptoPP::Integer sharedSecret = curve.GetCurve().ScalarMultiply(it->second.publicKey(), r).x;
+
+                uint8_t keyIV[32];
+                sharedSecret.Encode(keyIV, 32);
+                encryptAES.SetKey(keyIV, 32);
+
+                encryptAES.ProcessData(&msgVector_[16*k_ + p*65*k_ + 65*memberIndex], seed.data(), 32);
+
+                curve.GetCurve().EncodePoint(&msgVector_[16*k_ + p*65*k_ + 65*memberIndex + 32], rG, true);
+                // copy the seed to the message vector
+                //std::copy(seed.begin(), seed.end(), &msgVector_[16*k_ + p*32*k_ + 32*memberIndex]);
                 // store the seed
                 submittedSeeds_.push_back(std::move(seed));
             }
@@ -75,7 +91,7 @@ std::unique_ptr<DCState> RoundOne::executeTask() {
         // Calculate the CRC
         CRC32_.Update(&msgVector_[8*p + 4], 4);
         if(securedRound_)
-            CRC32_.Update(&msgVector_[16*k_ + p*32*k_], 32*k_);
+            CRC32_.Update(&msgVector_[16*k_ + p*65*k_], 65*k_);
 
         CRC32_.Final(&msgVector_[8*p]);
     }
@@ -162,7 +178,7 @@ std::unique_ptr<DCState> RoundOne::executeTask() {
             CRC32_.Update(&finalMessageVector[8*i + 4], 4);
 
             if(securedRound_)
-                CRC32_.Update(&finalMessageVector[16*k_ + 32*k_* i ], 32*k_);
+                CRC32_.Update(&finalMessageVector[16*k_ + 65*k_* i ], 65*k_);
 
             bool valid = CRC32_.Verify(&finalMessageVector[8*i]);
 
@@ -176,10 +192,25 @@ std::unique_ptr<DCState> RoundOne::executeTask() {
             }
 
             if(securedRound_) {
-                // extract the own seed for the each slot
+                CryptoPP::ECB_Mode<CryptoPP::AES>::Decryption decryptAES;
+                //decrypt and extract the own seed for the each slot
+                CryptoPP::ECPPoint rG;
+                curve.GetCurve().DecodePoint(rG, &finalMessageVector[16*k_ + 65*k_*i + 65*nodeIndex_ + 32], 33);
+                // perform the ephemeral ECDH KE
+
+                // Perform an ephemeral ECDH KE with the given public key
+                CryptoPP::Integer sharedSecret = curve.GetCurve().ScalarMultiply(rG, DCNetwork_.privateKey()).x;
+
+                uint8_t keyIV[32];
+                sharedSecret.Encode(keyIV, 32);
+                decryptAES.SetKey(keyIV, 32);
+
                 std::array<uint8_t, 32> seed;
-                std::copy(&finalMessageVector[16*k_ + 32*k_*i + 32*nodeIndex_],
-                          &finalMessageVector[16*k_ + 32*k_*i + 32*nodeIndex_] + 32, seed.data());
+                decryptAES.ProcessData(seed.data(), &finalMessageVector[16*k_ + 65*k_*i + 65*nodeIndex_], 32);
+                /*
+                std::copy(&finalMessageVector[16*k_ + 65*k_*i + 65*nodeIndex_],
+                          &finalMessageVector[16*k_ + 65*k_*i + 65*nodeIndex_] + 65, seed.data());
+                          */
                 receivedSeeds.push_back(std::move(seed));
             }
 
@@ -192,7 +223,6 @@ std::unique_ptr<DCState> RoundOne::executeTask() {
     if (slots.size() == 0) {
         return std::make_unique<Ready>(DCNetwork_);
     } else {
-        // TODO undo
         if (securedRound_)
             return std::make_unique<RoundTwo>(DCNetwork_, slotIndex, std::move(slots), std::move(submittedSeeds_), std::move(receivedSeeds));
         else
@@ -300,6 +330,7 @@ void RoundOne::sharingPartOne(std::vector<std::vector<CryptoPP::Integer>> &share
                 commitments_.insert(std::pair(commitBroadcast.senderID(), std::move(commitmentMatrix)));
             } else {
                 DCNetwork_.inbox().push(commitBroadcast);
+                std::cout << "Inappropriate Message received 1" << std::endl;
                 std::this_thread::sleep_for(std::chrono::milliseconds(5));
             }
         }
@@ -349,10 +380,15 @@ int RoundOne::sharingPartTwo() {
                     // verify that the commitment is valid
                     if ((commitment.x != commitments_[rsMessage.senderID()][DCNetwork_.nodeID()][slice].x)
                         || (commitment.y != commitments_[rsMessage.senderID()][DCNetwork_.nodeID()][slice].y)) {
-
-                        std::cout << "invalid commitment detected" << std::endl;
-                        RoundOne::injectBlameMessage(rsMessage.senderID(), slice, r, s);
-                        return -1;
+                        // TODO
+                        if(slice == 0 ) {
+                            std::lock_guard<std::mutex> lock(mutex_);
+                            std::cout << "Node " << DCNetwork_.nodeID() << std::endl;
+                            std::cout << "invalid commitment detected 1" << std::endl;
+                            std::cout << "Received from Node " << rsMessage.senderID() << std::endl;
+                        }
+                        //RoundOne::injectBlameMessage(rsMessage.senderID(), slice, r, s);
+                        //return -1;
                     }
 
                     R[slice] += r;
@@ -367,6 +403,7 @@ int RoundOne::sharingPartTwo() {
             remainingShares--;
         } else {
             DCNetwork_.inbox().push(rsMessage);
+            std::cout << "Inappropriate Message received 2" << std::endl;
             std::this_thread::sleep_for(std::chrono::milliseconds(5));
         }
     }
@@ -426,8 +463,9 @@ std::vector<uint8_t> RoundOne::resultComputation() {
 
                     if ((commitment.x != addedCommitments.x) || (commitment.y != addedCommitments.y)) {
                         // broadcast a blame message which contains the invalid share along with the corresponding r value
-                        RoundOne::injectBlameMessage(rsBroadcast.senderID(), i, R_, S_);
-                        return std::vector<uint8_t>();
+                        // TODO undo
+                        //RoundOne::injectBlameMessage(rsBroadcast.senderID(), i, R_, S_);
+                        //return std::vector<uint8_t>();
                     }
                     R[i] += R_;
                     S[i] += S_;
@@ -446,21 +484,28 @@ std::vector<uint8_t> RoundOne::resultComputation() {
             return std::vector<uint8_t>();
         } else {
             DCNetwork_.inbox().push(rsBroadcast);
+            std::cout << "Inappropriate Message received 3" << std::endl;
             std::this_thread::sleep_for(std::chrono::milliseconds(5));
         }
     }
 
     // validate the final commitments
     if (securedRound_) {
-        for (int i = 0; i < numSlices; i++) {
-            R[i] = R[i].Modulo(curve.GetSubgroupOrder());
-            S[i] = S[i].Modulo(curve.GetSubgroupOrder());
+        for (uint32_t slice = 0; slice < numSlices; slice++) {
+            R[slice] = R[slice].Modulo(curve.GetSubgroupOrder());
+            S[slice] = S[slice].Modulo(curve.GetSubgroupOrder());
 
-            CryptoPP::ECPPoint commitment = commit(R[i], S[i]);
+            CryptoPP::ECPPoint commitment = commit(R[slice], S[slice]);
 
-            if ((C[i].x != commitment.x) || (C[i].y != commitment.y)) {
-                std::cout << "Invalid commitment detected" << std::endl;
-                return std::vector<uint8_t>();
+            if ((C[slice].x != commitment.x) || (C[slice].y != commitment.y)) {
+                // TODO undo
+                if (slice == 0) {
+                    std::lock_guard<std::mutex> lock(mutex_);
+                    std::cout << "Invalid commitment detected" << std::endl;
+                    std::cout << std::hex << commitment.x << std::endl;
+                    std::cout << std::hex << commitment.y << std::endl;
+                }
+                //return std::vector<uint8_t>();
             }
         }
     } else {

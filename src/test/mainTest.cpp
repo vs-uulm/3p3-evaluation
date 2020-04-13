@@ -100,15 +100,6 @@ void instance(int ID) {
         neighbors.insert(std::pair(nodeID, neighbor));
     }
 
-    // TODO remove
-    for(uint32_t nodeID = 0; nodeID < numNodes; nodeID++) {
-        if(nodeID != nodeID_) {
-            if(neighbors.find(nodeID) == neighbors.end()) {
-                throw std::invalid_argument("An error occured");
-            }
-        }
-    }
-
     // wait until all nodes have received the information
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
@@ -146,7 +137,7 @@ void instance(int ID) {
 
     // start the DCNetwork
     DCMember self(nodeID_, SELF);
-    DCNetwork DCNet(self, INSTANCES, neighbors, inboxDCNet, outbox);
+    DCNetwork DCNet(self, std::move(privateKey), INSTANCES, neighbors, inboxDCNet, outbox);
     std::thread DCThread([&]() {
         DCNet.run();
     });

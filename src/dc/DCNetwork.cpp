@@ -5,8 +5,8 @@
 
 #include <iostream>
 
-DCNetwork::DCNetwork(DCMember self, size_t k, std::unordered_map<uint32_t, Node>& neigbors, MessageQueue<ReceivedMessage>& inbox, MessageQueue<OutgoingMessage>& outbox)
-: nodeID_(self.nodeID()), k_(k), neighbors_(neigbors), inbox_(inbox), outbox_(outbox), state_(std::make_unique<Init>(*this)) {
+DCNetwork::DCNetwork(DCMember self, CryptoPP::Integer privateKey, size_t k, std::unordered_map<uint32_t, Node>& neigbors, MessageQueue<ReceivedMessage>& inbox, MessageQueue<OutgoingMessage>& outbox)
+: nodeID_(self.nodeID()), k_(k), privateKey_(privateKey), neighbors_(neigbors), inbox_(inbox), outbox_(outbox), state_(std::make_unique<Init>(*this)) {
     members_.insert(std::pair(nodeID_, self));
 }
 
@@ -45,4 +45,8 @@ uint32_t DCNetwork::nodeID() {
 
 size_t DCNetwork::k() {
     return k_;
+}
+
+CryptoPP::Integer & DCNetwork::privateKey() {
+    return privateKey_;
 }

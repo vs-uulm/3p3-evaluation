@@ -22,7 +22,7 @@ const CryptoPP::ECPPoint H(CryptoPP::Integer("a3cf0a4b6e1d9146c73e9a82e4bfdc37ee
 
 class DCNetwork {
 public:
-    DCNetwork(DCMember self, size_t k, std::unordered_map<uint32_t, Node>& neighbors, MessageQueue<ReceivedMessage>& inbox, MessageQueue<OutgoingMessage>& outbox);
+    DCNetwork(DCMember self, CryptoPP::Integer privateKey, size_t k, std::unordered_map<uint32_t, Node>& neighbors, MessageQueue<ReceivedMessage>& inbox, MessageQueue<OutgoingMessage>& outbox);
 
     std::map<uint32_t, DCMember>& members();
 
@@ -38,6 +38,8 @@ public:
 
     size_t k();
 
+    CryptoPP::Integer& privateKey();
+
     void run();
 
     void submitMessage(std::vector<uint8_t>& msg);
@@ -47,6 +49,7 @@ private:
 
     size_t k_;
 
+    CryptoPP::Integer privateKey_;
     // Key: nodeID
     std::map<uint32_t, DCMember> members_;
 
