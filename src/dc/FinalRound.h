@@ -1,5 +1,5 @@
-#ifndef THREEPP_ROUNDTWO_H
-#define THREEPP_ROUNDTWO_H
+#ifndef THREEPP_FINALROUND_H
+#define THREEPP_FINALROUND_H
 
 #include <array>
 #include <vector>
@@ -11,13 +11,13 @@
 #include "DCState.h"
 #include "../datastruct/ReceivedMessage.h"
 
-class RoundTwo : public DCState {
+class FinalRound : public DCState {
 public:
-    RoundTwo(DCNetwork& DCNet, int slotIndex, std::vector<uint16_t> slots);
+    FinalRound(DCNetwork& DCNet, int slotIndex, std::vector<uint16_t> slots);
 
-    RoundTwo(DCNetwork& DCNet, int slotIndex, std::vector<uint16_t> slots, std::vector<std::array<uint8_t, 32>> submittedSeeds, std::vector<std::array<uint8_t, 32>> receivedSeeds);
+    FinalRound(DCNetwork& DCNet, int slotIndex, std::vector<uint16_t> slots, std::vector<std::array<uint8_t, 32>> submittedSeeds, std::vector<std::array<uint8_t, 32>> receivedSeeds);
 
-    virtual ~RoundTwo();
+    virtual ~FinalRound();
 
     virtual std::unique_ptr<DCState> executeTask();
 
@@ -78,4 +78,4 @@ private:
 };
 
 
-#endif //THREEPP_ROUNDTWO_H
+#endif //THREEPP_FINALROUND_H

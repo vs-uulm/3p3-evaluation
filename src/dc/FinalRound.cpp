@@ -2,14 +2,14 @@
 #include <cryptopp/oids.h>
 #include <thread>
 #include <iomanip>
-#include "RoundTwo.h"
+#include "FinalRound.h"
 #include "Init.h"
 #include "../datastruct/MessageType.h"
-#include "RoundOne.h"
+#include "InitialRound.h"
 #include "Ready.h"
 
 // constructor for a unsecured round
-RoundTwo::RoundTwo(DCNetwork &DCNet, int slotIndex, std::vector<uint16_t> slots)
+FinalRound::FinalRound(DCNetwork &DCNet, int slotIndex, std::vector<uint16_t> slots)
         : DCNetwork_(DCNet), securedRound_(false), k_(DCNetwork_.k()), slotIndex_(slotIndex),
           slots_(std::move(slots)) {
 
@@ -20,7 +20,7 @@ RoundTwo::RoundTwo(DCNetwork &DCNet, int slotIndex, std::vector<uint16_t> slots)
 }
 
 // constructor for a secured round
-RoundTwo::RoundTwo(DCNetwork& DCNet, int slotIndex, std::vector<uint16_t> slots, std::vector<std::array<uint8_t, 32>> submittedSeeds, std::vector<std::array<uint8_t, 32>> receivedSeeds)
+FinalRound::FinalRound(DCNetwork& DCNet, int slotIndex, std::vector<uint16_t> slots, std::vector<std::array<uint8_t, 32>> submittedSeeds, std::vector<std::array<uint8_t, 32>> receivedSeeds)
         : DCNetwork_(DCNet), securedRound_(true), k_(DCNetwork_.k()), slotIndex_(slotIndex),
           slots_(std::move(slots)),
           submittedSeeds_(std::move(submittedSeeds)),
@@ -52,9 +52,14 @@ RoundTwo::RoundTwo(DCNetwork& DCNet, int slotIndex, std::vector<uint16_t> slots,
     }
 }
 
-RoundTwo::~RoundTwo() {}
+FinalRound::~FinalRound() {}
 
-std::unique_ptr<DCState> RoundTwo::executeTask() {
+std::unique_ptr<DCState> FinalRound::executeTask() {
+    // TODO undo
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        std::cout << "Final round" << std::endl;
+    }
     size_t numSlots = slots_.size();
 
     std::vector<size_t> numSlices;
@@ -63,11 +68,10 @@ std::unique_ptr<DCState> RoundTwo::executeTask() {
     for (uint32_t i = 0; i < numSlots; i++)
         numSlices.push_back(std::ceil(slots_[i] / 31.0));
 
-    std::vector<uint8_t> submittedMessage;
     std::vector<CryptoPP::Integer> messageSlices;
 
     if (slotIndex_ > -1) {
-        submittedMessage = DCNetwork_.submittedMessages().front();
+        std::vector<uint8_t> submittedMessage = DCNetwork_.submittedMessages().front();
         DCNetwork_.submittedMessages().pop();
 
         // Split the submitted message into slices of 31 Bytes
@@ -130,16 +134,16 @@ std::unique_ptr<DCState> RoundTwo::executeTask() {
         totalNumSlices += slot[0].size();
 
 
-    RoundTwo::sharingPartOne(totalNumSlices, shares);
+    FinalRound::sharingPartOne(totalNumSlices, shares);
 
-    int result = RoundTwo::sharingPartTwo(totalNumSlices);
+    int result = FinalRound::sharingPartTwo(totalNumSlices);
     // a blame message has been received
     if (result < 0) {
         // TODO clean up the inbox
         return std::make_unique<Init>(DCNetwork_);
     }
 
-    std::vector<std::vector<uint8_t>> messages = RoundTwo::resultComputation();
+    std::vector<std::vector<uint8_t>> messages = FinalRound::resultComputation();
     if(messages.size() == 0) {
         // TODO clean up the inbox
         return std::make_unique<Init>(DCNetwork_);
@@ -183,6 +187,7 @@ std::unique_ptr<DCState> RoundTwo::executeTask() {
 
                     // validate the commitment
                     if ((C_.x != commitment.x) || (C_.y != commitment.y)) {
+                        // TODO undo
                         std::lock_guard<std::mutex> lock(mutex_);
                         std::cout << "Final Commitment invalid" << std::endl;
                     }
@@ -196,7 +201,7 @@ std::unique_ptr<DCState> RoundTwo::executeTask() {
     return std::make_unique<Ready>(DCNetwork_);
 }
 
-void RoundTwo::sharingPartOne(size_t totalNumSlices, std::vector<std::vector<std::vector<CryptoPP::Integer>>> &shares) {
+void FinalRound::sharingPartOne(size_t totalNumSlices, std::vector<std::vector<std::vector<CryptoPP::Integer>>> &shares) {
     size_t numSlots = slots_.size();
 
     if (securedRound_) {
@@ -318,7 +323,7 @@ void RoundTwo::sharingPartOne(size_t totalNumSlices, std::vector<std::vector<std
     }
 }
 
-int RoundTwo::sharingPartTwo(size_t totalNumSlices) {
+int FinalRound::sharingPartTwo(size_t totalNumSlices) {
     size_t numSlots = slots_.size();
 
     // collect the shares from the other k-1 members and validate them using the broadcasted commitments
@@ -342,10 +347,11 @@ int RoundTwo::sharingPartTwo(size_t totalNumSlices) {
                         if ((commitment.x != commitments_[sharingMessage.senderID()][slot][DCNetwork_.nodeID()][slice].x)
                             || (commitment.y != commitments_[sharingMessage.senderID()][slot][DCNetwork_.nodeID()][slice].y)) {
 
-                            RoundTwo::injectBlameMessage(sharingMessage.senderID(), slot, slice, s);
-                            std::lock_guard<std::mutex> lock(mutex_);
-                            std::cout << "Invalid commitment detected 1" << std::endl;
-                            return -1;
+                            // TODO undo
+                            //FinalRound::injectBlameMessage(sharingMessage.senderID(), slot, slice, s);
+                            //std::lock_guard<std::mutex> lock(mutex_);
+                            //std::cout << "Invalid commitment detected 1" << std::endl;
+                            //return -1;
                         }
                         R[slot][slice] += r;
                         S[slot][slice] += s;
@@ -398,7 +404,7 @@ int RoundTwo::sharingPartTwo(size_t totalNumSlices) {
     return 0;
 }
 
-std::vector<std::vector<uint8_t>> RoundTwo::resultComputation() {
+std::vector<std::vector<uint8_t>> FinalRound::resultComputation() {
     size_t numSlots = S.size();
 
     uint32_t remainingShares = k_-1;
@@ -428,10 +434,11 @@ std::vector<std::vector<uint8_t>> RoundTwo::resultComputation() {
 
                         // if the commitment is invalid, blame the sender
                         if ((commitment.x != C_.x) || (commitment.y != C_.y)) {
-                            std::cout << "Invalid commitment detected" << std::endl;
-                            RoundTwo::injectBlameMessage(sharingBroadcast.senderID(), slot, slice, S_);
+                            // TODO undo
+                            //std::cout << "Invalid commitment detected" << std::endl;
+                            //FinalRound::injectBlameMessage(sharingBroadcast.senderID(), slot, slice, S_);
 
-                            return std::vector<std::vector<uint8_t>>();
+                            //return std::vector<std::vector<uint8_t>>();
                         }
                     } else {
                         S_.Decode(&sharingBroadcast.body()[offset], 32);
@@ -442,7 +449,7 @@ std::vector<std::vector<uint8_t>> RoundTwo::resultComputation() {
             }
             remainingShares--;
         } else if (sharingBroadcast.msgType() == BlameMessage) {
-            //RoundTwo::handleBlameMessage(sharingBroadcast);
+            //FinalRound::handleBlameMessage(sharingBroadcast);
             return std::vector<std::vector<uint8_t>>();
         } else {
             DCNetwork_.inbox().push(sharingBroadcast);
@@ -493,18 +500,19 @@ std::vector<std::vector<uint8_t>> RoundTwo::resultComputation() {
             }
             std::cout << "|" << std::endl;
         }
+        std::cout << std::endl;
     }
     return reconstructedMessageSlots;
 }
 
-inline CryptoPP::ECPPoint RoundTwo::commit(CryptoPP::Integer &r, CryptoPP::Integer &s) {
+inline CryptoPP::ECPPoint FinalRound::commit(CryptoPP::Integer &r, CryptoPP::Integer &s) {
     CryptoPP::ECPPoint rG = curve.GetCurve().ScalarMultiply(G, r);
     CryptoPP::ECPPoint sH = curve.GetCurve().ScalarMultiply(H, s);
     CryptoPP::ECPPoint commitment = curve.GetCurve().Add(rG, sH);
     return commitment;
 }
 
-void RoundTwo::injectBlameMessage(uint32_t suspectID, uint32_t slot, uint32_t slice, CryptoPP::Integer &s) {
+void FinalRound::injectBlameMessage(uint32_t suspectID, uint32_t slot, uint32_t slice, CryptoPP::Integer &s) {
     std::vector<uint8_t> messageBody(44);
     // set the suspect's ID
     messageBody[0] = (suspectID & 0xFF000000) >> 24;
@@ -536,7 +544,7 @@ void RoundTwo::injectBlameMessage(uint32_t suspectID, uint32_t slot, uint32_t sl
 }
 
 /*
-void RoundTwo::handleBlameMessage(std::shared_ptr<ReceivedMessage>& blameMessage) {
+void FinalRound::handleBlameMessage(std::shared_ptr<ReceivedMessage>& blameMessage) {
     std::vector<uint8_t>& body = blameMessage->body();
     // check which node is addressed by the blame message
     uint32_t suspectID = (body[0] << 24) | (body[1] << 16) | (body[2] << 8) | body[3];

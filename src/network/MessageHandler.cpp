@@ -26,6 +26,9 @@ void MessageHandler::run() {
             case CommitmentRoundTwo:
             case RoundTwoSharingPartOne:
             case RoundTwoSharingPartTwo:
+            case CommitmentSeedRound:
+            case SeedRoundSharingPartOne:
+            case SeedRoundSharingPartTwo:
             case BlameMessage:
                 inboxDCNet_.push(receivedMessage);
                 break;

@@ -1,6 +1,6 @@
 #include <iostream>
 #include "Ready.h"
-#include "RoundOne.h"
+#include "InitialRound.h"
 #include "../datastruct/MessageType.h"
 
 #include <thread>
@@ -26,7 +26,7 @@ std::unique_ptr<DCState> Ready::executeTask() {
         while(readyNodes.size() < memberCount - 1) {
             auto readyMessage = DCNetwork_.inbox().pop();
             if(readyMessage.msgType() != ReadyMessage) {
-                std::cout << "Inappropriate message received: " << (int) readyMessage.msgType() << std::endl;
+                std::cout << "Ready State:  inappropriate message received: " << (int) readyMessage.msgType() << std::endl;
                 DCNetwork_.inbox().push(readyMessage);
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
                 readyMessage = DCNetwork_.inbox().pop();
@@ -54,5 +54,5 @@ std::unique_ptr<DCState> Ready::executeTask() {
             std::cout << "Ready State: inappropriate message received" << std::endl;
     }
     // perform a state transition
-    return std::make_unique<RoundOne>(DCNetwork_, true);
+    return std::make_unique<InitialRound>(DCNetwork_, Extended);
 }
