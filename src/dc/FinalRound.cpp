@@ -188,8 +188,8 @@ std::unique_ptr<DCState> FinalRound::executeTask() {
                     // validate the commitment
                     if ((C_.x != commitment.x) || (C_.y != commitment.y)) {
                         // TODO undo
-                        std::lock_guard<std::mutex> lock(mutex_);
-                        std::cout << "Final Commitment invalid" << std::endl;
+                        //std::lock_guard<std::mutex> lock(mutex_);
+                        //std::cout << "Final Commitment invalid" << std::endl;
                     }
                 }
             }
@@ -466,7 +466,8 @@ std::vector<std::vector<uint8_t>> FinalRound::resultComputation() {
                 CryptoPP::ECPPoint commitment = commit(R[slot][slice], S[slot][slice]);
 
                 if ((C[slot][slice].x != commitment.x) || (C[slot][slice].y != commitment.y)) {
-                    std::cout << "Invalid commitment detected" << std::endl;
+                    // TODO undo
+                    //std::cout << "Invalid commitment detected" << std::endl;
                 }
             }
         }

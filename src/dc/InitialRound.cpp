@@ -27,6 +27,10 @@ InitialRound::InitialRound(DCNetwork &DCNet, ProtocolMode protocolMode)
 InitialRound::~InitialRound() {}
 
 std::unique_ptr<DCState> InitialRound::executeTask() {
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        std::cout << "Initial round" << std::endl;
+    }
     // check if there is a submitted message and determine it's length,
     // but don't remove it from the message queue just yet
     uint16_t l = 0;
@@ -235,8 +239,8 @@ void InitialRound::sharingPartOne(std::vector<std::vector<CryptoPP::Integer>> &s
     if(!(protocolMode_ == Unsecured)) {
         size_t encodedPointSize = curve_.GetCurve().EncodedPointSize(true);
 
-        std::vector<std::vector<uint8_t>> commitments;
-        commitments.reserve(k_);
+        std::vector<std::vector<uint8_t>> encodedCommitments;
+        encodedCommitments.reserve(k_);
 
         rValues.resize(k_);
         for (auto& share : rValues)
@@ -271,7 +275,7 @@ void InitialRound::sharingPartOne(std::vector<std::vector<CryptoPP::Integer>> &s
                 // Add the commitment to the sum C
                 C[slice] = curve_.GetCurve().Add(C[slice], commitmentMatrix[share][slice]);
             }
-            commitments.push_back(std::move(commitmentVector));
+            encodedCommitments.push_back(std::move(commitmentVector));
         }
 
         // store the commitment matrix
@@ -289,7 +293,7 @@ void InitialRound::sharingPartOne(std::vector<std::vector<CryptoPP::Integer>> &s
             if (member.second.connectionID() != SELF) {
                 for (uint32_t share = 0; share < k_; share++) {
                     OutgoingMessage commitBroadcast(member.second.connectionID(), CommitmentRoundOne,
-                                                    DCNetwork_.nodeID(), commitments[share]);
+                                                    DCNetwork_.nodeID(), encodedCommitments[share]);
                     DCNetwork_.outbox().push(std::move(commitBroadcast));
                 }
             }
@@ -314,7 +318,7 @@ void InitialRound::sharingPartOne(std::vector<std::vector<CryptoPP::Integer>> &s
                 size_t encodedPointSize = curve_.GetCurve().EncodedPointSize(true);
 
                 std::vector<CryptoPP::ECPPoint> commitmentVector;
-                commitmentMatrix.reserve(numSlices);
+                commitmentVector.reserve(numSlices);
 
                 // decompress all the points
                 for(uint32_t slice = 0; slice < numSlices; slice++) {
@@ -508,7 +512,7 @@ std::vector<uint8_t> InitialRound::resultComputation() {
         S[i].Encode(&reconstructedMessage[31 * i], sliceSize);
     }
 
-    InitialRound::printMessageVector(reconstructedMessage);
+    //InitialRound::printMessageVector(reconstructedMessage);
 
     return reconstructedMessage;
 }
