@@ -1,12 +1,12 @@
 #include <cryptopp/oids.h>
 #include "DCNetwork.h"
-#include "Ready.h"
-#include "Init.h"
+#include "ReadyState.h"
+#include "InitState.h"
 
 #include <iostream>
 
 DCNetwork::DCNetwork(DCMember self, CryptoPP::Integer privateKey, size_t k, std::unordered_map<uint32_t, Node>& neigbors, MessageQueue<ReceivedMessage>& inbox, MessageQueue<OutgoingMessage>& outbox)
-: nodeID_(self.nodeID()), k_(k), privateKey_(privateKey), neighbors_(neigbors), inbox_(inbox), outbox_(outbox), state_(std::make_unique<Init>(*this)) {
+: nodeID_(self.nodeID()), k_(k), privateKey_(privateKey), neighbors_(neigbors), inbox_(inbox), outbox_(outbox), state_(std::make_unique<InitState>(*this)) {
     members_.insert(std::pair(nodeID_, self));
 }
 

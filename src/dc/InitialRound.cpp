@@ -3,10 +3,10 @@
 #include <cryptopp/oids.h>
 #include <iomanip>
 #include "InitialRound.h"
-#include "Init.h"
+#include "InitState.h"
 #include "FinalRound.h"
 #include "../datastruct/MessageType.h"
-#include "Ready.h"
+#include "ReadyState.h"
 #include "SeedRound.h"
 
 std::mutex mutex_;
@@ -19,7 +19,7 @@ InitialRound::InitialRound(DCNetwork &DCNet, ProtocolMode protocolMode)
     nodeIndex_ = std::distance(DCNetwork_.members().begin(), DCNetwork_.members().find(DCNetwork_.nodeID()));
 
     if (protocolMode_ == Paper)
-        msgVector_.resize(2 * k_ * (8 + 65 * k_));
+        msgVector_.resize(2 * k_ * (8 + 33 * k_));
     else
         msgVector_.resize(2 * k_ * 8);
 }
@@ -27,10 +27,6 @@ InitialRound::InitialRound(DCNetwork &DCNet, ProtocolMode protocolMode)
 InitialRound::~InitialRound() {}
 
 std::unique_ptr<DCState> InitialRound::executeTask() {
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        std::cout << "Initial round" << std::endl;
-    }
     // check if there is a submitted message and determine it's length,
     // but don't remove it from the message queue just yet
     uint16_t l = 0;
@@ -65,12 +61,11 @@ std::unique_ptr<DCState> InitialRound::executeTask() {
         // generate k random seeds, required for the commitments in the second round
         if(protocolMode_ == Paper) {
             submittedSeeds_.reserve(k_);
-            CryptoPP::ECB_Mode<CryptoPP::AES>::Encryption encryptAES;
+
             for (auto it = DCNetwork_.members().begin(); it != DCNetwork_.members().end(); it++) {
                 uint32_t memberIndex = std::distance(DCNetwork_.members().begin(), it);
 
                 std::array<uint8_t, 32> seed;
-                PRNG.GenerateBlock(seed.data(), 32);
 
                 // generate an ephemeral EC key pair
                 CryptoPP::Integer r(PRNG, CryptoPP::Integer::One(), curve_.GetMaxExponent());
@@ -79,13 +74,9 @@ std::unique_ptr<DCState> InitialRound::executeTask() {
                 // Perform an ephemeral ECDH KE with the given public key
                 CryptoPP::Integer sharedSecret = curve_.GetCurve().ScalarMultiply(it->second.publicKey(), r).x;
 
-                uint8_t keyIV[32];
-                sharedSecret.Encode(keyIV, 32);
-                encryptAES.SetKey(keyIV, 32);
+                sharedSecret.Encode(seed.data(), 32);
 
-                encryptAES.ProcessData(&msgVector_[16 * k_ + p * 65 * k_ + 65 * memberIndex], seed.data(), 32);
-
-                curve_.GetCurve().EncodePoint(&msgVector_[16 * k_ + p * 65 * k_ + 65 * memberIndex + 32], rG, true);
+                curve_.GetCurve().EncodePoint(&msgVector_[16 * k_ + p * 33 * k_ + 33 * memberIndex], rG, true);
 
                 // store the seed
                 submittedSeeds_.push_back(std::move(seed));
@@ -95,7 +86,7 @@ std::unique_ptr<DCState> InitialRound::executeTask() {
         // Calculate the CRC
         CRC32_.Update(&msgVector_[8 * p + 4], 4);
         if (protocolMode_ == Paper)
-            CRC32_.Update(&msgVector_[16 * k_ + p * 65 * k_], 65 * k_);
+            CRC32_.Update(&msgVector_[16 * k_ + p * 33 * k_], 33 * k_);
 
         CRC32_.Final(&msgVector_[8 * p]);
     }
@@ -151,7 +142,7 @@ std::unique_ptr<DCState> InitialRound::executeTask() {
     // a blame message has been received
     if (result < 0) {
         // TODO clean up the inbox
-        return std::make_unique<Init>(DCNetwork_);
+        return std::make_unique<InitState>(DCNetwork_);
     }
 
     // collect and validate the final shares
@@ -163,7 +154,7 @@ std::unique_ptr<DCState> InitialRound::executeTask() {
         // which will execute a group membership protocol
         // TODO clean up the inbox
         std::this_thread::sleep_for(std::chrono::seconds(60));
-        return std::make_unique<Init>(DCNetwork_);
+        return std::make_unique<InitState>(DCNetwork_);
     }
 
     // prepare round two
@@ -182,7 +173,7 @@ std::unique_ptr<DCState> InitialRound::executeTask() {
             CRC32_.Update(&finalMessageVector[8 * i + 4], 4);
 
             if (protocolMode_ == Paper)
-                CRC32_.Update(&finalMessageVector[16 * k_ + 65 * k_ * i], 65 * k_);
+                CRC32_.Update(&finalMessageVector[16 * k_ + 33 * k_ * i], 33 * k_);
 
             bool valid = CRC32_.Verify(&finalMessageVector[8 * i]);
 
@@ -196,20 +187,15 @@ std::unique_ptr<DCState> InitialRound::executeTask() {
             }
 
             if (protocolMode_ == Paper) {
-                CryptoPP::ECB_Mode<CryptoPP::AES>::Decryption decryptAES;
                 //decrypt and extract the own seed for the each slot
                 CryptoPP::ECPPoint rG;
-                curve_.GetCurve().DecodePoint(rG, &finalMessageVector[16 * k_ + 65 * k_ * i + 65 * nodeIndex_ + 32], 33);
+                curve_.GetCurve().DecodePoint(rG, &finalMessageVector[16 * k_ + 33 * k_ * i + 33 * nodeIndex_], 33);
 
                 // Perform an ephemeral ECDH KE with the given public key
                 CryptoPP::Integer sharedSecret = curve_.GetCurve().ScalarMultiply(rG, DCNetwork_.privateKey()).x;
 
-                uint8_t keyIV[32];
-                sharedSecret.Encode(keyIV, 32);
-                decryptAES.SetKey(keyIV, 32);
-
                 std::array<uint8_t, 32> seed;
-                decryptAES.ProcessData(seed.data(), &finalMessageVector[16 * k_ + 65 * k_ * i + 65 * nodeIndex_], 32);
+                sharedSecret.Encode(seed.data(), 32);
 
                 receivedSeeds.push_back(std::move(seed));
             }
@@ -221,12 +207,12 @@ std::unique_ptr<DCState> InitialRound::executeTask() {
 
     // if no member wants to send a message, return to the Ready state
     if (slots.size() == 0) {
-        return std::make_unique<Ready>(DCNetwork_);
+        return std::make_unique<ReadyState>(DCNetwork_);
     } else {
         if(protocolMode_ == Paper)
             return std::make_unique<FinalRound>(DCNetwork_, slotIndex, std::move(slots), std::move(submittedSeeds_),
                                                 std::move(receivedSeeds));
-        else if(protocolMode_ == Extended)
+        else if(protocolMode_ == Experimental)
             return std::make_unique<SeedRound>(DCNetwork_, slotIndex, std::move(slots));
         else
             return std::make_unique<FinalRound>(DCNetwork_, slotIndex, std::move(slots));

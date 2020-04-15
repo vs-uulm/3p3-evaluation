@@ -3,10 +3,10 @@
 #include <thread>
 #include <iomanip>
 #include "FinalRound.h"
-#include "Init.h"
+#include "InitState.h"
 #include "../datastruct/MessageType.h"
 #include "InitialRound.h"
-#include "Ready.h"
+#include "ReadyState.h"
 
 // constructor for a unsecured round
 FinalRound::FinalRound(DCNetwork &DCNet, int slotIndex, std::vector<uint16_t> slots)
@@ -55,11 +55,6 @@ FinalRound::FinalRound(DCNetwork& DCNet, int slotIndex, std::vector<uint16_t> sl
 FinalRound::~FinalRound() {}
 
 std::unique_ptr<DCState> FinalRound::executeTask() {
-    // TODO undo
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        std::cout << "Final round" << std::endl;
-    }
     size_t numSlots = slots_.size();
 
     std::vector<size_t> numSlices;
@@ -140,13 +135,13 @@ std::unique_ptr<DCState> FinalRound::executeTask() {
     // a blame message has been received
     if (result < 0) {
         // TODO clean up the inbox
-        return std::make_unique<Init>(DCNetwork_);
+        return std::make_unique<InitState>(DCNetwork_);
     }
 
     std::vector<std::vector<uint8_t>> messages = FinalRound::resultComputation();
     if(messages.size() == 0) {
         // TODO clean up the inbox
-        return std::make_unique<Init>(DCNetwork_);
+        return std::make_unique<InitState>(DCNetwork_);
     }
 
     // Finally verify that no member has sent a message in the own slot
@@ -188,8 +183,8 @@ std::unique_ptr<DCState> FinalRound::executeTask() {
                     // validate the commitment
                     if ((C_.x != commitment.x) || (C_.y != commitment.y)) {
                         // TODO undo
-                        //std::lock_guard<std::mutex> lock(mutex_);
-                        //std::cout << "Final Commitment invalid" << std::endl;
+                        std::lock_guard<std::mutex> lock(mutex_);
+                        std::cout << "Final Commitment invalid" << std::endl;
                     }
                 }
             }
@@ -198,7 +193,7 @@ std::unique_ptr<DCState> FinalRound::executeTask() {
 
     // wait until the next round starts
     std::this_thread::sleep_for(std::chrono::seconds(60));
-    return std::make_unique<Ready>(DCNetwork_);
+    return std::make_unique<ReadyState>(DCNetwork_);
 }
 
 void FinalRound::sharingPartOne(size_t totalNumSlices, std::vector<std::vector<std::vector<CryptoPP::Integer>>> &shares) {
@@ -349,8 +344,8 @@ int FinalRound::sharingPartTwo(size_t totalNumSlices) {
 
                             // TODO undo
                             //FinalRound::injectBlameMessage(sharingMessage.senderID(), slot, slice, s);
-                            //std::lock_guard<std::mutex> lock(mutex_);
-                            //std::cout << "Invalid commitment detected 1" << std::endl;
+                            std::lock_guard<std::mutex> lock(mutex_);
+                            std::cout << "Invalid commitment detected 1" << std::endl;
                             //return -1;
                         }
                         R[slot][slice] += r;
@@ -435,7 +430,7 @@ std::vector<std::vector<uint8_t>> FinalRound::resultComputation() {
                         // if the commitment is invalid, blame the sender
                         if ((commitment.x != C_.x) || (commitment.y != C_.y)) {
                             // TODO undo
-                            //std::cout << "Invalid commitment detected" << std::endl;
+                            std::cout << "Invalid commitment detected" << std::endl;
                             //FinalRound::injectBlameMessage(sharingBroadcast.senderID(), slot, slice, S_);
 
                             //return std::vector<std::vector<uint8_t>>();
@@ -467,7 +462,7 @@ std::vector<std::vector<uint8_t>> FinalRound::resultComputation() {
 
                 if ((C[slot][slice].x != commitment.x) || (C[slot][slice].y != commitment.y)) {
                     // TODO undo
-                    //std::cout << "Invalid commitment detected" << std::endl;
+                    std::cout << "Invalid commitment detected" << std::endl;
                 }
             }
         }

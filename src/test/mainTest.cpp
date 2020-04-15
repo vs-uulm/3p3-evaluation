@@ -12,7 +12,7 @@
 
 std::mutex cout_mutex;
 
-const uint32_t INSTANCES = 12;
+const uint32_t INSTANCES = 10;
 
 void instance(int ID) {
     CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> curve;

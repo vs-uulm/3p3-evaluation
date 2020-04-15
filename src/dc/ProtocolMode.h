@@ -4,6 +4,6 @@
 enum ProtocolMode {
     Unsecured,
     Paper,
-    Extended
+    Experimental
 };
 #endif //THREEPP_PROTOCOLMODE_H

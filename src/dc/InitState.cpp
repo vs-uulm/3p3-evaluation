@@ -1,15 +1,15 @@
 #include <iostream>
 #include <thread>
-#include "Init.h"
-#include "Ready.h"
+#include "InitState.h"
+#include "ReadyState.h"
 #include "../datastruct/MessageType.h"
 
-Init::Init(DCNetwork& DCNet) : DCNetwork_(DCNet) {
+InitState::InitState(DCNetwork& DCNet) : DCNetwork_(DCNet) {
 }
 
-Init::~Init() {}
+InitState::~InitState() {}
 
-std::unique_ptr<DCState> Init::executeTask() {
+std::unique_ptr<DCState> InitState::executeTask() {
     while (DCNetwork_.members().size() < DCNetwork_.k()) {
         auto receivedMessage = DCNetwork_.inbox().pop();
 
@@ -25,5 +25,5 @@ std::unique_ptr<DCState> Init::executeTask() {
         DCNetwork_.members().insert(std::make_pair(receivedMessage.senderID(), member));
     }
     // perform a state transition
-    return std::make_unique<Ready>(DCNetwork_);
+    return std::make_unique<ReadyState>(DCNetwork_);
 }

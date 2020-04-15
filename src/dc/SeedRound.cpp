@@ -3,8 +3,8 @@
 #include <iostream>
 #include <iomanip>
 #include "SeedRound.h"
-#include "Init.h"
-#include "Ready.h"
+#include "InitState.h"
+#include "ReadyState.h"
 #include "../datastruct/MessageType.h"
 #include "InitialRound.h"
 #include "FinalRound.h"
@@ -26,19 +26,19 @@ std::unique_ptr<DCState> SeedRound::executeTask() {
     }
     size_t numSlots = slots_.size();
 
-    size_t numSlices = std::ceil(65 * k_ / 31.0);
+    size_t numSlices = std::ceil(33 * k_ / 31.0);
 
     std::vector<CryptoPP::Integer> messageSlices;
     if (slotIndex_ > -1) {
-        std::vector<uint8_t> messageSlot(65 * k_);
+        std::vector<uint8_t> messageSlot(33 * k_);
 
         submittedSeeds_.reserve(k_);
-        CryptoPP::ECB_Mode<CryptoPP::AES>::Encryption encryptAES;
+        //CryptoPP::ECB_Mode<CryptoPP::AES>::Encryption encryptAES;
         for (auto it = DCNetwork_.members().begin(); it != DCNetwork_.members().end(); it++) {
             uint32_t memberIndex = std::distance(DCNetwork_.members().begin(), it);
 
             std::array<uint8_t, 32> seed;
-            PRNG.GenerateBlock(seed.data(), 32);
+            //PRNG.GenerateBlock(seed.data(), 32);
 
             // generate an ephemeral EC key pair
             CryptoPP::Integer r(PRNG, CryptoPP::Integer::One(), curve_.GetMaxExponent());
@@ -46,14 +46,15 @@ std::unique_ptr<DCState> SeedRound::executeTask() {
 
             // Perform an ephemeral ECDH KE with the given public key
             CryptoPP::Integer sharedSecret = curve_.GetCurve().ScalarMultiply(it->second.publicKey(), r).x;
+            sharedSecret.Encode(seed.data(), 32);
 
-            uint8_t keyIV[32];
-            sharedSecret.Encode(keyIV, 32);
-            encryptAES.SetKey(keyIV, 32);
+            //uint8_t keyIV[32];
+            //sharedSecret.Encode(keyIV, 32);
+            //encryptAES.SetKey(keyIV, 32);
 
-            encryptAES.ProcessData(&messageSlot[65 * memberIndex], seed.data(), 32);
+            //encryptAES.ProcessData(&messageSlot[65 * memberIndex], seed.data(), 32);
 
-            curve_.GetCurve().EncodePoint(&messageSlot[65 * memberIndex + 32], rG, true);
+            curve_.GetCurve().EncodePoint(&messageSlot[33 * memberIndex], rG, true);
 
             // store the seed
             submittedSeeds_.push_back(std::move(seed));
@@ -63,7 +64,7 @@ std::unique_ptr<DCState> SeedRound::executeTask() {
         messageSlices.reserve(numSlices);
 
         for (uint32_t i = 0; i < numSlices; i++) {
-            size_t sliceSize = ((65 * k_ - 31 * i > 31) ? 31 : 65 * k_ - 31 * i);
+            size_t sliceSize = ((33 * k_ - 31 * i > 31) ? 31 : 33 * k_ - 31 * i);
             CryptoPP::Integer slice(&messageSlot[31 * i], sliceSize);
             messageSlices.push_back(std::move(slice));
         }
@@ -125,32 +126,35 @@ std::unique_ptr<DCState> SeedRound::executeTask() {
     // a blame message has been received
     if (result < 0) {
         // TODO clean up the inbox
-        return std::make_unique<Init>(DCNetwork_);
+        return std::make_unique<InitState>(DCNetwork_);
     }
 
     std::vector<std::vector<uint8_t>> finalSeeds = SeedRound::resultComputation();
     if ((finalSeeds.size() == 0) || (finalSeeds[0].size() == 0)) {
         // TODO clean up the inbox
-        return std::make_unique<Init>(DCNetwork_);
+        return std::make_unique<InitState>(DCNetwork_);
     }
 
     std::vector<std::array<uint8_t, 32>> receivedSeeds;
     for (uint32_t slot = 0; slot < numSlots; slot++) {
 
-        CryptoPP::ECB_Mode<CryptoPP::AES>::Decryption decryptAES;
+        //CryptoPP::ECB_Mode<CryptoPP::AES>::Decryption decryptAES;
         //decrypt and extract the own seed for the each slot
         CryptoPP::ECPPoint rG;
-        curve_.GetCurve().DecodePoint(rG, &finalSeeds[slot][65 * nodeIndex_ + 32], 33);
+        curve_.GetCurve().DecodePoint(rG, &finalSeeds[slot][33 * nodeIndex_], 33);
 
         // Perform an ephemeral ECDH KE with the given public key
         CryptoPP::Integer sharedSecret = curve_.GetCurve().ScalarMultiply(rG, DCNetwork_.privateKey()).x;
 
-        uint8_t keyIV[32];
-        sharedSecret.Encode(keyIV, 32);
-        decryptAES.SetKey(keyIV, 32);
-
         std::array<uint8_t, 32> seed;
-        decryptAES.ProcessData(seed.data(), &finalSeeds[slot][65 * nodeIndex_], 32);
+        sharedSecret.Encode(seed.data(), 32);
+
+        //uint8_t keyIV[32];
+        //sharedSecret.Encode(keyIV, 32);
+        //decryptAES.SetKey(keyIV, 32);
+
+        //std::array<uint8_t, 32> seed;
+        //decryptAES.ProcessData(seed.data(), &finalSeeds[slot][65 * nodeIndex_], 32);
 
         receivedSeeds.push_back(std::move(seed));
     }
@@ -161,13 +165,13 @@ std::unique_ptr<DCState> SeedRound::executeTask() {
 
 void SeedRound::sharingPartOne(std::vector<std::vector<std::vector<CryptoPP::Integer>>> &shares) {
     size_t numSlots = slots_.size();
-    size_t numSlices = std::ceil(65 * k_ / 31.0);
+    size_t numSlices = std::ceil(33 * k_ / 31.0);
 
     R.resize(numSlots);
     C.resize(numSlots);
 
     size_t encodedPointSize = curve_.GetCurve().EncodedPointSize(true);
-    //std::vector<uint8_t> commitmentVector(k_ * numSlots * numSlices * encodedPointSize);
+
     std::vector<std::vector<std::vector<uint8_t>>> encodedCommitments;
     encodedCommitments.resize(numSlots);
 
@@ -303,7 +307,7 @@ void SeedRound::sharingPartOne(std::vector<std::vector<std::vector<CryptoPP::Int
 
 int SeedRound::sharingPartTwo() {
     size_t numSlots = slots_.size();
-    size_t numSlices = std::ceil(65 * k_ / 31.0);
+    size_t numSlices = std::ceil(33 * k_ / 31.0);
     // collect the shares from the other k-1 members and validate them using the broadcasted commitments
     uint32_t remainingShares = k_ - 1;
     while (remainingShares > 0) {
@@ -428,10 +432,10 @@ std::vector<std::vector<uint8_t>> SeedRound::resultComputation() {
     // reconstruct the original message
     std::vector<std::vector<uint8_t>> reconstructedMessageSlots(numSlots);
     for (uint32_t slot = 0; slot < numSlots; slot++) {
-        reconstructedMessageSlots[slot].resize(65 * k_);
+        reconstructedMessageSlots[slot].resize(33 * k_);
 
         for (uint32_t slice = 0; slice < S[slot].size(); slice++) {
-            size_t sliceSize = ((65 * k_ - 31 * slice > 31) ? 31 : 65 * k_ - 31 * slice);
+            size_t sliceSize = ((33 * k_ - 31 * slice > 31) ? 31 : 33 * k_ - 31 * slice);
             S[slot][slice].Encode(&reconstructedMessageSlots[slot][31 * slice], sliceSize);
         }
     }

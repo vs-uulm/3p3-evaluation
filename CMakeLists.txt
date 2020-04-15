@@ -20,8 +20,8 @@ add_executable(
         src/datastruct/ReceivedMessage.cpp
         src/utils/Utils.cpp
         src/dc/DCNetwork.cpp
-        src/dc/Init.cpp
-        src/dc/Ready.cpp
+        src/dc/InitState.cpp
+        src/dc/ReadyState.cpp
         src/datastruct/MessageType.h
         src/dc/DCState.h
         src/datastruct/NetworkMessage.cpp

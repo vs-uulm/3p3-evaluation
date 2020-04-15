@@ -1,5 +1,5 @@
 #include <iostream>
-#include "Ready.h"
+#include "ReadyState.h"
 #include "InitialRound.h"
 #include "../datastruct/MessageType.h"
 
@@ -7,11 +7,11 @@
 #include <chrono>
 
 
-Ready::Ready(DCNetwork& DCNet) : DCNetwork_(DCNet) {}
+ReadyState::ReadyState(DCNetwork& DCNet) : DCNetwork_(DCNet) {}
 
-Ready::~Ready() {}
+ReadyState::~ReadyState() {}
 
-std::unique_ptr<DCState> Ready::executeTask() {
+std::unique_ptr<DCState> ReadyState::executeTask() {
     uint32_t minimumID = DCNetwork_.nodeID();
     // determine whether the local node has the smallest nodeID
     for(auto& member : DCNetwork_.members())
@@ -54,5 +54,5 @@ std::unique_ptr<DCState> Ready::executeTask() {
             std::cout << "Ready State: inappropriate message received" << std::endl;
     }
     // perform a state transition
-    return std::make_unique<InitialRound>(DCNetwork_, Extended);
+    return std::make_unique<InitialRound>(DCNetwork_, Paper);
 }
