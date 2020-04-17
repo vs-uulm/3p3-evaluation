@@ -12,7 +12,7 @@
 
 std::mutex cout_mutex;
 
-const uint32_t INSTANCES = 10;
+const uint32_t INSTANCES = 6;
 
 void instance(int ID) {
     CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> curve;
@@ -29,10 +29,15 @@ void instance(int ID) {
 
     NetworkManager networkManager(io_context_, port_, inbox);
     // Run the io_context which handles the network manager
-    std::thread networkThread([&io_context_]() {
+    std::thread networkThread1([&io_context_]() {
         io_context_.run();
     });
-
+    // TODO test only
+    /*
+    std::thread networkThread2([&io_context_]() {
+        io_context_.run();
+    });
+    */
     // connect to the central node authority
     int CAConnectionID = networkManager.connectToCA("127.0.0.1", 7777);
     if(CAConnectionID < 0) {
@@ -95,7 +100,6 @@ void instance(int ID) {
         CryptoPP::ECPPoint publicKey;
         curve.GetCurve().DecodePoint(publicKey, &nodeInfo.body()[offset+10], curve.GetCurve().EncodedPointSize(true));
 
-        // Node(uint32_t nodeID, const CryptoPP::ECPPoint& PublicKey, uint16_t port, const ip::address_v4& ip_address);
         Node neighbor(nodeID, publicKey, port, ip_address);
         neighbors.insert(std::pair(nodeID, neighbor));
     }
@@ -111,9 +115,6 @@ void instance(int ID) {
             continue;
         }
         // Add the node as a member of the DC-Network
-        //std::vector<uint8_t> encodedPK(curve.GetCurve().EncodedPointSize(true));
-        //curve.GetCurve().EncodePoint(encodedPK.data(), Nodes[nodeID].publicKey(), true);
-
         OutgoingMessage helloMessage(connectionID, HelloMessage, nodeID_);
         networkManager.sendMessage(helloMessage);
     }
@@ -144,7 +145,7 @@ void instance(int ID) {
 
 
     // node 0 will always submit a message
-    if (nodeID_ == 0 || nodeID_ == 1) {
+    if (nodeID_ < 3) {
         uint16_t length = PRNG.GenerateWord32(512, 1024);
         std::vector<uint8_t> message(length);
         PRNG.GenerateBlock(message.data(), length);
@@ -154,7 +155,8 @@ void instance(int ID) {
     DCThread.join();
     writerThread.join();
     messageHandlerThread.join();
-    networkThread.join();
+    networkThread1.join();
+    //networkThread2.join();
 }
 
 void nodeAuthority() {

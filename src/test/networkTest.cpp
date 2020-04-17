@@ -30,10 +30,10 @@ int main() {
     Node node(0, 8888, ip_address);
     int receiverID = networkManager2.addNeighbor(node);
 
-    size_t msgSize = std::pow(2,16);
-    std::cout << std::hex << msgSize << std::endl;
+    size_t msgSize = std::pow(2,10);
+    std::cout << std::dec << msgSize << std::endl;
 
-    for(uint32_t i = 0; i < 1024; i++) {
+    for(uint32_t i = 0; i < 20000; i++) {
         std::vector<uint8_t> testData(msgSize);
         OutgoingMessage testMessage(receiverID, 0, 0, std::move(testData));
         networkManager2.sendMessage(std::move(testMessage));

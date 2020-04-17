@@ -29,7 +29,7 @@ add_executable(
         src/dc/FinalRound.cpp
         src/dc/DCMember.cpp
         src/dc/SeedRound.cpp
-        src/dc/ProtocolMode.h)
+)
 
 target_link_libraries(
         threePP

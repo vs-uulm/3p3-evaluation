@@ -5,6 +5,7 @@
 #include <queue>
 #include <mutex>
 #include <condition_variable>
+#include <iostream>
 
 
 template<class T>
@@ -23,6 +24,7 @@ public:
             // deal with a spurious wakeup
             return !msg_queue_.empty();
         });
+
         T msg = msg_queue_.front();
         msg_queue_.pop();
         lock.unlock();

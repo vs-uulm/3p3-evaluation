@@ -92,8 +92,7 @@ int NetworkManager::sendMessage(OutgoingMessage msg) {
             return -1;
         connections_[msg.receiverID()]->send_msg(msg);
     }
-    // TODO remove
-    uint32_t offset = (rand() % 20) + 20;
-    std::this_thread::sleep_for(std::chrono::milliseconds(offset));
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(30));
     return 0;
 }
