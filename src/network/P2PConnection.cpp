@@ -90,15 +90,14 @@ void P2PConnection::read_body(const boost::system::error_code& e, std::shared_pt
 }
 
 void P2PConnection::send_msg(NetworkMessage msg) {
+    std::vector<boost::asio::const_buffer> combined;
+    combined.push_back(boost::asio::buffer(msg.header()));
+    combined.push_back(boost::asio::buffer(msg.body()));
+
     boost::system::error_code error;
-    boost::asio::write(ssl_socket_, boost::asio::buffer(msg.header()), error);
-    if(error) {
-        std::cerr << "Error: could not write header" << std::endl;
-    }
-    boost::asio::write(ssl_socket_, boost::asio::buffer(msg.body()), error);
-    if(error) {
-        std::cerr << "Error: could not write body" << std::endl;
-    }
+    boost::asio::write(ssl_socket_, combined, error);
+    if(error)
+        std::cerr << "Error: could not send message" << std::endl;
 }
 
 bool P2PConnection::is_open() {

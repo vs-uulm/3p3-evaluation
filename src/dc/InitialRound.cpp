@@ -29,18 +29,7 @@ std::unique_ptr<DCState> InitialRound::executeTask() {
         size_t msgSize = DCNetwork_.submittedMessages().front().size();
         // ensure that the message size does not exceed 2^16 Bytes
         l = msgSize > USHRT_MAX ? USHRT_MAX : msgSize;
-
-        // for tests only
-        // print the submitted message
-        std::lock_guard<std::mutex> lock(mutex_);
-        std::cout << "Message submitted by node " << DCNetwork_.nodeID() << ":" << std::endl;
-        for (uint8_t c : DCNetwork_.submittedMessages().front()) {
-            std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) c;
-        }
-        std::cout << std::endl << std::endl;
     }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(20));
 
     size_t slotSize = 8 + 33 * k_;
     size_t numSlices = std::ceil(slotSize / 31.0);

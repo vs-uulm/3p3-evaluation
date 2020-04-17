@@ -92,7 +92,6 @@ int NetworkManager::sendMessage(OutgoingMessage msg) {
             return -1;
         connections_[msg.receiverID()]->send_msg(msg);
     }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(30));
+    std::this_thread::sleep_for(std::chrono::milliseconds(5));
     return 0;
 }

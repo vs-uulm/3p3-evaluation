@@ -3,6 +3,7 @@
 #include <list>
 #include <iostream>
 #include <cryptopp/oids.h>
+#include <iomanip>
 
 #include "../network/P2PConnection.h"
 #include "../network/NetworkManager.h"
@@ -138,19 +139,32 @@ void instance(int ID) {
 
     // start the DCNetwork
     DCMember self(nodeID_, SELF, publicKey);
-    DCNetwork DCNet(self, std::move(privateKey), INSTANCES, neighbors, inboxDCNet, outbox);
+    DCNetwork DCNet(self, privateKey, INSTANCES, neighbors, inboxDCNet, outbox);
+
+    // submit messages to the DCNetwork
+    if (nodeID_ < 2) {
+        uint16_t length = PRNG.GenerateWord32(512, 1024);
+        std::vector<uint8_t> message(length);
+        PRNG.GenerateBlock(message.data(), length);
+
+        // for tests only
+        // print the submitted message
+        {
+            std::lock_guard<std::mutex> lock(cout_mutex);
+            std::cout << "Message submitted by node " << nodeID_ << ":" << std::endl;
+            for (uint8_t c : message) {
+                std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) c;
+            }
+            std::cout << std::endl << std::endl;
+        }
+
+        DCNet.submitMessage(message);
+    }
+
     std::thread DCThread([&]() {
         DCNet.run();
     });
 
-
-    // node 0 will always submit a message
-    if (nodeID_ < 3) {
-        uint16_t length = PRNG.GenerateWord32(512, 1024);
-        std::vector<uint8_t> message(length);
-        PRNG.GenerateBlock(message.data(), length);
-        DCNet.submitMessage(message);
-    }
 
     DCThread.join();
     writerThread.join();
