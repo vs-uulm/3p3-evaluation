@@ -25,11 +25,11 @@ add_executable(
         src/datastruct/MessageType.h
         src/dc/DCState.h
         src/datastruct/NetworkMessage.cpp
-        src/dc/InitialRound.cpp
+        src/dc/RoundOneSecured.cpp
         src/dc/FinalRound.cpp
         src/dc/DCMember.cpp
         src/dc/SeedRound.cpp
-)
+        src/dc/RoundOneUnsecured.cpp src/dc/RoundOneUnsecured.h)
 
 target_link_libraries(
         threePP

@@ -45,6 +45,41 @@ int main() {
     std::cout << "rzG + dG" << std::endl;
     std::cout << std::hex << rzG_dG.x << std::endl;
     std::cout << std::hex << rzG_dG.y << std::endl;
+
+    CryptoPP::Integer r_(PRNG, CryptoPP::Integer::One(), ec_group.GetMaxExponent());
+    CryptoPP::Integer x(PRNG, CryptoPP::Integer::One(), ec_group.GetMaxExponent());
+
+    CryptoPP::Integer rr_ = r + r_;
+
+    CryptoPP::ECPPoint rG = ec_group.GetCurve().ScalarMultiply(G, r);
+    CryptoPP::ECPPoint r_G = ec_group.GetCurve().ScalarMultiply(G, r_);
+
+    CryptoPP::ECPPoint xH = ec_group.GetCurve().ScalarMultiply(H, x);
+
+    CryptoPP::ECPPoint rr_G = ec_group.GetCurve().ScalarMultiply(G, rr_);
+
+    CryptoPP::ECPPoint C = ec_group.GetCurve().Add(rG, xH);
+
+    CryptoPP::ECPPoint C_ = ec_group.GetCurve().Add(rr_G, xH);
+
+    CryptoPP::ECPPoint CC_ = ec_group.GetCurve().Add(C_, ec_group.GetCurve().Inverse(C));
+
+    std::cout << "C:" << std::endl;
+    std::cout << std::hex << C.x << std::endl;
+    std::cout << std::hex << C.y << std::endl;
+
+    std::cout << "C_:" << std::endl;
+    std::cout << std::hex << C_.x << std::endl;
+    std::cout << std::hex << C_.y << std::endl;
+
+    std::cout << "r_G:" << std::endl;
+    std::cout << std::hex << r_G.x << std::endl;
+    std::cout << std::hex << r_G.y << std::endl;
+
+    std::cout << "CC_:" << std::endl;
+    std::cout << std::hex << CC_.x << std::endl;
+    std::cout << std::hex << CC_.y << std::endl;
+
     /*
     CryptoPP::Integer maximum_k1 = ec_group.GetMaxExponent();
     std::cout << "Maximum K1:  " << std::hex << maximum_k1 << std::endl;

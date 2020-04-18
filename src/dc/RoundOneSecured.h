@@ -1,5 +1,5 @@
-#ifndef THREEPP_INITIALROUND_H
-#define THREEPP_INITIALROUND_H
+#ifndef THREEPP_ROUNDONESECURED_H
+#define THREEPP_ROUNDONESECURED_H
 
 #include <cryptopp/ecpoint.h>
 #include <cryptopp/crc.h>
@@ -12,11 +12,11 @@
 
 extern std::mutex mutex_;
 
-class InitialRound : public DCState {
+class RoundOneSecured : public DCState {
 public:
-    InitialRound(DCNetwork& DCNet);
+    RoundOneSecured(DCNetwork& DCNet);
 
-    virtual ~InitialRound();
+    virtual ~RoundOneSecured();
 
     virtual std::unique_ptr<DCState> executeTask();
 
@@ -43,8 +43,6 @@ private:
     // the position in of the own nodeID in the ordered member list
     size_t nodeIndex_;
 
-    //std::vector<uint8_t> msgVector_;
-
     // initial commitments stored with the corresponding senderID
     std::unordered_map<uint32_t, std::vector<std::vector<std::vector<CryptoPP::ECPPoint>>>> commitments_;
 
@@ -67,4 +65,4 @@ private:
 };
 
 
-#endif //THREEPP_INITIALROUND_H
+#endif //THREEPP_ROUNDONESECURED_H

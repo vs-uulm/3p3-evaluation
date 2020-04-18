@@ -1,7 +1,7 @@
 #ifndef THREEPP_INITSTATE_H
 #define THREEPP_INITSTATE_H
 
-#include "DCNetwork.h"
+//#include "DCNetwork.h"
 #include "DCState.h"
 
 class InitState : public DCState {

@@ -5,7 +5,7 @@
 #include "FinalRound.h"
 #include "InitState.h"
 #include "../datastruct/MessageType.h"
-#include "InitialRound.h"
+#include "RoundOneSecured.h"
 #include "ReadyState.h"
 
 // constructor for a unsecured round

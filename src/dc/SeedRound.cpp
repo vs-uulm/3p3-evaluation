@@ -2,11 +2,12 @@
 #include <cryptopp/oids.h>
 #include <iostream>
 #include <iomanip>
+#include "DCNetwork.h"
 #include "SeedRound.h"
 #include "InitState.h"
 #include "ReadyState.h"
 #include "../datastruct/MessageType.h"
-#include "InitialRound.h"
+#include "RoundOneSecured.h"
 #include "FinalRound.h"
 
 SeedRound::SeedRound(DCNetwork &DCNet, int slotIndex, std::vector<uint16_t> slots)

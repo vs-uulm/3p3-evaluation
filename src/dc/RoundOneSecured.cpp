@@ -2,7 +2,8 @@
 #include <thread>
 #include <cryptopp/oids.h>
 #include <iomanip>
-#include "InitialRound.h"
+#include "RoundOneSecured.h"
+#include "DCNetwork.h"
 #include "InitState.h"
 #include "FinalRound.h"
 #include "../datastruct/MessageType.h"
@@ -11,7 +12,7 @@
 
 std::mutex mutex_;
 
-InitialRound::InitialRound(DCNetwork &DCNet)
+RoundOneSecured::RoundOneSecured(DCNetwork &DCNet)
         : DCNetwork_(DCNet), k_(DCNetwork_.k()) {
     curve_.Initialize(CryptoPP::ASN1::secp256k1());
 
@@ -19,9 +20,9 @@ InitialRound::InitialRound(DCNetwork &DCNet)
     nodeIndex_ = std::distance(DCNetwork_.members().begin(), DCNetwork_.members().find(DCNetwork_.nodeID()));
 }
 
-InitialRound::~InitialRound() {}
+RoundOneSecured::~RoundOneSecured() {}
 
-std::unique_ptr<DCState> InitialRound::executeTask() {
+std::unique_ptr<DCState> RoundOneSecured::executeTask() {
     // check if there is a submitted message and determine it's length,
     // but don't remove it from the message queue just yet
     uint16_t l = 0;
@@ -88,7 +89,7 @@ std::unique_ptr<DCState> InitialRound::executeTask() {
     std::vector<std::vector<std::vector<CryptoPP::Integer>>> shares(2 * k_);
     for (uint32_t slot = 0; slot < 2 * k_; slot++) {
         shares[slot].resize(k_);
-
+        shares[slot][k_-1].reserve(numSlices);
         // initialize the slices of the k-th share with zeroes
         // except the slices of the own message slot
         if (slotIndex == slot) {
@@ -129,10 +130,10 @@ std::unique_ptr<DCState> InitialRound::executeTask() {
     }
 
     // generate and broadcast the commitments for the first round
-    InitialRound::sharingPartOne(shares);
+    RoundOneSecured::sharingPartOne(shares);
 
     // collect and validate the shares
-    int result = InitialRound::sharingPartTwo();
+    int result = RoundOneSecured::sharingPartTwo();
     // a blame message has been received
     if (result < 0) {
         // TODO clean up the inbox
@@ -140,7 +141,7 @@ std::unique_ptr<DCState> InitialRound::executeTask() {
     }
 
     // collect and validate the final shares
-    std::vector<std::vector<uint8_t>> finalMessageVector = InitialRound::resultComputation();
+    std::vector<std::vector<uint8_t>> finalMessageVector = RoundOneSecured::resultComputation();
     // Check if the protocol's execution has been interrupted by a blame message
     if (finalMessageVector.size() == 0) {
         // a blame message indicates that a member may have been excluded from the group
@@ -175,7 +176,7 @@ std::unique_ptr<DCState> InitialRound::executeTask() {
                     std::cout << "Invalid CRC detected." << std::endl;
                     std::cout << "Restarting Round One." << std::endl;
                 }
-                return std::make_unique<InitialRound>(DCNetwork_);
+                return std::make_unique<RoundOneSecured>(DCNetwork_);
             }
 
             //decrypt and extract the own seed for the each slot
@@ -206,7 +207,7 @@ std::unique_ptr<DCState> InitialRound::executeTask() {
     }
 }
 
-void InitialRound::sharingPartOne(std::vector<std::vector<std::vector<CryptoPP::Integer>>> &shares) {
+void RoundOneSecured::sharingPartOne(std::vector<std::vector<std::vector<CryptoPP::Integer>>> &shares) {
     size_t numSlices = std::ceil((8 + 33 * k_) / 31.0);
 
     std::vector<std::vector<std::vector<CryptoPP::Integer>>> rValues(2 * k_);
@@ -347,7 +348,7 @@ void InitialRound::sharingPartOne(std::vector<std::vector<std::vector<CryptoPP::
     }
 }
 
-int InitialRound::sharingPartTwo() {
+int RoundOneSecured::sharingPartTwo() {
     size_t numSlices = std::ceil((8 + 33 * k_) / 31.0);
     // collect the shares from the other k-1 members and validate them using the broadcasted commitments
     uint32_t remainingShares = 2 * k_ * (k_ - 1);
@@ -421,7 +422,7 @@ int InitialRound::sharingPartTwo() {
     return 0;
 }
 
-std::vector<std::vector<uint8_t>> InitialRound::resultComputation() {
+std::vector<std::vector<uint8_t>> RoundOneSecured::resultComputation() {
     size_t numSlices = std::ceil((8 + 33 * k_) / 31.0);
     // collect the added shares from the other k-1 members and validate them by adding the corresponding commitments
     uint32_t remainingShares = 2 * k_ * (k_ - 1);
@@ -449,7 +450,7 @@ std::vector<std::vector<uint8_t>> InitialRound::resultComputation() {
                 if ((commitment.x != addedCommitments.x) || (commitment.y != addedCommitments.y)) {
                     // broadcast a blame message which contains the invalid share along with the corresponding r values
                     std::cout << "Invalid commitment detected" << std::endl;
-                    InitialRound::injectBlameMessage(rsBroadcast.senderID(), slice, R_, S_);
+                    RoundOneSecured::injectBlameMessage(rsBroadcast.senderID(), slice, R_, S_);
                     return std::vector<std::vector<uint8_t>>();
                 }
                 R[slot][slice] += R_;
@@ -496,12 +497,12 @@ std::vector<std::vector<uint8_t>> InitialRound::resultComputation() {
         }
     }
 
-    InitialRound::printSlots(finalMessageSlots);
+    RoundOneSecured::printSlots(finalMessageSlots);
 
     return finalMessageSlots;
 }
 
-void InitialRound::injectBlameMessage(uint32_t suspectID, uint32_t slice, CryptoPP::Integer &r, CryptoPP::Integer &s) {
+void RoundOneSecured::injectBlameMessage(uint32_t suspectID, uint32_t slice, CryptoPP::Integer &r, CryptoPP::Integer &s) {
     std::vector<uint8_t> messageBody(72);
     // set the suspect's ID
     messageBody[0] = (suspectID & 0xFF000000) >> 24;
@@ -583,7 +584,7 @@ void InitialRound::handleBlameMessage(std::shared_ptr<ReceivedMessage>& blameMes
 }
 */
 
-inline CryptoPP::ECPPoint InitialRound::commit(CryptoPP::Integer &r, CryptoPP::Integer &s) {
+inline CryptoPP::ECPPoint RoundOneSecured::commit(CryptoPP::Integer &r, CryptoPP::Integer &s) {
     CryptoPP::ECPPoint rG = curve_.GetCurve().ScalarMultiply(G, r);
     CryptoPP::ECPPoint sH = curve_.GetCurve().ScalarMultiply(H, s);
     CryptoPP::ECPPoint commitment = curve_.GetCurve().Add(rG, sH);
@@ -591,7 +592,7 @@ inline CryptoPP::ECPPoint InitialRound::commit(CryptoPP::Integer &r, CryptoPP::I
 }
 
 // helper function to print the slots in the message vector
-void InitialRound::printSlots(std::vector<std::vector<uint8_t>> &slots) {
+void RoundOneSecured::printSlots(std::vector<std::vector<uint8_t>> &slots) {
     std::lock_guard<std::mutex> lock(mutex_);
 
     std::cout << std::dec << "Node: " << DCNetwork_.nodeID() << std::endl;

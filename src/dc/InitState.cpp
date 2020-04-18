@@ -1,5 +1,6 @@
 #include <iostream>
 #include <thread>
+#include "DCNetwork.h"
 #include "InitState.h"
 #include "ReadyState.h"
 #include "../datastruct/MessageType.h"
