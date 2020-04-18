@@ -1,5 +1,5 @@
-#ifndef THREEPP_FINALROUND_H
-#define THREEPP_FINALROUND_H
+#ifndef THREEPP_SECUREDFINALROUND_H
+#define THREEPP_SECUREDFINALROUND_H
 
 #include <array>
 #include <vector>
@@ -11,13 +11,11 @@
 #include "DCState.h"
 #include "../datastruct/ReceivedMessage.h"
 
-class FinalRound : public DCState {
+class SecuredFinalRound : public DCState {
 public:
-    FinalRound(DCNetwork& DCNet, int slotIndex, std::vector<uint16_t> slots);
+    SecuredFinalRound(DCNetwork& DCNet, int slotIndex, std::vector<uint16_t> slots, std::vector<std::array<uint8_t, 32>> submittedSeeds, std::vector<std::array<uint8_t, 32>> receivedSeeds);
 
-    FinalRound(DCNetwork& DCNet, int slotIndex, std::vector<uint16_t> slots, std::vector<std::array<uint8_t, 32>> submittedSeeds, std::vector<std::array<uint8_t, 32>> receivedSeeds);
-
-    virtual ~FinalRound();
+    virtual ~SecuredFinalRound();
 
     virtual std::unique_ptr<DCState> executeTask();
 
@@ -35,9 +33,6 @@ private:
     void handleBlameMessage(std::shared_ptr<ReceivedMessage>& blameMessage);
 
     DCNetwork& DCNetwork_;
-
-    // determines if the commitment mechanism is used
-    bool securedRound_;
 
     // DCNetwork size
     size_t k_;
@@ -78,4 +73,4 @@ private:
 };
 
 
-#endif //THREEPP_FINALROUND_H
+#endif //THREEPP_SECUREDFINALROUND_H

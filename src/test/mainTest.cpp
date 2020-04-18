@@ -13,7 +13,7 @@
 
 std::mutex cout_mutex;
 
-const uint32_t INSTANCES = 60;
+const uint32_t INSTANCES = 10;
 
 void instance(int ID) {
     CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> curve;
@@ -33,12 +33,7 @@ void instance(int ID) {
     std::thread networkThread1([&io_context_]() {
         io_context_.run();
     });
-    // TODO test only
-    /*
-    std::thread networkThread2([&io_context_]() {
-        io_context_.run();
-    });
-    */
+
     // connect to the central node authority
     int CAConnectionID = networkManager.connectToCA("127.0.0.1", 7777);
     if(CAConnectionID < 0) {
@@ -170,7 +165,6 @@ void instance(int ID) {
     writerThread.join();
     messageHandlerThread.join();
     networkThread1.join();
-    //networkThread2.join();
 }
 
 void nodeAuthority() {

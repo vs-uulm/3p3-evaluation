@@ -1,21 +1,15 @@
-#ifndef THREEPP_ROUNDONEUNSECURED_H
-#define THREEPP_ROUNDONEUNSECURED_H
+#ifndef THREEPP_UNSECUREDINITALROUND_H
+#define THREEPP_UNSECUREDINITALROUND_H
 
-
-#include <cryptopp/integer.h>
-#include <cryptopp/ecpoint.h>
-#include <cryptopp/ecp.h>
 #include <cryptopp/osrng.h>
 #include <cryptopp/crc.h>
-#include <cryptopp/eccrypto.h>
 #include "DCState.h"
-#include "../datastruct/ReceivedMessage.h"
 
-class RoundOneUnsecured : public DCState {
+class UnsecuredInitalRound : public DCState {
 public:
-    RoundOneUnsecured(DCNetwork& DCNet);
+    UnsecuredInitalRound(DCNetwork& DCNet);
 
-    virtual ~RoundOneUnsecured();
+    virtual ~UnsecuredInitalRound();
 
     virtual std::unique_ptr<DCState> executeTask();
 
@@ -42,10 +36,7 @@ private:
     CryptoPP::CRC32 CRC32_;
 
     CryptoPP::AutoSeededRandomPool PRNG;
-
-    CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> curve_;
-
 };
 
 
-#endif //THREEPP_ROUNDONEUNSECURED_H
+#endif //THREEPP_UNSECUREDINITALROUND_H

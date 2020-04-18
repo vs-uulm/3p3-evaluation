@@ -1,21 +1,22 @@
 #include <iomanip>
-#include "RoundOneUnsecured.h"
+#include "UnsecuredInitalRound.h"
 
 #include "DCNetwork.h"
 #include "InitState.h"
-#include "RoundOneSecured.h"
+#include "SecuredInitialRound.h"
 #include "ReadyState.h"
-#include "FinalRound.h"
+#include "SecuredFinalRound.h"
 #include "../datastruct/MessageType.h"
+#include "UnsecuredFinalRound.h"
 
 
-RoundOneUnsecured::RoundOneUnsecured(DCNetwork &DCNet) : DCNetwork_(DCNet), k_(DCNetwork_.k()) {
+UnsecuredInitalRound::UnsecuredInitalRound(DCNetwork &DCNet) : DCNetwork_(DCNet), k_(DCNetwork_.k()) {
     nodeIndex_ = std::distance(DCNetwork_.members().begin(), DCNetwork_.members().find(DCNetwork_.nodeID()));
 }
 
-RoundOneUnsecured::~RoundOneUnsecured() {}
+UnsecuredInitalRound::~UnsecuredInitalRound() {}
 
-std::unique_ptr<DCState> RoundOneUnsecured::executeTask() {
+std::unique_ptr<DCState> UnsecuredInitalRound::executeTask() {
     // check if there is a submitted message and determine it's length,
     // but don't remove it from the message queue just yet
     uint16_t l = 0;
@@ -58,7 +59,7 @@ std::unique_ptr<DCState> RoundOneUnsecured::executeTask() {
         shares[share].resize(msgSize);
         PRNG.GenerateBlock(shares[share].data(), msgSize);
 
-        // XOR The value to the last slot
+        // XOR The value to the final slot
         for (uint32_t p = 0; p < msgSize; p++)
             shares[k_ - 1][p] ^= shares[share][p];
     }
@@ -67,16 +68,16 @@ std::unique_ptr<DCState> RoundOneUnsecured::executeTask() {
     S = shares[nodeIndex_];
 
     // generate and broadcast the commitments for the first round
-    RoundOneUnsecured::sharingPartOne(shares);
+    UnsecuredInitalRound::sharingPartOne(shares);
 
     // collect and validate the shares
-    RoundOneUnsecured::sharingPartTwo();
+    UnsecuredInitalRound::sharingPartTwo();
 
 
     // collect and validate the final shares
-    RoundOneUnsecured::resultComputation();
+    UnsecuredInitalRound::resultComputation();
 
-    RoundOneUnsecured::printSlots(S);
+    UnsecuredInitalRound::printSlots(S);
 
     // prepare round two
     std::vector<uint16_t> slots;
@@ -101,7 +102,7 @@ std::unique_ptr<DCState> RoundOneUnsecured::executeTask() {
                     std::cout << "Invalid CRC detected." << std::endl;
                     std::cout << "Restarting Round One." << std::endl;
                 }
-                return std::make_unique<RoundOneUnsecured>(DCNetwork_);
+                return std::make_unique<UnsecuredInitalRound>(DCNetwork_);
             }
 
             // store the size of the slot along with the seed
@@ -112,11 +113,13 @@ std::unique_ptr<DCState> RoundOneUnsecured::executeTask() {
     // if no member wants to send a message, return to the Ready state
     if (slots.size() == 0)
         return std::make_unique<ReadyState>(DCNetwork_);
+    //else
+        //return std::make_unique<FinalRound>(DCNetwork_, finalSlotIndex, std::move(slots));
     else
-        return std::make_unique<FinalRound>(DCNetwork_, finalSlotIndex, std::move(slots));
+        return std::make_unique<UnsecuredFinalRound>(DCNetwork_, finalSlotIndex, std::move(slots));
 }
 
-void RoundOneUnsecured::sharingPartOne(std::vector<std::vector<uint8_t>> &shares) {
+void UnsecuredInitalRound::sharingPartOne(std::vector<std::vector<uint8_t>> &shares) {
     auto position = DCNetwork_.members().find(DCNetwork_.nodeID());
     for (uint32_t member = 0; member < k_ - 1; member++) {
         position++;
@@ -132,7 +135,7 @@ void RoundOneUnsecured::sharingPartOne(std::vector<std::vector<uint8_t>> &shares
     }
 }
 
-void RoundOneUnsecured::sharingPartTwo() {
+void UnsecuredInitalRound::sharingPartTwo() {
     // collect the shares from the other k-1 members and validate them using the broadcasted commitments
     uint32_t remainingShares = k_ - 1;
     while (remainingShares > 0) {
@@ -162,15 +165,13 @@ void RoundOneUnsecured::sharingPartTwo() {
     }
 }
 
-void RoundOneUnsecured::resultComputation() {
+void UnsecuredInitalRound::resultComputation() {
     // collect the added shares from the other k-1 members and validate them by adding the corresponding commitments
     uint32_t remainingShares = k_ - 1;
     while (remainingShares > 0) {
         auto sharingBroadcast = DCNetwork_.inbox().pop();
 
         if (sharingBroadcast.msgType() == RoundOneSharingPartTwo) {
-            uint32_t memberIndex = std::distance(DCNetwork_.members().begin(),
-                                                 DCNetwork_.members().find(sharingBroadcast.senderID()));
 
             for (uint32_t p = 0; p < 16 * k_; p++)
                 S[p] ^= sharingBroadcast.body()[p];
@@ -183,7 +184,7 @@ void RoundOneUnsecured::resultComputation() {
     }
 }
 
-void RoundOneUnsecured::printSlots(std::vector<uint8_t> &slots) {
+void UnsecuredInitalRound::printSlots(std::vector<uint8_t> &slots) {
     std::lock_guard<std::mutex> lock(mutex_);
 
     std::cout << std::dec << "Node: " << DCNetwork_.nodeID() << std::endl;

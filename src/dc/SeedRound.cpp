@@ -7,8 +7,8 @@
 #include "InitState.h"
 #include "ReadyState.h"
 #include "../datastruct/MessageType.h"
-#include "RoundOneSecured.h"
-#include "FinalRound.h"
+#include "SecuredInitialRound.h"
+#include "SecuredFinalRound.h"
 
 SeedRound::SeedRound(DCNetwork &DCNet, int slotIndex, std::vector<uint16_t> slots)
         : DCNetwork_(DCNet), k_(DCNetwork_.k()), slotIndex_(slotIndex), slots_(std::move(slots)) {
@@ -160,8 +160,8 @@ std::unique_ptr<DCState> SeedRound::executeTask() {
         receivedSeeds.push_back(std::move(seed));
     }
 
-    return std::make_unique<FinalRound>(DCNetwork_, slotIndex_, std::move(slots_), std::move(submittedSeeds_),
-                                        std::move(receivedSeeds));
+    return std::make_unique<SecuredFinalRound>(DCNetwork_, slotIndex_, std::move(slots_), std::move(submittedSeeds_),
+                                               std::move(receivedSeeds));
 }
 
 void SeedRound::sharingPartOne(std::vector<std::vector<std::vector<CryptoPP::Integer>>> &shares) {

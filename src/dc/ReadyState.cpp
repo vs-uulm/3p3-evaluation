@@ -1,9 +1,9 @@
 #include <iostream>
 #include "DCNetwork.h"
 #include "ReadyState.h"
-#include "RoundOneSecured.h"
+#include "SecuredInitialRound.h"
 #include "../datastruct/MessageType.h"
-#include "RoundOneUnsecured.h"
+#include "UnsecuredInitalRound.h"
 
 #include <thread>
 #include <chrono>
@@ -56,5 +56,5 @@ std::unique_ptr<DCState> ReadyState::executeTask() {
             std::cout << "Ready State: inappropriate message received" << std::endl;
     }
     // perform a state transition
-    return std::make_unique<RoundOneUnsecured>(DCNetwork_);
+    return std::make_unique<SecuredInitialRound>(DCNetwork_);
 }

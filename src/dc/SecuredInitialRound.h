@@ -1,5 +1,5 @@
-#ifndef THREEPP_ROUNDONESECURED_H
-#define THREEPP_ROUNDONESECURED_H
+#ifndef THREEPP_SECUREDINITIALROUND_H
+#define THREEPP_SECUREDINITIALROUND_H
 
 #include <cryptopp/ecpoint.h>
 #include <cryptopp/crc.h>
@@ -12,11 +12,11 @@
 
 extern std::mutex mutex_;
 
-class RoundOneSecured : public DCState {
+class SecuredInitialRound : public DCState {
 public:
-    RoundOneSecured(DCNetwork& DCNet);
+    SecuredInitialRound(DCNetwork& DCNet);
 
-    virtual ~RoundOneSecured();
+    virtual ~SecuredInitialRound();
 
     virtual std::unique_ptr<DCState> executeTask();
 
@@ -65,4 +65,4 @@ private:
 };
 
 
-#endif //THREEPP_ROUNDONESECURED_H
+#endif //THREEPP_SECUREDINITIALROUND_H
