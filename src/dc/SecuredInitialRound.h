@@ -27,9 +27,9 @@ private:
 
     std::vector<std::vector<uint8_t>> resultComputation();
 
-    void injectBlameMessage(uint32_t suspectID, uint32_t slice, CryptoPP::Integer& r, CryptoPP::Integer& s);
+    void injectBlameMessage(uint32_t suspectID, uint32_t slot, uint32_t slice, CryptoPP::Integer& r, CryptoPP::Integer& s);
 
-    void handleBlameMessage(std::shared_ptr<ReceivedMessage>& blameMessage);
+    void handleBlameMessage(ReceivedMessage& blameMessage);
 
     void printSlots(std::vector<std::vector<uint8_t>>& slots);
 

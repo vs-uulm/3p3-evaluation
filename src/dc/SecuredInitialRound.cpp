@@ -223,8 +223,10 @@ void SecuredInitialRound::sharingPartOne(std::vector<std::vector<std::vector<Cry
         rValues[slot].resize(k_);
         R[slot].reserve(numSlices);
         C[slot].resize(numSlices);
+
         commitmentCube[slot].resize(k_);
         encodedCommitments[slot].resize(2 + k_ * numSlices * encodedPointSize);
+
         for (uint32_t share = 0, offset = 2; share < k_; share++) {
             rValues[slot][share].reserve(numSlices);
             commitmentCube[slot][share].reserve(numSlices);
@@ -368,7 +370,8 @@ int SecuredInitialRound::sharingPartTwo() {
                 // if the commitment is invalid, blame the sender
                 if ((commitment.x != commitments_[sharingMessage.senderID()][slot][DCNetwork_.nodeID()][slice].x)
                     || (commitment.y != commitments_[sharingMessage.senderID()][slot][DCNetwork_.nodeID()][slice].y)) {
-                    //SeedRound::injectBlameMessage(sharingMessage.senderID(), slot, slice, s);
+
+                    SecuredInitialRound::injectBlameMessage(sharingMessage.senderID(), slot, slice, r, s);
                     std::lock_guard<std::mutex> lock(mutex_);
                     std::cout << "Invalid commitment detected 1" << std::endl;
                     return -1;
@@ -450,7 +453,7 @@ std::vector<std::vector<uint8_t>> SecuredInitialRound::resultComputation() {
                 if ((commitment.x != addedCommitments.x) || (commitment.y != addedCommitments.y)) {
                     // broadcast a blame message which contains the invalid share along with the corresponding r values
                     std::cout << "Invalid commitment detected" << std::endl;
-                    SecuredInitialRound::injectBlameMessage(rsBroadcast.senderID(), slice, R_, S_);
+                    SecuredInitialRound::injectBlameMessage(rsBroadcast.senderID(), slot, slice, R_, S_);
                     return std::vector<std::vector<uint8_t>>();
                 }
                 R[slot][slice] += R_;
@@ -459,7 +462,7 @@ std::vector<std::vector<uint8_t>> SecuredInitialRound::resultComputation() {
 
             remainingShares--;
         } else if (rsBroadcast.msgType() == BlameMessage) {
-            //InitialRound::handleBlameMessage(rsBroadcast);
+            SecuredInitialRound::handleBlameMessage(rsBroadcast);
             std::cout << "Blame message received" << std::endl;
 
             return std::vector<std::vector<uint8_t>>();
@@ -480,7 +483,6 @@ std::vector<std::vector<uint8_t>> SecuredInitialRound::resultComputation() {
             if ((C[slot][slice].x != commitment.x) || (C[slot][slice].y != commitment.y)) {
                 std::lock_guard<std::mutex> lock(mutex_);
                 std::cout << "Final commitment invalid" << std::endl;
-
                 return std::vector<std::vector<uint8_t>>();
             }
         }
@@ -502,23 +504,29 @@ std::vector<std::vector<uint8_t>> SecuredInitialRound::resultComputation() {
     return finalMessageSlots;
 }
 
-void SecuredInitialRound::injectBlameMessage(uint32_t suspectID, uint32_t slice, CryptoPP::Integer &r, CryptoPP::Integer &s) {
-    std::vector<uint8_t> messageBody(72);
+void SecuredInitialRound::injectBlameMessage(uint32_t suspectID, uint32_t slot, uint32_t slice, CryptoPP::Integer &r, CryptoPP::Integer &s) {
+    std::vector<uint8_t> messageBody(76);
     // set the suspect's ID
     messageBody[0] = (suspectID & 0xFF000000) >> 24;
     messageBody[1] = (suspectID & 0x00FF0000) >> 16;
     messageBody[2] = (suspectID & 0x0000FF00) >> 8;
     messageBody[3] = (suspectID & 0x000000FF);
 
+    // set the index of the slot
+    messageBody[4] = (slot & 0xFF000000) >> 24;
+    messageBody[5] = (slot & 0x00FF0000) >> 16;
+    messageBody[6] = (slot & 0x0000FF00) >> 8;
+    messageBody[7] = (slot & 0x000000FF);
+
     // set the index of the slice
-    messageBody[4] = (slice & 0xFF000000) >> 24;
-    messageBody[5] = (slice & 0x00FF0000) >> 16;
-    messageBody[6] = (slice & 0x0000FF00) >> 8;
-    messageBody[7] = (slice & 0x000000FF);
+    messageBody[8] = (slice & 0xFF000000) >> 24;
+    messageBody[9] = (slice & 0x00FF0000) >> 16;
+    messageBody[10] = (slice & 0x0000FF00) >> 8;
+    messageBody[11] = (slice & 0x000000FF);
 
     // store the r and s value
-    r.Encode(&messageBody[8], 32);
-    s.Encode(&messageBody[40], 32);
+    r.Encode(&messageBody[12], 32);
+    s.Encode(&messageBody[44], 32);
 
     for (auto &member : DCNetwork_.members()) {
         if (member.second.connectionID() != SELF) {
@@ -528,61 +536,38 @@ void SecuredInitialRound::injectBlameMessage(uint32_t suspectID, uint32_t slice,
     }
 }
 
-/*
-void InitialRound::handleBlameMessage(std::shared_ptr<ReceivedMessage>& blameMessage) {
-    std::vector<uint8_t>& body = blameMessage->body();
+void SecuredInitialRound::handleBlameMessage(ReceivedMessage& blameMessage) {
+    std::vector<uint8_t>& body = blameMessage.body();
     // check which node is addressed by the blame message
     uint32_t suspectID = (body[0] << 24) | (body[1] << 16) | (body[2] << 8) | body[3];
 
-    // extract the index of the corrupted slice
-    uint32_t slice = (body[4] << 24) | (body[5] << 16) | (body[6] << 8) | body[7];
+    // extract the index of the slot
+    uint32_t slot = (body[4] << 24) | (body[5] << 16) | (body[6] << 8) | body[7];
 
-    // extract the random value r and the corrupted slice
-    CryptoPP::Integer r(&body[8], 32);
-    CryptoPP::Integer s(&body[40], 32);
+    // extract the index of the corrupted slice
+    uint32_t slice = (body[8] << 24) | (body[9] << 16) | (body[10] << 8) | body[11];
+
+    // extract the the corrupted slice
+    CryptoPP::Integer r(&body[12], 32);
+    CryptoPP::Integer s(&body[44], 32);
 
     // validate that the slice is actually corrupt
-    CryptoPP::ECPPoint commitment = commit(r,s);
+    CryptoPP::ECPPoint commitment = commit(r, s);
 
     uint32_t memberIndex = std::distance(DCNetwork_.members().begin(),
                                          DCNetwork_.members().find(suspectID));
 
     // compare the commitment, generated using the submitted values, with the commitment
     // which has been broadcasted by the suspect
-    if((commitment.x != commitments_[suspectID][memberIndex][slice].x)
-        || (commitment.y != commitments_[suspectID][memberIndex][slice].y)) {
-
-        // if the two commitments do not match, the incident is stored
-        auto position = DCNetwork_.suspiciousMembers().find(suspectID);
-
-        if(position != DCNetwork_.suspiciousMembers().end()) {
-            // if this is the third incident, the node is excluded from the DC Network
-            if((position->second) == 2) {
-                DCNetwork_.suspiciousMembers().erase(position);
-                DCNetwork_.members().erase(suspectID);
-            } else {
-                position->second++;
-            }
-        } else {
-            DCNetwork_.suspiciousMembers().insert(std::pair(suspectID, 1));
-        }
+    if((commitment.x != commitments_[suspectID][slot][memberIndex][slice].x)
+       || (commitment.y != commitments_[suspectID][slot][memberIndex][slice].y)) {
+        // if the two commitments do not match, the suspect is removed
+        DCNetwork_.members().erase(suspectID);
     } else {
-        // if the two commitments match, the sender is blamed
-        auto position = DCNetwork_.suspiciousMembers().find(blameMessage->senderID());
-        if(position != DCNetwork_.suspiciousMembers().end()) {
-            // if this is the third incident, the node is excluded from the DC Network
-            if((position->second) == 2) {
-                DCNetwork_.suspiciousMembers().erase(position);
-                DCNetwork_.members().erase(blameMessage->senderID());
-            } else {
-                position->second++;
-            }
-        } else {
-            DCNetwork_.suspiciousMembers().insert(std::pair(blameMessage->senderID(), 1));
-        }
+        // if the two commitments match, the sender is removed
+        DCNetwork_.members().erase(blameMessage.senderID());
     }
 }
-*/
 
 inline CryptoPP::ECPPoint SecuredInitialRound::commit(CryptoPP::Integer &r, CryptoPP::Integer &s) {
     CryptoPP::ECPPoint rG = curve_.GetCurve().ScalarMultiply(G, r);
