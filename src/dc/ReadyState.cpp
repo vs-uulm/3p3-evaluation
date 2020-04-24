@@ -3,7 +3,7 @@
 #include "ReadyState.h"
 #include "SecuredInitialRound.h"
 #include "../datastruct/MessageType.h"
-#include "UnsecuredInitalRound.h"
+#include "UnsecuredInitialRound.h"
 
 #include <thread>
 #include <chrono>
@@ -30,7 +30,7 @@ std::unique_ptr<DCState> ReadyState::executeTask() {
             if(readyMessage.msgType() != ReadyMessage) {
                 std::cout << "Ready State:  inappropriate message received: " << (int) readyMessage.msgType() << std::endl;
                 DCNetwork_.inbox().push(readyMessage);
-                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                std::this_thread::sleep_for(std::chrono::milliseconds(5));
                 readyMessage = DCNetwork_.inbox().pop();
             }
             else {

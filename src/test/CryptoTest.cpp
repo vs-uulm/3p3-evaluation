@@ -62,6 +62,8 @@ int main() {
 
     CryptoPP::ECPPoint C_ = ec_group.GetCurve().Add(rr_G, xH);
 
+    CryptoPP::ECPPoint Cr_G = ec_group.GetCurve().Add(C, r_G);
+
     CryptoPP::ECPPoint CC_ = ec_group.GetCurve().Add(C_, ec_group.GetCurve().Inverse(C));
 
     std::cout << "C:" << std::endl;
@@ -71,6 +73,10 @@ int main() {
     std::cout << "C_:" << std::endl;
     std::cout << std::hex << C_.x << std::endl;
     std::cout << std::hex << C_.y << std::endl;
+
+    std::cout << "Cr_G:" << std::endl;
+    std::cout << std::hex << Cr_G.x << std::endl;
+    std::cout << std::hex << Cr_G.y << std::endl;
 
     std::cout << "r_G:" << std::endl;
     std::cout << std::hex << r_G.x << std::endl;

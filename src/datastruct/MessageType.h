@@ -18,7 +18,11 @@ enum MessageType {
     CommitmentRoundTwo,
     RoundTwoSharingPartOne,
     RoundTwoSharingPartTwo,
-    BlameMessage
+    BlameMessage,
+    ZeroKnowledgeCommitments,
+    ZeroKnowledgeSharingOne,
+    ZeroKnowledgeSharingTwo,
+    ZeroKnowledgeProof
 };
 
 #endif //THREEPP_MESSAGETYPE_H

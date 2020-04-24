@@ -1,15 +1,15 @@
-#ifndef THREEPP_UNSECUREDINITALROUND_H
-#define THREEPP_UNSECUREDINITALROUND_H
+#ifndef THREEPP_UNSECUREDINITIALROUND_H
+#define THREEPP_UNSECUREDINITIALROUND_H
 
 #include <cryptopp/osrng.h>
 #include <cryptopp/crc.h>
 #include "DCState.h"
 
-class UnsecuredInitalRound : public DCState {
+class UnsecuredInitialRound : public DCState {
 public:
-    UnsecuredInitalRound(DCNetwork& DCNet);
+    UnsecuredInitialRound(DCNetwork& DCNet);
 
-    virtual ~UnsecuredInitalRound();
+    virtual ~UnsecuredInitialRound();
 
     virtual std::unique_ptr<DCState> executeTask();
 
@@ -39,4 +39,4 @@ private:
 };
 
 
-#endif //THREEPP_UNSECUREDINITALROUND_H
+#endif //THREEPP_UNSECUREDINITIALROUND_H

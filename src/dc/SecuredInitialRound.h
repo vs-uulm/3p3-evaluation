@@ -43,6 +43,8 @@ private:
     // the position in of the own nodeID in the ordered member list
     size_t nodeIndex_;
 
+    std::vector<std::vector<std::vector<CryptoPP::Integer>>> rValues_;
+
     // initial commitments stored with the corresponding senderID
     std::unordered_map<uint32_t, std::vector<std::vector<std::vector<CryptoPP::ECPPoint>>>> commitments_;
 

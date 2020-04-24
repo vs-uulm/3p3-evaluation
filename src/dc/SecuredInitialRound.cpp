@@ -2,6 +2,7 @@
 #include <thread>
 #include <cryptopp/oids.h>
 #include <iomanip>
+#include <numeric>
 #include "SecuredInitialRound.h"
 #include "DCNetwork.h"
 #include "InitState.h"
@@ -9,6 +10,7 @@
 #include "../datastruct/MessageType.h"
 #include "ReadyState.h"
 #include "SeedRound.h"
+#include "FairnessProtocol.h"
 
 std::mutex mutex_;
 
@@ -197,6 +199,12 @@ std::unique_ptr<DCState> SecuredInitialRound::executeTask() {
         }
     }
 
+    // TODO undo
+    // coin flip test
+    bool coinFlipTest = false;
+    if(coinFlipTest)
+        return std::make_unique<ProofOfFairness>(DCNetwork_, slotIndex, std::move(rValues_), std::move(commitments_));
+
     // if no member wants to send a message, return to the Ready state
     if (slots.size() == 0) {
         return std::make_unique<ReadyState>(DCNetwork_);
@@ -210,8 +218,7 @@ std::unique_ptr<DCState> SecuredInitialRound::executeTask() {
 void SecuredInitialRound::sharingPartOne(std::vector<std::vector<std::vector<CryptoPP::Integer>>> &shares) {
     size_t numSlices = std::ceil((8 + 33 * k_) / 31.0);
 
-    std::vector<std::vector<std::vector<CryptoPP::Integer>>> rValues(2 * k_);
-    // init C
+    rValues_.resize(2*k_);
     C.resize(2 * k_);
     R.resize(2 * k_);
 
@@ -220,7 +227,7 @@ void SecuredInitialRound::sharingPartOne(std::vector<std::vector<std::vector<Cry
     std::vector<std::vector<std::vector<CryptoPP::ECPPoint>>> commitmentCube(2 * k_);
 
     for (uint32_t slot = 0; slot < 2 * k_; slot++) {
-        rValues[slot].resize(k_);
+        rValues_[slot].resize(k_);
         R[slot].reserve(numSlices);
         C[slot].resize(numSlices);
 
@@ -228,7 +235,7 @@ void SecuredInitialRound::sharingPartOne(std::vector<std::vector<std::vector<Cry
         encodedCommitments[slot].resize(2 + k_ * numSlices * encodedPointSize);
 
         for (uint32_t share = 0, offset = 2; share < k_; share++) {
-            rValues[slot][share].reserve(numSlices);
+            rValues_[slot][share].reserve(numSlices);
             commitmentCube[slot][share].reserve(numSlices);
 
             // encode the current slot in the first two bytes
@@ -237,10 +244,10 @@ void SecuredInitialRound::sharingPartOne(std::vector<std::vector<std::vector<Cry
             for (uint32_t slice = 0; slice < numSlices; slice++, offset += encodedPointSize) {
                 // generate the random value r for this slice of the share
                 CryptoPP::Integer r(PRNG, CryptoPP::Integer::One(), curve_.GetMaxExponent());
-                rValues[slot][share].push_back(std::move(r));
+                rValues_[slot][share].push_back(std::move(r));
 
                 // generate the commitment for the j-th slice of the i-th share
-                CryptoPP::ECPPoint commitment = commit(rValues[slot][share][slice], shares[slot][share][slice]);
+                CryptoPP::ECPPoint commitment = commit(rValues_[slot][share][slice], shares[slot][share][slice]);
 
                 // store the commitment
                 commitmentCube[slot][share].push_back(std::move(commitment));
@@ -256,6 +263,7 @@ void SecuredInitialRound::sharingPartOne(std::vector<std::vector<std::vector<Cry
     }
 
     // store the commitment matrix
+    commitments_.reserve(k_);
     commitments_.insert(std::pair(DCNetwork_.nodeID(), std::move(commitmentCube)));
 
     // store the random values used for the Commitments of the own share
@@ -263,7 +271,7 @@ void SecuredInitialRound::sharingPartOne(std::vector<std::vector<std::vector<Cry
     // get the index of the own share by checking the position of the local nodeID in the member list
     for (uint32_t slot = 0; slot < 2 * k_; slot++) {
         for (uint32_t slice = 0; slice < numSlices; slice++) {
-            R[slot].push_back(rValues[slot][nodeIndex_][slice]);
+            R[slot].push_back(rValues_[slot][nodeIndex_][slice]);
         }
     }
 
@@ -339,7 +347,7 @@ void SecuredInitialRound::sharingPartOne(std::vector<std::vector<std::vector<Cry
             sharingMessage[0] = (slot & 0xFF00) >> 8;
             sharingMessage[1] = (slot & 0x00FF);
             for (uint32_t slice = 0, offset = 2; slice < numSlices; slice++, offset += 64) {
-                rValues[slot][memberIndex][slice].Encode(&sharingMessage[offset], 32);
+                rValues_[slot][memberIndex][slice].Encode(&sharingMessage[offset], 32);
                 shares[slot][memberIndex][slice].Encode(&sharingMessage[offset + 32], 32);
             }
 
@@ -597,9 +605,6 @@ void SecuredInitialRound::printSlots(std::vector<std::vector<uint8_t>> &slots) {
     }
     std::cout << std::endl << std::endl;
 }
-
-
-
 
 
 

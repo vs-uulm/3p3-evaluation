@@ -30,6 +30,10 @@ void MessageHandler::run() {
             case SeedRoundSharingPartOne:
             case SeedRoundSharingPartTwo:
             case BlameMessage:
+            case ZeroKnowledgeCommitments:
+            case ZeroKnowledgeSharingOne:
+            case ZeroKnowledgeSharingTwo:
+            case ZeroKnowledgeProof:
                 inboxDCNet_.push(receivedMessage);
                 break;
             default:
