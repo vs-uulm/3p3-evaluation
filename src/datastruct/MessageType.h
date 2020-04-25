@@ -22,7 +22,10 @@ enum MessageType {
     ZeroKnowledgeCommitments,
     ZeroKnowledgeSharingOne,
     ZeroKnowledgeSharingTwo,
-    ZeroKnowledgeProof
+    ZeroKnowledgeOpenCommitments,
+    ZeroKnowledgeSigmaExchange,
+    ZeroKnowledgeSigmaResponse,
+    ZeroKnowledgeSigmaProof
 };
 
 #endif //THREEPP_MESSAGETYPE_H

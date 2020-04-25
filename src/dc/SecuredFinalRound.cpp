@@ -37,6 +37,7 @@ SecuredFinalRound::SecuredFinalRound(DCNetwork &DCNet, int slotIndex, std::vecto
             }
         }
     }
+    std::cout << "Entering Round Two" << std::endl;
 }
 
 SecuredFinalRound::~SecuredFinalRound() {}

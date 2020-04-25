@@ -10,6 +10,7 @@ UnsecuredFinalRound::UnsecuredFinalRound(DCNetwork &DCNet, int slotIndex, std::v
 
     // determine the index of the own nodeID in the ordered member list
     nodeIndex_ = std::distance(DCNetwork_.members().begin(), DCNetwork_.members().find(DCNetwork_.nodeID()));
+    std::cout << "Entering Round Two" << std::endl;
 }
 
 UnsecuredFinalRound::~UnsecuredFinalRound() {}

@@ -29,11 +29,9 @@ private:
 
     int coinFlip();
 
-    void openCommitments();
+    int openCommitments();
 
-    void proofKnowledge();
-
-    int validateProof();
+    int proofKnowledge();
 
     DCNetwork& DCNetwork_;
 
@@ -48,6 +46,8 @@ private:
     //std::unordered_map<uint32_t, std::vector<bool>> validatedSlots_;
 
     Outcome outcome_;
+
+    std::vector<std::vector<CryptoPP::Integer>> r_;
 
     std::vector<std::vector<CryptoPP::Integer>> rho_;
 

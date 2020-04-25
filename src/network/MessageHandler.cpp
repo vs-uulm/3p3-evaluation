@@ -33,7 +33,10 @@ void MessageHandler::run() {
             case ZeroKnowledgeCommitments:
             case ZeroKnowledgeSharingOne:
             case ZeroKnowledgeSharingTwo:
-            case ZeroKnowledgeProof:
+            case ZeroKnowledgeOpenCommitments:
+            case ZeroKnowledgeSigmaExchange:
+            case ZeroKnowledgeSigmaResponse:
+            case ZeroKnowledgeSigmaProof:
                 inboxDCNet_.push(receivedMessage);
                 break;
             default:

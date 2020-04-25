@@ -66,6 +66,7 @@ void P2PConnection::read() {
 void P2PConnection::read_header(const boost::system::error_code& e, std::shared_ptr<ReceivedMessage> received_msg) {
     if(e) {
         std::cerr << "Could not read the message header from connection: " << connectionID_ << std::endl;
+        std::cerr << "Error: " << e.message() << std::endl;
     } else {
         received_msg->resizeBody();
         boost::asio::async_read(ssl_socket_,

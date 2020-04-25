@@ -201,7 +201,7 @@ std::unique_ptr<DCState> SecuredInitialRound::executeTask() {
 
     // TODO undo
     // coin flip test
-    bool coinFlipTest = false;
+    bool coinFlipTest = true;
     if(coinFlipTest)
         return std::make_unique<ProofOfFairness>(DCNetwork_, slotIndex, std::move(rValues_), std::move(commitments_));
 
