@@ -3,6 +3,7 @@
 #include <cryptopp/eccrypto.h>
 #include <cryptopp/osrng.h>
 #include <cryptopp/oids.h>
+#include <iomanip>
 
 #include "../datastruct/ReceivedMessage.h"
 #include "../network/P2PConnection.h"
@@ -10,10 +11,31 @@
 #include "../network/MessageHandler.h"
 #include "../dc/DCNetwork.h"
 #include "../datastruct/MessageType.h"
+#include "../utils/Utils.h"
 
-uint32_t INSTANCES = 6;
+ip::address getIP() {
+    boost::asio::io_service io_service;
+    tcp::socket socket(io_service);
 
-int main() {
+    socket.connect(tcp::endpoint(ip::address_v4::from_string("8.8.8.8"), 443));
+    ip::address ip_address = socket.local_endpoint().address();
+    socket.close();
+
+    return ip_address;
+}
+
+int main(int argc, char** argv) {
+    if((argc != 3) || (atoi(argv[2]) < 0) || (atoi(argv[2]) > 2)) {
+        std::cout << "usage: dockerInstace INSTANCES SecurityLevel" << std::endl;
+        std::cout << "0: unsecured" << std::endl;
+        std::cout << "1: secured" << std::endl;
+        std::cout << "2: adaptive" << std::endl;
+        exit(0);
+    }
+
+    uint32_t INSTANCES= atoi(argv[1]);
+    SecurityLevel securityLevel = static_cast<SecurityLevel>(atoi(argv[2]));
+
     CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> curve;
     curve.Initialize(CryptoPP::ASN1::secp256k1());
 
@@ -24,7 +46,7 @@ int main() {
 
     io_context io_context_;
     uint16_t port_ = 5555;
-    ip::address_v4 ip_address(ip::address_v4::from_string("172.28.1.2"));
+    ip::address ip_address = getIP();
 
     NetworkManager networkManager(io_context_, port_, inbox);
     // Run the io_context which handles the network manager
@@ -33,6 +55,8 @@ int main() {
     });
 
     // connect to the central node authority
+    // wait a moment to ensure the central container is running
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
     int CAConnectionID = networkManager.connectToCA("172.28.1.1", 7777);
     if(CAConnectionID < 0) {
         std::cout << "Error: could not connect to the central authority" << std::endl;
@@ -47,7 +71,7 @@ int main() {
     messageBody[0] = (port_ & 0xFF00) >> 8;
     messageBody[1] = (port_ & 0x00FF);
 
-    std::array<uint8_t, 4> encodedIP = ip_address.to_bytes();
+    std::array<uint8_t, 4> encodedIP = ip_address.to_v4().to_bytes();
     std::copy(&encodedIP[0], &encodedIP[5], &messageBody[2]);
 
     // set the compressed public key
@@ -132,19 +156,47 @@ int main() {
 
     // start the DCNetwork
     DCMember self(nodeID_, SELF, publicKey);
-    DCNetwork DCNet(self, privateKey, INSTANCES, neighbors, inboxDCNet, outbox);
+    DCNetwork DCNet(self, privateKey, securityLevel, INSTANCES, neighbors, inboxDCNet, outbox);
 
     // submit messages to the DCNetwork
+    /*
     if (nodeID_ < 2) {
         uint16_t length = PRNG.GenerateWord32(512, 1024);
         std::vector<uint8_t> message(length);
         PRNG.GenerateBlock(message.data(), length);
+
+        // for tests only
+        // print the submitted message
+        {
+            std::cout << "Hash of the message submitted by node " << nodeID_ << ":" << std::endl;
+            std::vector<uint8_t> msgHash = utils::sha256(message);
+            for (uint8_t c : msgHash) {
+                std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) c;
+            }
+            std::cout << std::endl << std::endl;
+        }
+
         DCNet.submitMessage(message);
     }
+     */
 
     std::thread DCThread([&]() {
         DCNet.run();
     });
+
+
+    // submit messages to the DCNetwork
+    for(uint32_t i = 0; i < 10; i++) {
+        uint32_t send = PRNG.GenerateWord32(0,1);
+        if(send) {
+            uint16_t length = PRNG.GenerateWord32(512, 1024);
+            std::vector<uint8_t> message(length);
+            PRNG.GenerateBlock(message.data(), length);
+            DCNet.submitMessage(message);
+        }
+        uint32_t sleep = PRNG.GenerateWord32(5,20);
+        std::this_thread::sleep_for(std::chrono::seconds(sleep));
+    }
 
 
     DCThread.join();

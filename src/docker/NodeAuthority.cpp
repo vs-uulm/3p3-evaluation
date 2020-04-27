@@ -4,9 +4,12 @@
 #include "../dc/DCNetwork.h"
 #include "../datastruct/MessageType.h"
 
-uint32_t INSTANCES = 6;
+int main(int argc, char** argv) {
+    if(argc != 2)
+        exit(1);
 
-int main() {
+    uint32_t INSTANCES= atoi(argv[1]);
+
     CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> curve;
     curve.Initialize(CryptoPP::ASN1::secp256k1());
 
@@ -18,6 +21,9 @@ int main() {
 
     io_context io_context_;
     uint16_t port = 7777;
+
+    //ensure oredered logging
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
     NetworkManager networkManager(io_context_, port, inbox);
     // Run the io_context which handles the network manager
@@ -42,6 +48,8 @@ int main() {
 
         OutgoingMessage registerResponse(nodeID, RegisterResponse, 0, encodedNodeID);
         networkManager.sendMessage(registerResponse);
+
+        std::cout << "Central authority: node " << nodeID << " connected" << std::endl;
     }
 
     size_t infoSize = 10 + curve.GetCurve().EncodedPointSize(true);

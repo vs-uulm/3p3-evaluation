@@ -7,9 +7,10 @@
 #include "../datastruct/MessageType.h"
 #include "SecuredInitialRound.h"
 #include "ReadyState.h"
+#include "../utils/Utils.h"
 
 SecuredFinalRound::SecuredFinalRound(DCNetwork &DCNet, int slotIndex, std::vector<uint16_t> slots,
-        std::vector<std::array<uint8_t, 32>> submittedSeeds, std::vector<std::array<uint8_t, 32>> receivedSeeds)
+                                     std::vector<std::array<uint8_t, 32>> submittedSeeds, std::vector<std::array<uint8_t, 32>> receivedSeeds)
         : DCNetwork_(DCNet), k_(DCNetwork_.k()), slotIndex_(slotIndex), slots_(std::move(slots)),
           submittedSeeds_(std::move(submittedSeeds)), seeds_(std::move(receivedSeeds)), rValues_(k_) {
 
@@ -37,7 +38,6 @@ SecuredFinalRound::SecuredFinalRound(DCNetwork &DCNet, int slotIndex, std::vecto
             }
         }
     }
-    std::cout << "Entering Round Two" << std::endl;
 }
 
 SecuredFinalRound::~SecuredFinalRound() {}
@@ -171,7 +171,6 @@ std::unique_ptr<DCState> SecuredFinalRound::executeTask() {
 
                     // validate the commitment
                     if ((C_.x != commitment.x) || (C_.y != commitment.y)) {
-                        // TODO undo
                         std::lock_guard<std::mutex> lock(mutex_);
                         std::cout << "Final Commitment invalid" << std::endl;
                     }
@@ -180,8 +179,21 @@ std::unique_ptr<DCState> SecuredFinalRound::executeTask() {
         }
     }
 
-    // wait until the next round starts
-    std::this_thread::sleep_for(std::chrono::seconds(60));
+    // print the reconstructed message slots
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        std::cout << "Node " << std::dec << DCNetwork_.nodeID() << " received messages:" << std::endl;
+        for (auto &slot : messages) {
+            std::vector<uint8_t> msgHash = utils::sha256(slot);
+            std::cout << "|";
+            for (uint8_t c : msgHash) {
+                std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) c;
+            }
+            std::cout << "|" << std::endl;
+        }
+        std::cout << std::endl;
+    }
+
     return std::make_unique<ReadyState>(DCNetwork_);
 }
 
@@ -457,20 +469,6 @@ std::vector<std::vector<uint8_t>> SecuredFinalRound::resultComputation() {
             size_t sliceSize = ((slots_[slot] - 31 * slice > 31) ? 31 : slots_[slot] - 31 * slice);
             S[slot][slice].Encode(&reconstructedMessageSlots[slot][31 * slice], sliceSize);
         }
-    }
-
-    // print the reconstructed message slots
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        std::cout << "Node: " << std::dec << DCNetwork_.nodeID() << std::endl;
-        for (auto &slot : reconstructedMessageSlots) {
-            std::cout << "|";
-            for (uint8_t c : slot) {
-                std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) c;
-            }
-            std::cout << "|" << std::endl;
-        }
-        std::cout << std::endl;
     }
     return reconstructedMessageSlots;
 }

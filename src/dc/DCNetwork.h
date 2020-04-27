@@ -20,9 +20,16 @@ const CryptoPP::ECPPoint G(CryptoPP::Integer("362dc3caf8a0e8afd06f454a6da0cdce6e
 const CryptoPP::ECPPoint H(CryptoPP::Integer("a3cf0a4b6e1d9146c73e9a82e4bfdc37ee1587bc2bf3b0c19cb159ae362e38beh"),
                 CryptoPP::Integer("db4369fabd3d770dd4c19d81ac69a1749963d69c687d7c4e12d186548b94cb2ah"));
 
+enum SecurityLevel {
+    Unsecured,
+    Secured,
+    Adaptive
+};
+
 class DCNetwork {
 public:
-    DCNetwork(DCMember self, CryptoPP::Integer privateKey, size_t k, std::unordered_map<uint32_t, Node>& neighbors, MessageQueue<ReceivedMessage>& inbox, MessageQueue<OutgoingMessage>& outbox);
+    DCNetwork(DCMember self, CryptoPP::Integer privateKey, SecurityLevel securityLevel, size_t k,
+            std::unordered_map<uint32_t, Node>& neighbors, MessageQueue<ReceivedMessage>& inbox, MessageQueue<OutgoingMessage>& outbox);
 
     std::map<uint32_t, DCMember>& members();
 
@@ -39,6 +46,8 @@ public:
     size_t k();
 
     CryptoPP::Integer& privateKey();
+
+    SecurityLevel securityLevel();
 
     void run();
 
@@ -63,6 +72,9 @@ private:
 
     // current state of the DC network
     std::unique_ptr<DCState> state_;
+
+    // security setting of the DC Network
+    SecurityLevel securityLevel_;
 };
 
 

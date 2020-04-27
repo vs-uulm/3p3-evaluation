@@ -4,6 +4,7 @@
 #include "SecuredInitialRound.h"
 #include "../datastruct/MessageType.h"
 #include "UnsecuredInitialRound.h"
+#include "SecuredFinalRound.h"
 
 #include <thread>
 #include <chrono>
@@ -56,5 +57,8 @@ std::unique_ptr<DCState> ReadyState::executeTask() {
             std::cout << "Ready State: inappropriate message received" << std::endl;
     }
     // perform a state transition
-    return std::make_unique<SecuredInitialRound>(DCNetwork_);
+    if(DCNetwork_.securityLevel() == Secured)
+        return std::make_unique<SecuredInitialRound>(DCNetwork_);
+    else
+        return std::make_unique<UnsecuredInitialRound>(DCNetwork_);
 }

@@ -1,12 +1,11 @@
 #include <cryptopp/oids.h>
 #include "DCNetwork.h"
-#include "ReadyState.h"
 #include "InitState.h"
 
-#include <iostream>
-
-DCNetwork::DCNetwork(DCMember self, CryptoPP::Integer privateKey, size_t k, std::unordered_map<uint32_t, Node>& neigbors, MessageQueue<ReceivedMessage>& inbox, MessageQueue<OutgoingMessage>& outbox)
-: nodeID_(self.nodeID()), k_(k), privateKey_(privateKey), neighbors_(neigbors), inbox_(inbox), outbox_(outbox), state_(std::make_unique<InitState>(*this)) {
+DCNetwork::DCNetwork(DCMember self, CryptoPP::Integer privateKey, SecurityLevel securityLevel, size_t k,
+        std::unordered_map<uint32_t, Node>& neigbors, MessageQueue<ReceivedMessage>& inbox, MessageQueue<OutgoingMessage>& outbox)
+: nodeID_(self.nodeID()), securityLevel_(securityLevel), k_(k), privateKey_(privateKey), neighbors_(neigbors),
+  inbox_(inbox), outbox_(outbox), state_(std::make_unique<InitState>(*this)) {
     members_.insert(std::pair(nodeID_, self));
 }
 
@@ -49,4 +48,8 @@ size_t DCNetwork::k() {
 
 CryptoPP::Integer & DCNetwork::privateKey() {
     return privateKey_;
+}
+
+SecurityLevel DCNetwork::securityLevel() {
+    return securityLevel_;
 }

@@ -10,6 +10,7 @@
 #include "../network/MessageHandler.h"
 #include "../dc/DCNetwork.h"
 #include "../datastruct/MessageType.h"
+#include "../utils/Utils.h"
 
 std::mutex cout_mutex;
 
@@ -134,7 +135,7 @@ void instance(int ID) {
 
     // start the DCNetwork
     DCMember self(nodeID_, SELF, publicKey);
-    DCNetwork DCNet(self, privateKey, INSTANCES, neighbors, inboxDCNet, outbox);
+    DCNetwork DCNet(self, privateKey, Unsecured, INSTANCES, neighbors, inboxDCNet, outbox);
 
     // submit messages to the DCNetwork
     if (nodeID_ < 2) {
@@ -146,8 +147,9 @@ void instance(int ID) {
         // print the submitted message
         {
             std::lock_guard<std::mutex> lock(cout_mutex);
-            std::cout << "Message submitted by node " << nodeID_ << ":" << std::endl;
-            for (uint8_t c : message) {
+            std::cout << "Hash of the message submitted by node " << nodeID_ << ":" << std::endl;
+            std::vector<uint8_t> msgHash = utils::sha256(message);
+            for (uint8_t c : msgHash) {
                 std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) c;
             }
             std::cout << std::endl << std::endl;
@@ -159,6 +161,19 @@ void instance(int ID) {
     std::thread DCThread([&]() {
         DCNet.run();
     });
+
+    // submit messages to the DCNetwork
+    for(uint32_t i = 0; i < 10; i++) {
+        uint32_t send = PRNG.GenerateWord32(0,1);
+        if(send) {
+            uint16_t length = PRNG.GenerateWord32(512, 1024);
+            std::vector<uint8_t> message(length);
+            PRNG.GenerateBlock(message.data(), length);
+            DCNet.submitMessage(message);
+        }
+        uint32_t sleep = PRNG.GenerateWord32(5,20);
+        std::this_thread::sleep_for(std::chrono::seconds(sleep));
+    }
 
 
     DCThread.join();

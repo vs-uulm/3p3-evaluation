@@ -116,6 +116,18 @@ target_link_libraries(
         -lcryptopp
 )
 
+# for tests only
+add_executable(
+        networkTest
+        src/test/networkTest.cpp
+)
+
+target_link_libraries(
+        networkTest
+        -L/usr/local/lib
+        -pthread
+        -lcryptopp
+)
 
 
 

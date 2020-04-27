@@ -77,7 +77,8 @@ std::unique_ptr<DCState> UnsecuredInitialRound::executeTask() {
     // collect and validate the final shares
     UnsecuredInitialRound::resultComputation();
 
-    UnsecuredInitialRound::printSlots(S);
+    // used for debugging
+    //UnsecuredInitialRound::printSlots(S);
 
     // prepare round two
     std::vector<uint16_t> slots;
@@ -110,13 +111,16 @@ std::unique_ptr<DCState> UnsecuredInitialRound::executeTask() {
         }
     }
 
+    if(finalSlotIndex > -1) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        std::cout << "Node " << DCNetwork_.nodeID() << ": sending in slot " << std::dec << finalSlotIndex << std::endl << std::endl;
+    }
+
     // if no member wants to send a message, return to the Ready state
     if (slots.size() == 0)
         return std::make_unique<ReadyState>(DCNetwork_);
-    //else
-        //return std::make_unique<FinalRound>(DCNetwork_, finalSlotIndex, std::move(slots));
     else
-        return std::make_unique<UnsecuredFinalRound>(DCNetwork_, finalSlotIndex, std::move(slots));
+        return std::make_unique<UnguardedFinalRound>(DCNetwork_, finalSlotIndex, std::move(slots));
 }
 
 void UnsecuredInitialRound::sharingPartOne(std::vector<std::vector<uint8_t>> &shares) {
@@ -184,6 +188,7 @@ void UnsecuredInitialRound::resultComputation() {
     }
 }
 
+// used for debugging purposes
 void UnsecuredInitialRound::printSlots(std::vector<uint8_t> &slots) {
     std::lock_guard<std::mutex> lock(mutex_);
 

@@ -17,7 +17,6 @@ int P2PConnection::connect(ip::address_v4 ip_address, uint16_t port) {
         ssl_socket_.lowest_layer().connect(tcp::endpoint(ip_address, port));
         ssl_socket_.handshake(ssl::stream_base::client);
     } catch (const boost::system::system_error& e) {
-        std::cout << "Error: could not open connection" << std::endl;
         return -1;
     }
     is_open_ = true;
@@ -26,6 +25,7 @@ int P2PConnection::connect(ip::address_v4 ip_address, uint16_t port) {
 }
 
 void P2PConnection::disconnect() {
+    std::cout << "Closing connection" << std::endl;
     if (ssl_socket_.lowest_layer().is_open()) {
         try {
             ssl_socket_.shutdown();

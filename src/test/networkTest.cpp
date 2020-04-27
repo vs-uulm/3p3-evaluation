@@ -1,7 +1,22 @@
 #include <iostream>
-#include "../network/NetworkManager.h"
+#include <boost/asio/io_service.hpp>
+#include <boost/asio.hpp>
+//#include "../network/NetworkManager.h"
 
 int main() {
+    using namespace boost::asio;
+    using ip::tcp;
+    //using boost::asio::ip::udp;
+    boost::asio::io_service io_service;
+    tcp::socket socket(io_service);
+
+    ip::address ip_address;
+    socket.connect(tcp::endpoint(ip::address::from_string("8.8.8.8"), 443));
+    ip_address = socket.local_endpoint().address();
+    socket.close();
+    std::cout << ip_address.to_string() << std::endl;
+
+    /*
     MessageQueue<ReceivedMessage> inbox1;
     MessageQueue<ReceivedMessage> inbox2;
 
@@ -50,4 +65,5 @@ int main() {
     networkThread2.join();
     std::cout << " Thread 2 finished" << std::endl;
     return 0;
+     */
 }

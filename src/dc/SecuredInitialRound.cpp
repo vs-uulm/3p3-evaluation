@@ -9,7 +9,7 @@
 #include "SecuredFinalRound.h"
 #include "../datastruct/MessageType.h"
 #include "ReadyState.h"
-#include "SeedRound.h"
+
 #include "FairnessProtocol.h"
 
 std::mutex mutex_;
@@ -199,9 +199,14 @@ std::unique_ptr<DCState> SecuredInitialRound::executeTask() {
         }
     }
 
+    if(finalSlotIndex > -1) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        std::cout << "Node " << DCNetwork_.nodeID() << ": sending in slot " << std::dec << finalSlotIndex << std::endl << std::endl;
+    }
+
     // TODO undo
     // coin flip test
-    bool coinFlipTest = true;
+    bool coinFlipTest = false;
     if(coinFlipTest)
         return std::make_unique<ProofOfFairness>(DCNetwork_, slotIndex, std::move(rValues_), std::move(commitments_));
 
@@ -507,7 +512,7 @@ std::vector<std::vector<uint8_t>> SecuredInitialRound::resultComputation() {
         }
     }
 
-    SecuredInitialRound::printSlots(finalMessageSlots);
+    //SecuredInitialRound::printSlots(finalMessageSlots);
 
     return finalMessageSlots;
 }

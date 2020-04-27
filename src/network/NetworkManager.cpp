@@ -1,6 +1,4 @@
 #include "NetworkManager.h"
-#include "../datastruct/MessageType.h"
-
 #include <boost/bind.hpp>
 #include <iostream>
 
@@ -73,9 +71,12 @@ int NetworkManager::connectToCA(const std::string& ip_address, uint16_t port) {
     }
 
     auto connection = std::make_shared<P2PConnection>(connectionID, io_context_, ssl_context_, inbox_);
-    if (connection->connect(ip::address_v4::from_string(ip_address), port) == 0) {
-        connections_.insert(std::pair(connectionID, connection));
-        return connectionID;
+    for(int retryCount = 3; retryCount > 0; retryCount--) {
+        if (connection->connect(ip::address_v4::from_string(ip_address), port) == 0) {
+            connections_.insert(std::pair(connectionID, connection));
+            return connectionID;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
     return -1;
 }
@@ -92,6 +93,6 @@ int NetworkManager::sendMessage(OutgoingMessage msg) {
             return -1;
         connections_[msg.receiverID()]->send_msg(msg);
     }
-    std::this_thread::sleep_for(std::chrono::milliseconds(30));
+    //std::this_thread::sleep_for(std::chrono::milliseconds(30));
     return 0;
 }
