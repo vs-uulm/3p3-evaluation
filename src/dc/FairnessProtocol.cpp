@@ -22,14 +22,17 @@ ProofOfFairness::~ProofOfFairness() {}
 
 std::unique_ptr<DCState> ProofOfFairness::executeTask() {
     // TODO undo
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
-    outcome_ = ProofOfKnowledge;
-    //outcome_ = OpenCommitments;
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
+    ProofOfFairness::distributeCommitments();
     // TODO add more general parameters like numSlots and numSlices
-    ProofOfFairness::coinFlip();
+    int result = ProofOfFairness::coinFlip();
 
-    int result;
+    if (result < 0) {
+        // TODO clean up the inbox
+        return std::make_unique<InitState>(DCNetwork_);
+    }
+
     if(outcome_ == OpenCommitments)
         result = ProofOfFairness::openCommitments();
     else
@@ -49,6 +52,187 @@ std::unique_ptr<DCState> ProofOfFairness::executeTask() {
 }
 
 int ProofOfFairness::coinFlip() {
+    size_t encodedPointSize = curve_.GetCurve().EncodedPointSize(true);
+
+    std::vector<CryptoPP::Integer> shares(k_);
+    std::vector<CryptoPP::Integer> rValues;
+    std::vector<CryptoPP::ECPPoint> commitments;
+    rValues.reserve(k_);
+    commitments.reserve(k_);
+
+    //create the first k-1 shares and the commitments for the coin flip
+    for(uint32_t share = 0; share < k_; share++) {
+        CryptoPP::Integer s(PRNG, CryptoPP::Integer::One(), curve_.GetMaxExponent());
+        CryptoPP::Integer r(PRNG, CryptoPP::Integer::One(), curve_.GetMaxExponent());
+        CryptoPP::ECPPoint C = commit(r,s);
+        rValues.push_back(std::move(r));
+        commitments.push_back(std::move(C));
+        shares[share] = std::move(s);
+    }
+
+    // store the own share
+    CryptoPP::Integer S = shares[nodeIndex_];
+    CryptoPP::Integer R = rValues[nodeIndex_];
+
+    // encode the commitments
+    std::vector<uint8_t> encodedCommitments(k_ * encodedPointSize);
+    for (uint32_t share = 0, offset = 0; share < k_; share++, offset += encodedPointSize)
+        curve_.GetCurve().EncodePoint(&encodedCommitments[offset], commitments[share], true);
+
+    // broadcast the commitments
+    auto position = DCNetwork_.members().find(DCNetwork_.nodeID());
+    for (uint32_t member = 0; member < k_ - 1; member++) {
+        position++;
+        if (position == DCNetwork_.members().end())
+            position = DCNetwork_.members().begin();
+
+        OutgoingMessage commitBroadcast(position->second.connectionID(), ZeroKnowledgeCoinCommitments,
+                                        DCNetwork_.nodeID(), encodedCommitments);
+        DCNetwork_.outbox().push(std::move(commitBroadcast));
+    }
+
+
+    std::unordered_map<uint32_t, std::vector<CryptoPP::ECPPoint>> C;
+    C.reserve(k_);
+    C.insert(std::pair(DCNetwork_.nodeID(), std::move(commitments)));
+
+
+    // collect the commitments from the other k-1 members
+    uint32_t remainingCommitments = k_ - 1;
+    while (remainingCommitments > 0) {
+        auto commitBroadcast = DCNetwork_.inbox().pop();
+
+        if (commitBroadcast.msgType() == ZeroKnowledgeCoinCommitments) {
+
+            std::vector<CryptoPP::ECPPoint> commitmentVector;
+            commitmentVector.reserve(k_);
+
+            for (uint32_t share = 0, offset = 0; share < k_; share++, offset += encodedPointSize) {
+                CryptoPP::ECPPoint commitment;
+                curve_.GetCurve().DecodePoint(commitment, &commitBroadcast.body()[offset],
+                                              encodedPointSize);
+
+                commitmentVector.push_back(std::move(commitment));
+            }
+            C.insert(std::pair(commitBroadcast.senderID(), std::move(commitmentVector)));
+
+            remainingCommitments--;
+        } else {
+            DCNetwork_.inbox().push(commitBroadcast);
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        }
+    }
+
+    // distribute the shares
+    position = DCNetwork_.members().find(DCNetwork_.nodeID());
+    for (uint32_t member = 0; member < k_ - 1; member++) {
+        position++;
+        if (position == DCNetwork_.members().end())
+            position = DCNetwork_.members().begin();
+
+        uint32_t memberIndex = std::distance(DCNetwork_.members().begin(), position);
+
+        std::vector<uint8_t> encodedShare(64);
+        rValues[memberIndex].Encode(&encodedShare[0], 32);
+        shares[memberIndex].Encode(&encodedShare[32],32);
+
+        OutgoingMessage sharingMessage(position->second.connectionID(), ZeroKnowledgeCoinSharingOne,
+                                        DCNetwork_.nodeID(), encodedShare);
+        DCNetwork_.outbox().push(std::move(sharingMessage));
+    }
+
+    // collect the shares from the other k-1 members
+    uint32_t remainingShares = k_ - 1;
+    while (remainingShares > 0) {
+        auto sharingMessage = DCNetwork_.inbox().pop();
+
+        if (sharingMessage.msgType() == ZeroKnowledgeCoinSharingOne) {
+
+            CryptoPP::Integer r(&sharingMessage.body()[0], 32);
+            CryptoPP::Integer s(&sharingMessage.body()[32], 32);
+
+            CryptoPP::ECPPoint commitment = commit(r,s);
+
+            // validate the commitment
+            if((C[sharingMessage.senderID()][nodeIndex_].x != commitment.x)
+              || (C[sharingMessage.senderID()][nodeIndex_].y != commitment.y)) {
+                std::cout << "Invalid commitment detected 1" << std::endl;
+                return -1;
+            }
+
+            R += r;
+            S += s;
+
+            remainingShares--;
+        } else {
+            DCNetwork_.inbox().push(sharingMessage);
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        }
+    }
+
+    // reduce R and S
+    R = R.Modulo(curve_.GetSubgroupOrder());
+    S = S.Modulo(curve_.GetSubgroupOrder());
+
+    std::vector<uint8_t> encodedShare(64);
+    R.Encode(&encodedShare[0], 32);
+    S.Encode(&encodedShare[32], 32);
+
+    // distribute the added shares
+    position = DCNetwork_.members().find(DCNetwork_.nodeID());
+    for (uint32_t member = 0; member < k_ - 1; member++) {
+        position++;
+        if (position == DCNetwork_.members().end())
+            position = DCNetwork_.members().begin();
+
+        OutgoingMessage sharingMessage(position->second.connectionID(), ZeroKnowledgeCoinSharingTwo,
+                                       DCNetwork_.nodeID(), encodedShare);
+        DCNetwork_.outbox().push(std::move(sharingMessage));
+    }
+
+    remainingShares = k_ - 1;
+    while (remainingShares > 0) {
+        auto sharingMessage = DCNetwork_.inbox().pop();
+
+        if (sharingMessage.msgType() == ZeroKnowledgeCoinSharingTwo) {
+
+            CryptoPP::Integer r(&sharingMessage.body()[0], 32);
+            CryptoPP::Integer s(&sharingMessage.body()[32], 32);
+
+            CryptoPP::ECPPoint commitment = commit(r,s);
+
+            // add the commitments
+            CryptoPP::ECPPoint sumC;
+            for(auto& c : C)
+                sumC = curve_.GetCurve().Add(sumC, c.second[sharingMessage.senderID()]);
+
+            // validate the commitment
+            if((sumC.x != commitment.x) || (sumC.y != commitment.y)) {
+                std::cout << "Invalid commitment detected 2" << std::endl;
+                return -1;
+            }
+
+            R += r;
+            S += s;
+
+            remainingShares--;
+        } else {
+            DCNetwork_.inbox().push(sharingMessage);
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        }
+    }
+
+    S = S.Modulo(curve_.GetSubgroupOrder());
+
+    if(S.IsEven())
+        outcome_ = OpenCommitments;
+    else
+        outcome_ = ProofOfKnowledge;
+
+    return 0;
+}
+
+void ProofOfFairness::distributeCommitments() {
     size_t slotSize = 8 + 33 * k_;
     size_t numSlices = std::ceil(slotSize / 31.0);
     size_t encodedPointSize = curve_.GetCurve().EncodedPointSize(true);
@@ -115,8 +299,6 @@ int ProofOfFairness::coinFlip() {
             DCNetwork_.outbox().push(std::move(commitBroadcast));
         }
     }
-
-
     // collect the commitments from the other parties
     // prepare the commitment storage
     for (auto member = DCNetwork_.members().begin(); member != DCNetwork_.members().end(); member++) {
@@ -151,10 +333,13 @@ int ProofOfFairness::coinFlip() {
             std::this_thread::sleep_for(std::chrono::milliseconds(5));
         }
     }
-    return 0;
 }
 
 int ProofOfFairness::openCommitments() {
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        std::cout << "Opening commitments" << std::endl;
+    }
     size_t slotSize = 8 + 33 * k_;
     size_t numSlices = std::ceil(slotSize / 31.0);
 
@@ -222,6 +407,10 @@ int ProofOfFairness::openCommitments() {
 }
 
 int ProofOfFairness::proofKnowledge() {
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        std::cout << "Proving knowledge" << std::endl;
+    }
     size_t slotSize = 8 + 33 * k_;
     size_t numSlices = std::ceil(slotSize / 31.0);
     size_t encodedPointSize = curve_.GetCurve().EncodedPointSize(true);

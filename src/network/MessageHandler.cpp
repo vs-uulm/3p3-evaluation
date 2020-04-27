@@ -31,8 +31,9 @@ void MessageHandler::run() {
             case SeedRoundSharingPartTwo:
             case BlameMessage:
             case ZeroKnowledgeCommitments:
-            case ZeroKnowledgeSharingOne:
-            case ZeroKnowledgeSharingTwo:
+            case ZeroKnowledgeCoinCommitments:
+            case ZeroKnowledgeCoinSharingOne:
+            case ZeroKnowledgeCoinSharingTwo:
             case ZeroKnowledgeOpenCommitments:
             case ZeroKnowledgeSigmaExchange:
             case ZeroKnowledgeSigmaResponse:

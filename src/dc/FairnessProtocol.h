@@ -29,6 +29,8 @@ private:
 
     int coinFlip();
 
+    void distributeCommitments();
+
     int openCommitments();
 
     int proofKnowledge();
