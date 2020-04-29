@@ -74,7 +74,7 @@ std::unique_ptr<DCState> SecuredFinalRound::executeTask() {
 
         // initialize the slices of the k-th share with zeroes
         // except the slices of the own message slot
-        if (slotIndex_ == slot) {
+        if (static_cast<uint32_t>(slotIndex_) == slot) {
             for (uint32_t slice = 0; slice < numSlices[slot]; slice++)
                 shares[slot][k_ - 1].push_back(messageSlices[slice]);
         } else {

@@ -6,6 +6,7 @@
 #include "../datastruct/MessageType.h"
 
 InitState::InitState(DCNetwork& DCNet) : DCNetwork_(DCNet) {
+    //std::cout << "Init State" << std::endl;
 }
 
 InitState::~InitState() {}
@@ -13,11 +14,12 @@ InitState::~InitState() {}
 std::unique_ptr<DCState> InitState::executeTask() {
     while (DCNetwork_.members().size() < DCNetwork_.k()) {
         auto receivedMessage = DCNetwork_.inbox().pop();
-
+        //if(DCNetwork_.nodeID() == 5)
+            //std::cout << (int) receivedMessage.msgType() << std::endl;
         // skip early arriving ready messages
         while((receivedMessage.msgType() != HelloMessage) && (receivedMessage.msgType() != HelloResponse)) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
             DCNetwork_.inbox().push(receivedMessage);
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
             receivedMessage = DCNetwork_.inbox().pop();
         }
 

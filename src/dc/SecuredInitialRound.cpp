@@ -11,6 +11,7 @@
 #include "ReadyState.h"
 
 #include "FairnessProtocol.h"
+#include "../utils/Utils.h"
 
 std::mutex mutex_;
 
@@ -91,10 +92,10 @@ std::unique_ptr<DCState> SecuredInitialRound::executeTask() {
     std::vector<std::vector<std::vector<CryptoPP::Integer>>> shares(2 * k_);
     for (uint32_t slot = 0; slot < 2 * k_; slot++) {
         shares[slot].resize(k_);
-        shares[slot][k_-1].reserve(numSlices);
+        shares[slot][k_ - 1].reserve(numSlices);
         // initialize the slices of the k-th share with zeroes
         // except the slices of the own message slot
-        if (slotIndex == slot) {
+        if (static_cast<uint32_t>(slotIndex) == slot) {
             for (uint32_t slice = 0; slice < numSlices; slice++)
                 shares[slot][k_ - 1].push_back(messageSlices[slice]);
         } else {
@@ -133,9 +134,11 @@ std::unique_ptr<DCState> SecuredInitialRound::executeTask() {
 
     // generate and broadcast the commitments for the first round
     SecuredInitialRound::sharingPartOne(shares);
+    //std::cout << "Sharing part one finished" << std::endl;
 
     // collect and validate the shares
     int result = SecuredInitialRound::sharingPartTwo();
+    //std::cout << "Sharing part two finished" << std::endl;
     // a blame message has been received
     if (result < 0) {
         // TODO clean up the inbox
@@ -162,7 +165,7 @@ std::unique_ptr<DCState> SecuredInitialRound::executeTask() {
     // and calculate the index of the own slot if present
     int finalSlotIndex = -1;
     for (uint32_t slot = 0; slot < 2 * k_; slot++) {
-        if (slotIndex == slot)
+        if (static_cast<uint32_t>(slotIndex) == slot)
             finalSlotIndex = slots.size();
 
         uint16_t slotSize = (finalMessageVector[slot][6] << 8) | finalMessageVector[slot][7];
@@ -173,11 +176,8 @@ std::unique_ptr<DCState> SecuredInitialRound::executeTask() {
             bool valid = CRC32_.Verify(finalMessageVector[slot].data());
 
             if (!valid) {
-                {
-                    std::lock_guard<std::mutex> lock(mutex_);
-                    std::cout << "Invalid CRC detected." << std::endl;
-                    std::cout << "Restarting Round One." << std::endl;
-                }
+                std::cout << "Invalid CRC detected." << std::endl;
+                std::cout << "Restarting Round One." << std::endl;
                 return std::make_unique<SecuredInitialRound>(DCNetwork_);
             }
 
@@ -199,19 +199,20 @@ std::unique_ptr<DCState> SecuredInitialRound::executeTask() {
         }
     }
 
-    if(finalSlotIndex > -1) {
-        std::lock_guard<std::mutex> lock(mutex_);
-        std::cout << "Node " << DCNetwork_.nodeID() << ": sending in slot " << std::dec << finalSlotIndex << std::endl << std::endl;
+    if (finalSlotIndex > -1) {
+        std::cout << "Node " << DCNetwork_.nodeID() << ": sending in slot " << std::dec << finalSlotIndex << std::endl
+                  << std::endl;
     }
 
     // TODO undo
     // coin flip test
     bool coinFlipTest = false;
-    if(coinFlipTest)
+    if (coinFlipTest)
         return std::make_unique<ProofOfFairness>(DCNetwork_, slotIndex, std::move(rValues_), std::move(commitments_));
 
     // if no member wants to send a message, return to the Ready state
     if (slots.size() == 0) {
+        std::cout << "No sender in this round" << std::endl;
         return std::make_unique<ReadyState>(DCNetwork_);
     } else {
         return std::make_unique<SecuredFinalRound>(DCNetwork_, finalSlotIndex, std::move(slots),
@@ -223,7 +224,7 @@ std::unique_ptr<DCState> SecuredInitialRound::executeTask() {
 void SecuredInitialRound::sharingPartOne(std::vector<std::vector<std::vector<CryptoPP::Integer>>> &shares) {
     size_t numSlices = std::ceil((8 + 33 * k_) / 31.0);
 
-    rValues_.resize(2*k_);
+    rValues_.resize(2 * k_);
     C.resize(2 * k_);
     R.resize(2 * k_);
 
@@ -385,7 +386,6 @@ int SecuredInitialRound::sharingPartTwo() {
                     || (commitment.y != commitments_[sharingMessage.senderID()][slot][DCNetwork_.nodeID()][slice].y)) {
 
                     SecuredInitialRound::injectBlameMessage(sharingMessage.senderID(), slot, slice, r, s);
-                    std::lock_guard<std::mutex> lock(mutex_);
                     std::cout << "Invalid commitment detected 1" << std::endl;
                     return -1;
                 }
@@ -494,7 +494,6 @@ std::vector<std::vector<uint8_t>> SecuredInitialRound::resultComputation() {
             CryptoPP::ECPPoint commitment = commit(R[slot][slice], S[slot][slice]);
 
             if ((C[slot][slice].x != commitment.x) || (C[slot][slice].y != commitment.y)) {
-                std::lock_guard<std::mutex> lock(mutex_);
                 std::cout << "Final commitment invalid" << std::endl;
                 return std::vector<std::vector<uint8_t>>();
             }
@@ -517,7 +516,8 @@ std::vector<std::vector<uint8_t>> SecuredInitialRound::resultComputation() {
     return finalMessageSlots;
 }
 
-void SecuredInitialRound::injectBlameMessage(uint32_t suspectID, uint32_t slot, uint32_t slice, CryptoPP::Integer &r, CryptoPP::Integer &s) {
+void SecuredInitialRound::injectBlameMessage(uint32_t suspectID, uint32_t slot, uint32_t slice, CryptoPP::Integer &r,
+                                             CryptoPP::Integer &s) {
     std::vector<uint8_t> messageBody(76);
     // set the suspect's ID
     messageBody[0] = (suspectID & 0xFF000000) >> 24;
@@ -549,8 +549,8 @@ void SecuredInitialRound::injectBlameMessage(uint32_t suspectID, uint32_t slot, 
     }
 }
 
-void SecuredInitialRound::handleBlameMessage(ReceivedMessage& blameMessage) {
-    std::vector<uint8_t>& body = blameMessage.body();
+void SecuredInitialRound::handleBlameMessage(ReceivedMessage &blameMessage) {
+    std::vector<uint8_t> &body = blameMessage.body();
     // check which node is addressed by the blame message
     uint32_t suspectID = (body[0] << 24) | (body[1] << 16) | (body[2] << 8) | body[3];
 
@@ -572,8 +572,8 @@ void SecuredInitialRound::handleBlameMessage(ReceivedMessage& blameMessage) {
 
     // compare the commitment, generated using the submitted values, with the commitment
     // which has been broadcasted by the suspect
-    if((commitment.x != commitments_[suspectID][slot][memberIndex][slice].x)
-       || (commitment.y != commitments_[suspectID][slot][memberIndex][slice].y)) {
+    if ((commitment.x != commitments_[suspectID][slot][memberIndex][slice].x)
+        || (commitment.y != commitments_[suspectID][slot][memberIndex][slice].y)) {
         // if the two commitments do not match, the suspect is removed
         DCNetwork_.members().erase(suspectID);
     } else {
@@ -595,7 +595,7 @@ void SecuredInitialRound::printSlots(std::vector<std::vector<uint8_t>> &slots) {
 
     std::cout << std::dec << "Node: " << DCNetwork_.nodeID() << std::endl;
     std::cout << "| ";
-    for (int slot = 0; slot < 2 * k_; slot++) {
+    for (uint32_t slot = 0; slot < 2 * k_; slot++) {
         std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) slots[slot][0];
         std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) slots[slot][1];
         std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) slots[slot][2];

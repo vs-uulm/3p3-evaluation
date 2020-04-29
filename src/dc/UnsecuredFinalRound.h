@@ -5,11 +5,11 @@
 #include <cryptopp/crc.h>
 #include "DCState.h"
 
-class UnguardedFinalRound : public DCState {
+class UnsecuredFinalRound : public DCState {
 public:
-    UnguardedFinalRound(DCNetwork& DCNet, int slotIndex, std::vector<uint16_t> slots);
+    UnsecuredFinalRound(DCNetwork& DCNet, int slotIndex, std::vector<uint16_t> slots);
 
-    virtual ~UnguardedFinalRound();
+    virtual ~UnsecuredFinalRound();
 
     virtual std::unique_ptr<DCState> executeTask();
 

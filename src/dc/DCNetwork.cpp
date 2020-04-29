@@ -2,9 +2,9 @@
 #include "DCNetwork.h"
 #include "InitState.h"
 
-DCNetwork::DCNetwork(DCMember self, CryptoPP::Integer privateKey, SecurityLevel securityLevel, size_t k,
+DCNetwork::DCNetwork(DCMember self, size_t k, SecurityLevel securityLevel, CryptoPP::Integer privateKey,
         std::unordered_map<uint32_t, Node>& neigbors, MessageQueue<ReceivedMessage>& inbox, MessageQueue<OutgoingMessage>& outbox)
-: nodeID_(self.nodeID()), securityLevel_(securityLevel), k_(k), privateKey_(privateKey), neighbors_(neigbors),
+: nodeID_(self.nodeID()), k_(k), securityLevel_(securityLevel), privateKey_(privateKey), neighbors_(neigbors),
   inbox_(inbox), outbox_(outbox), state_(std::make_unique<InitState>(*this)) {
     members_.insert(std::pair(nodeID_, self));
 }

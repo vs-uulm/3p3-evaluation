@@ -3,7 +3,6 @@
 #include <list>
 #include <iostream>
 #include <cryptopp/oids.h>
-#include <iomanip>
 
 #include "../network/P2PConnection.h"
 #include "../network/NetworkManager.h"
@@ -11,10 +10,11 @@
 #include "../dc/DCNetwork.h"
 #include "../datastruct/MessageType.h"
 #include "../utils/Utils.h"
+#include "../network/UnsecuredNetworkManager.h"
 
 std::mutex cout_mutex;
 
-const uint32_t INSTANCES = 6;
+const uint32_t INSTANCES = 12;
 
 void instance(int ID) {
     CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> curve;
@@ -27,12 +27,16 @@ void instance(int ID) {
 
     io_context io_context_;
     uint16_t port_ = 5555 + ID;
+
     ip::address_v4 ip_address(ip::address_v4::from_string("127.0.0.1"));
 
+    // TODO
     NetworkManager networkManager(io_context_, port_, inbox);
+    //UnsecuredNetworkManager networkManager(io_context_, port_, inbox);
     // Run the io_context which handles the network manager
     std::thread networkThread1([&io_context_]() {
         io_context_.run();
+        std::cout << "IO Context finished" << std::endl;
     });
 
     // connect to the central node authority
@@ -58,19 +62,25 @@ void instance(int ID) {
 
     OutgoingMessage registerMessage(CAConnectionID, RegisterMessage, SELF, messageBody);
     networkManager.sendMessage(registerMessage);
-
     auto registerResponse = inbox.pop();
-    if(registerResponse.msgType() != RegisterResponse)
-        return;
 
+    while(registerResponse.msgType() != RegisterResponse) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        inbox.push(registerResponse);
+        registerResponse = inbox.pop();
+    }
     // decode the received nodeID
     uint32_t nodeID_ = ((registerResponse.body()[0]) << 24) | (registerResponse.body()[1] << 16)
                             | (registerResponse.body()[2] << 8) | registerResponse.body()[3];
 
+
     // wait until the nodeInfo message arrives
     auto nodeInfo = inbox.pop();
-    if(nodeInfo.msgType() != NodeInfoMessage)
-        return;
+    while(nodeInfo.msgType() != NodeInfoMessage) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        inbox.push(nodeInfo);
+        nodeInfo = inbox.pop();
+    }
 
     // First determine the number of nodes received
     uint32_t numNodes = (nodeInfo.body()[0] << 24) | (nodeInfo.body()[1] << 16) | (nodeInfo.body()[2] << 8) | (nodeInfo.body()[3]);
@@ -84,7 +94,6 @@ void instance(int ID) {
         // extract the nodeID
         uint32_t nodeID = (nodeInfo.body()[offset] << 24) | (nodeInfo.body()[offset+1] << 16)
                             | (nodeInfo.body()[offset+2] << 8) | (nodeInfo.body()[offset+3]);
-
         // extract the port
         uint16_t port = (nodeInfo.body()[offset+4] << 8) | nodeInfo.body()[offset+5];
 
@@ -103,14 +112,14 @@ void instance(int ID) {
 
     // wait until all nodes have received the information
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
     // Add neighbors
-    for(int i = 0; i < nodeID_; i++) {
+    for(uint32_t i = 0; i < nodeID_; i++) {
         uint32_t connectionID = networkManager.addNeighbor(neighbors[i]);
         if (connectionID < 0) {
             std::cout << "Error: could not add neighbour" << std::endl;
             continue;
         }
+
         // Add the node as a member of the DC-Network
         OutgoingMessage helloMessage(connectionID, HelloMessage, nodeID_);
         networkManager.sendMessage(helloMessage);
@@ -132,10 +141,9 @@ void instance(int ID) {
             }
         }
     });
-
     // start the DCNetwork
     DCMember self(nodeID_, SELF, publicKey);
-    DCNetwork DCNet(self, privateKey, Unsecured, INSTANCES, neighbors, inboxDCNet, outbox);
+    DCNetwork DCNet(self, INSTANCES, Unsecured, privateKey, neighbors, inboxDCNet, outbox);
 
     // submit messages to the DCNetwork
     if (nodeID_ < 2) {
@@ -145,6 +153,7 @@ void instance(int ID) {
 
         // for tests only
         // print the submitted message
+        /*
         {
             std::lock_guard<std::mutex> lock(cout_mutex);
             std::cout << "Hash of the message submitted by node " << nodeID_ << ":" << std::endl;
@@ -154,6 +163,7 @@ void instance(int ID) {
             }
             std::cout << std::endl << std::endl;
         }
+         */
 
         DCNet.submitMessage(message);
     }
@@ -162,16 +172,19 @@ void instance(int ID) {
         DCNet.run();
     });
 
+
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
     // submit messages to the DCNetwork
-    for(uint32_t i = 0; i < 10; i++) {
-        uint32_t send = PRNG.GenerateWord32(0,1);
-        if(send) {
+    for(uint32_t i = 0; i < 100; i++) {
+        uint32_t send = PRNG.GenerateWord32(0,3);
+        if(send == 0) {
             uint16_t length = PRNG.GenerateWord32(512, 1024);
             std::vector<uint8_t> message(length);
             PRNG.GenerateBlock(message.data(), length);
             DCNet.submitMessage(message);
         }
-        uint32_t sleep = PRNG.GenerateWord32(5,20);
+        uint32_t sleep = PRNG.GenerateWord32(2,5);
         std::this_thread::sleep_for(std::chrono::seconds(sleep));
     }
 
@@ -188,14 +201,16 @@ void nodeAuthority() {
 
     typedef std::vector<uint8_t> NodeInfo;
 
-    std::vector<NodeInfo> registeredNodes;
+    std::unordered_map<uint32_t, std::pair<uint32_t, NodeInfo>> registeredNodes;
 
     MessageQueue<ReceivedMessage> inbox;
 
     io_context io_context_;
     uint16_t port = 7777;
 
+    // TODO
     NetworkManager networkManager(io_context_, port, inbox);
+    //UnsecuredNetworkManager networkManager(io_context_, port, inbox);
     // Run the io_context which handles the network manager
     std::thread networkThread([&io_context_]() {
         io_context_.run();
@@ -208,20 +223,22 @@ void nodeAuthority() {
             std::cout << "Unknown message type received: " << receivedMessage.msgType() << std::endl;
             continue;
         }
+
         // store the encoded information for each node
-        registeredNodes.push_back(std::move(receivedMessage.body()));
+        registeredNodes.insert(std::pair(nodeID, std::pair(receivedMessage.connectionID(), std::move(receivedMessage.body()))));
         std::vector<uint8_t> encodedNodeID(4);
         encodedNodeID[0] = (nodeID & 0xFF000000) >> 24;
         encodedNodeID[1] = (nodeID & 0x00FF0000) >> 16;
         encodedNodeID[2] = (nodeID & 0x0000FF00) >> 8;
         encodedNodeID[3] = (nodeID & 0x000000FF);
 
-        OutgoingMessage registerResponse(nodeID, RegisterResponse, 0, encodedNodeID);
+        OutgoingMessage registerResponse(receivedMessage.connectionID(), RegisterResponse, 0, encodedNodeID);
         networkManager.sendMessage(registerResponse);
-    }
 
+        std::cout << "Central authority: node " << nodeID << " connected" << std::endl;
+    }
     size_t infoSize = 10 + curve.GetCurve().EncodedPointSize(true);
-    for(uint32_t i = 0; i < INSTANCES; i++) {
+    for(auto& node : registeredNodes) {
         std::vector<uint8_t> nodeInfo(4 + (INSTANCES-1) * infoSize);
         // the first 4 Bytes contain the number of instances
         nodeInfo[0] = ((INSTANCES-1) & 0xFF000000) >> 24;
@@ -230,21 +247,20 @@ void nodeAuthority() {
         nodeInfo[3] = ((INSTANCES-1) & 0x000000FF);
 
         for(uint32_t nodeID = 0, offset = 4; nodeID < INSTANCES; nodeID++) {
-            if(i != nodeID) {
+            if(node.first != nodeID) {
                 nodeInfo[offset]   = (nodeID & 0xFF000000) >> 24;
                 nodeInfo[offset+1] = (nodeID & 0x00FF0000) >> 16;
                 nodeInfo[offset+2] = (nodeID & 0x0000FF00) >> 8;
                 nodeInfo[offset+3] = (nodeID & 0x000000FF);
 
-                std::copy(registeredNodes[nodeID].begin(), registeredNodes[nodeID].end(), &nodeInfo[offset+4]);
+                std::copy(registeredNodes[nodeID].second.begin(), registeredNodes[nodeID].second.end(), &nodeInfo[offset+4]);
                 offset += infoSize;
             }
         }
 
-        OutgoingMessage nodeInfoMessage(i, NodeInfoMessage, 0, nodeInfo);
+        OutgoingMessage nodeInfoMessage(node.second.first, NodeInfoMessage, 0, nodeInfo);
         networkManager.sendMessage(nodeInfoMessage);
     }
-
     networkThread.join();
 }
 

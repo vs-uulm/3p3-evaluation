@@ -5,17 +5,18 @@
 #include "../datastruct/MessageType.h"
 #include "SecuredInitialRound.h"
 #include "../utils/Utils.h"
+#include "UnsecuredInitialRound.h"
 
-UnguardedFinalRound::UnguardedFinalRound(DCNetwork &DCNet, int slotIndex, std::vector<uint16_t> slots)
+UnsecuredFinalRound::UnsecuredFinalRound(DCNetwork &DCNet, int slotIndex, std::vector<uint16_t> slots)
         : DCNetwork_(DCNet), k_(DCNetwork_.k()), slotIndex_(slotIndex), slots_(std::move(slots)) {
 
     // determine the index of the own nodeID in the ordered member list
     nodeIndex_ = std::distance(DCNetwork_.members().begin(), DCNetwork_.members().find(DCNetwork_.nodeID()));
 }
 
-UnguardedFinalRound::~UnguardedFinalRound() {}
+UnsecuredFinalRound::~UnsecuredFinalRound() {}
 
-std::unique_ptr<DCState> UnguardedFinalRound::executeTask() {
+std::unique_ptr<DCState> UnsecuredFinalRound::executeTask() {
     size_t numSlots = slots_.size();
 
     std::vector<uint8_t> submittedMessage;
@@ -32,7 +33,7 @@ std::unique_ptr<DCState> UnguardedFinalRound::executeTask() {
     for (uint32_t slot = 0; slot < numSlots; slot++) {
         shares[slot].resize(k_);
 
-        if (slotIndex_ == slot)
+        if (static_cast<uint32_t>(slotIndex_) == slot)
             shares[slot][k_ - 1] = submittedMessage;
         else
             shares[slot][k_ - 1].resize(slots_[slot]);
@@ -50,11 +51,11 @@ std::unique_ptr<DCState> UnguardedFinalRound::executeTask() {
     }
 
 
-    UnguardedFinalRound::sharingPartOne(shares);
+    UnsecuredFinalRound::sharingPartOne(shares);
 
-    UnguardedFinalRound::sharingPartTwo();
+    UnsecuredFinalRound::sharingPartTwo();
 
-    UnguardedFinalRound::resultComputation();
+    UnsecuredFinalRound::resultComputation();
 
     {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -70,10 +71,11 @@ std::unique_ptr<DCState> UnguardedFinalRound::executeTask() {
         std::cout << std::endl;
     }
 
-    return std::make_unique<ReadyState>(DCNetwork_);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    return std::make_unique<UnsecuredInitialRound>(DCNetwork_);
 }
 
-void UnguardedFinalRound::sharingPartOne(std::vector<std::vector<std::vector<uint8_t>>> &shares) {
+void UnsecuredFinalRound::sharingPartOne(std::vector<std::vector<std::vector<uint8_t>>> &shares) {
     size_t numSlots = slots_.size();
 
     auto position = DCNetwork_.members().find(DCNetwork_.nodeID());
@@ -96,7 +98,7 @@ void UnguardedFinalRound::sharingPartOne(std::vector<std::vector<std::vector<uin
     }
 }
 
-void UnguardedFinalRound::sharingPartTwo() {
+void UnsecuredFinalRound::sharingPartTwo() {
     size_t numSlots = slots_.size();
 
     // collect the shares from the other k-1 members and validate them using the broadcasted commitments
@@ -135,7 +137,7 @@ void UnguardedFinalRound::sharingPartTwo() {
     }
 }
 
-void UnguardedFinalRound::resultComputation() {
+void UnsecuredFinalRound::resultComputation() {
     size_t numSlots = S.size();
 
     uint32_t remainingShares = numSlots * (k_ - 1);

@@ -25,7 +25,7 @@ ip::address getIP() {
 }
 
 int main(int argc, char** argv) {
-    if((argc != 3) || (atoi(argv[2]) < 0) || (atoi(argv[2]) > 2)) {
+    if((argc != 2) || (atoi(argv[1]) < 0) || (atoi(argv[1]) > 2)) {
         std::cout << "usage: dockerInstace INSTANCES SecurityLevel" << std::endl;
         std::cout << "0: unsecured" << std::endl;
         std::cout << "1: secured" << std::endl;
@@ -33,8 +33,10 @@ int main(int argc, char** argv) {
         exit(0);
     }
 
-    uint32_t INSTANCES= atoi(argv[1]);
-    SecurityLevel securityLevel = static_cast<SecurityLevel>(atoi(argv[2]));
+    SecurityLevel securityLevel = static_cast<SecurityLevel>(atoi(argv[1]));
+
+    // wait for cleaner logging
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
     CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> curve;
     curve.Initialize(CryptoPP::ASN1::secp256k1());
@@ -156,45 +158,36 @@ int main(int argc, char** argv) {
 
     // start the DCNetwork
     DCMember self(nodeID_, SELF, publicKey);
-    DCNetwork DCNet(self, privateKey, securityLevel, INSTANCES, neighbors, inboxDCNet, outbox);
+    DCNetwork DCNetwork_(self, numNodes+1, securityLevel, privateKey, neighbors, inboxDCNet, outbox);
 
-    // submit messages to the DCNetwork
-    /*
-    if (nodeID_ < 2) {
+    // submit the first message to the DC-Network
+    uint32_t send = PRNG.GenerateWord32(0,3);
+    if(send == 0) {
         uint16_t length = PRNG.GenerateWord32(512, 1024);
         std::vector<uint8_t> message(length);
         PRNG.GenerateBlock(message.data(), length);
-
-        // for tests only
-        // print the submitted message
-        {
-            std::cout << "Hash of the message submitted by node " << nodeID_ << ":" << std::endl;
-            std::vector<uint8_t> msgHash = utils::sha256(message);
-            for (uint8_t c : msgHash) {
-                std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) c;
-            }
-            std::cout << std::endl << std::endl;
-        }
-
-        DCNet.submitMessage(message);
+        DCNetwork_.submitMessage(message);
     }
-     */
 
     std::thread DCThread([&]() {
-        DCNet.run();
+        DCNetwork_.run();
     });
 
 
-    // submit messages to the DCNetwork
-    for(uint32_t i = 0; i < 10; i++) {
-        uint32_t send = PRNG.GenerateWord32(0,1);
-        if(send) {
+    // submit more messages to the DCNetwork
+    for(uint32_t i = 0; i < 100; i++) {
+        uint32_t send = PRNG.GenerateWord32(0,3);
+        if(send == 0) {
             uint16_t length = PRNG.GenerateWord32(512, 1024);
             std::vector<uint8_t> message(length);
             PRNG.GenerateBlock(message.data(), length);
-            DCNet.submitMessage(message);
+            DCNetwork_.submitMessage(message);
         }
-        uint32_t sleep = PRNG.GenerateWord32(5,20);
+        uint32_t sleep;
+        if(securityLevel == Secured)
+            sleep = PRNG.GenerateWord32(2,10);
+        else
+            sleep = PRNG.GenerateWord32(1,5);
         std::this_thread::sleep_for(std::chrono::seconds(sleep));
     }
 

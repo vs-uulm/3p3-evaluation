@@ -5,9 +5,9 @@
 #include "InitState.h"
 #include "SecuredInitialRound.h"
 #include "ReadyState.h"
-#include "SecuredFinalRound.h"
 #include "../datastruct/MessageType.h"
 #include "UnsecuredFinalRound.h"
+#include "../utils/Utils.h"
 
 
 UnsecuredInitialRound::UnsecuredInitialRound(DCNetwork &DCNet) : DCNetwork_(DCNet), k_(DCNetwork_.k()) {
@@ -87,7 +87,7 @@ std::unique_ptr<DCState> UnsecuredInitialRound::executeTask() {
     // and calculate the index of the own slot if present
     int finalSlotIndex = -1;
     for (uint32_t slot = 0; slot < 2 * k_; slot++) {
-        if (slotIndex == slot)
+        if (static_cast<uint32_t>(slotIndex) == slot)
             finalSlotIndex = slots.size();
 
         uint16_t slotSize = (S[slot * 8 + 6] << 8) | S[slot * 8 + 7];
@@ -98,11 +98,8 @@ std::unique_ptr<DCState> UnsecuredInitialRound::executeTask() {
             bool valid = CRC32_.Verify(&S[slot * 8]);
 
             if (!valid) {
-                {
-                    std::lock_guard<std::mutex> lock(mutex_);
-                    std::cout << "Invalid CRC detected." << std::endl;
-                    std::cout << "Restarting Round One." << std::endl;
-                }
+                std::cout << "Invalid CRC detected." << std::endl;
+                std::cout << "Restarting Round One." << std::endl;
                 return std::make_unique<UnsecuredInitialRound>(DCNetwork_);
             }
 
@@ -111,16 +108,19 @@ std::unique_ptr<DCState> UnsecuredInitialRound::executeTask() {
         }
     }
 
-    if(finalSlotIndex > -1) {
-        std::lock_guard<std::mutex> lock(mutex_);
+    if (finalSlotIndex > -1) {
         std::cout << "Node " << DCNetwork_.nodeID() << ": sending in slot " << std::dec << finalSlotIndex << std::endl << std::endl;
     }
 
     // if no member wants to send a message, return to the Ready state
-    if (slots.size() == 0)
-        return std::make_unique<ReadyState>(DCNetwork_);
-    else
-        return std::make_unique<UnguardedFinalRound>(DCNetwork_, finalSlotIndex, std::move(slots));
+    if (slots.size() == 0) {
+        // TODO check
+        //return std::make_unique<ReadyState>(DCNetwork_);
+        std::cout << "No sender in this round" << std::endl;
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        return std::make_unique<UnsecuredInitialRound>(DCNetwork_);
+    } else
+        return std::make_unique<UnsecuredFinalRound>(DCNetwork_, finalSlotIndex, std::move(slots));
 }
 
 void UnsecuredInitialRound::sharingPartOne(std::vector<std::vector<uint8_t>> &shares) {
@@ -164,7 +164,8 @@ void UnsecuredInitialRound::sharingPartTwo() {
         if (position == DCNetwork_.members().end())
             position = DCNetwork_.members().begin();
 
-        OutgoingMessage sharingBroadcast(position->second.connectionID(), RoundOneSharingPartTwo, DCNetwork_.nodeID(), S);
+        OutgoingMessage sharingBroadcast(position->second.connectionID(), RoundOneSharingPartTwo, DCNetwork_.nodeID(),
+                                         S);
         DCNetwork_.outbox().push(std::move(sharingBroadcast));
     }
 }
@@ -194,17 +195,17 @@ void UnsecuredInitialRound::printSlots(std::vector<uint8_t> &slots) {
 
     std::cout << std::dec << "Node: " << DCNetwork_.nodeID() << std::endl;
     std::cout << "| ";
-    for (int slot = 0; slot < 2 * k_; slot++) {
-        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) slots[slot* 8];
-        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) slots[slot* 8 + 1];
-        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) slots[slot* 8 + 2];
-        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) slots[slot* 8 + 3];
+    for (uint32_t slot = 0; slot < 2 * k_; slot++) {
+        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) slots[slot * 8];
+        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) slots[slot * 8 + 1];
+        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) slots[slot * 8 + 2];
+        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) slots[slot * 8 + 3];
         std::cout << " ";
-        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) slots[slot* 8 + 4];
-        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) slots[slot* 8 + 5];
+        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) slots[slot * 8 + 4];
+        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) slots[slot * 8 + 5];
         std::cout << " ";
-        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) slots[slot* 8 + 6];
-        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) slots[slot* 8 + 7];
+        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) slots[slot * 8 + 6];
+        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) slots[slot * 8 + 7];
         std::cout << " | ";
     }
     std::cout << std::endl << std::endl;

@@ -1,6 +1,7 @@
 #ifndef THREEPP_P2PCONNECTION_H
 #define THREEPP_P2PCONNECTION_H
 
+#include <memory>
 #include <queue>
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>

@@ -40,6 +40,7 @@ private:
     MessageQueue<ReceivedMessage>& inbox_;
 
     std::unordered_map<uint32_t, std::shared_ptr<P2PConnection>> connections_;
+
 };
 
 

@@ -4,13 +4,14 @@
 #include "SecuredInitialRound.h"
 #include "../datastruct/MessageType.h"
 #include "UnsecuredInitialRound.h"
-#include "SecuredFinalRound.h"
 
 #include <thread>
 #include <chrono>
 
 
-ReadyState::ReadyState(DCNetwork& DCNet) : DCNetwork_(DCNet) {}
+ReadyState::ReadyState(DCNetwork& DCNet) : DCNetwork_(DCNet) {
+    //std::cout << "Ready State" << std::endl;
+}
 
 ReadyState::~ReadyState() {}
 
@@ -54,7 +55,7 @@ std::unique_ptr<DCState> ReadyState::executeTask() {
         // wait for the round start message
         auto receivedMessage = DCNetwork_.inbox().pop();
         if(receivedMessage.msgType() != StartDCRound)
-            std::cout << "Ready State: inappropriate message received" << std::endl;
+            std::cout << "Ready State: inappropriate message received: " << (int) receivedMessage.msgType() << std::endl;
     }
     // perform a state transition
     if(DCNetwork_.securityLevel() == Secured)
