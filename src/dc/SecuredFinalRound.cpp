@@ -10,9 +10,9 @@
 #include "../utils/Utils.h"
 
 SecuredFinalRound::SecuredFinalRound(DCNetwork &DCNet, int slotIndex, std::vector<uint16_t> slots,
-                                     std::vector<std::array<uint8_t, 32>> submittedSeeds, std::vector<std::array<uint8_t, 32>> receivedSeeds)
+                                     std::vector<CryptoPP::Integer> seedPrivateKeys, std::vector<std::array<uint8_t, 32>> receivedSeeds)
         : DCNetwork_(DCNet), k_(DCNetwork_.k()), slotIndex_(slotIndex), slots_(std::move(slots)),
-          submittedSeeds_(std::move(submittedSeeds)), seeds_(std::move(receivedSeeds)), rValues_(k_) {
+          seedPrivateKeys_(seedPrivateKeys), seeds_(std::move(receivedSeeds)), rValues_(k_) {
 
     curve.Initialize(CryptoPP::ASN1::secp256k1());
 
@@ -20,7 +20,7 @@ SecuredFinalRound::SecuredFinalRound(DCNetwork &DCNet, int slotIndex, std::vecto
     nodeIndex_ = std::distance(DCNetwork_.members().begin(), DCNetwork_.members().find(DCNetwork_.nodeID()));
 
     R.resize(slots_.size());
-    for (uint32_t slot = 0; slot < slots_.size(); slot++) {
+    for(uint32_t slot = 0; slot < slots_.size(); slot++) {
         rValues_[slot].resize(k_);
         DRNG.SetKeyWithIV(seeds_[slot].data(), 16, seeds_[slot].data() + 16, 16);
 
@@ -139,12 +139,18 @@ std::unique_ptr<DCState> SecuredFinalRound::executeTask() {
 
             if (memberIndex != nodeIndex_) {
                 size_t numSlices = S[slotIndex_].size();
+
+                CryptoPP::Integer sharedSecret = curve.GetCurve().ScalarMultiply(it->second.publicKey(), seedPrivateKeys_[memberIndex]).x;
+
+                std::array<uint8_t, 32> seed;
+                sharedSecret.Encode(seed.data(), 32);
+
+                DRNG.SetKeyWithIV(seed.data(), 16, seed.data() + 16, 16);
+
                 // calculate the rValues
                 std::vector<std::vector<CryptoPP::Integer>> rValues;
                 rValues.reserve(k_);
 
-                DRNG.SetKeyWithIV(submittedSeeds_[memberIndex].data(), 16, submittedSeeds_[memberIndex].data() + 16,
-                                  16);
                 for (uint32_t share = 0; share < k_; share++) {
                     std::vector<CryptoPP::Integer> rValuesShare;
                     rValuesShare.reserve(numSlices);

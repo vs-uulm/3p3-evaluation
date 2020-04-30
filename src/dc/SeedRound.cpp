@@ -160,8 +160,9 @@ std::unique_ptr<DCState> SeedRound::executeTask() {
         receivedSeeds.push_back(std::move(seed));
     }
 
-    return std::make_unique<SecuredFinalRound>(DCNetwork_, slotIndex_, std::move(slots_), std::move(submittedSeeds_),
-                                               std::move(receivedSeeds));
+    // TODO undo
+    //return std::make_unique<SecuredFinalRound>(DCNetwork_, slotIndex_, std::move(slots_), std::move(submittedSeeds_),
+                                               //std::move(receivedSeeds));
 }
 
 void SeedRound::sharingPartOne(std::vector<std::vector<std::vector<CryptoPP::Integer>>> &shares) {

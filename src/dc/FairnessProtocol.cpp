@@ -6,7 +6,7 @@
 #include "SecuredInitialRound.h"
 #include "InitState.h"
 
-ProofOfFairness::ProofOfFairness(DCNetwork &DCNet, size_t slotIndex,
+FairnessProtocol::FairnessProtocol(DCNetwork &DCNet, size_t slotIndex,
                                  std::vector<std::vector<std::vector<CryptoPP::Integer>>> rValues,
                                  std::unordered_map<uint32_t, std::vector<std::vector<std::vector<CryptoPP::ECPPoint>>>> commitments)
         : DCNetwork_(DCNet), k_(DCNetwork_.k()), slotIndex_(slotIndex), rValues_(std::move(rValues)),
@@ -18,15 +18,15 @@ ProofOfFairness::ProofOfFairness(DCNetwork &DCNet, size_t slotIndex,
     nodeIndex_ = std::distance(DCNetwork_.members().begin(), DCNetwork_.members().find(DCNetwork_.nodeID()));
 }
 
-ProofOfFairness::~ProofOfFairness() {}
+FairnessProtocol::~FairnessProtocol() {}
 
-std::unique_ptr<DCState> ProofOfFairness::executeTask() {
+std::unique_ptr<DCState> FairnessProtocol::executeTask() {
     // TODO undo
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    ProofOfFairness::distributeCommitments();
+    FairnessProtocol::distributeCommitments();
     // TODO add more general parameters like numSlots and numSlices
-    int result = ProofOfFairness::coinFlip();
+    int result = FairnessProtocol::coinFlip();
 
     if (result < 0) {
         // TODO clean up the inbox
@@ -34,9 +34,9 @@ std::unique_ptr<DCState> ProofOfFairness::executeTask() {
     }
 
     if(outcome_ == OpenCommitments)
-        result = ProofOfFairness::openCommitments();
+        result = FairnessProtocol::openCommitments();
     else
-        result = ProofOfFairness::proofKnowledge();
+        result = FairnessProtocol::proofKnowledge();
 
     if (result < 0) {
         // TODO clean up the inbox
@@ -51,7 +51,7 @@ std::unique_ptr<DCState> ProofOfFairness::executeTask() {
     return std::make_unique<ReadyState>(DCNetwork_);
 }
 
-int ProofOfFairness::coinFlip() {
+int FairnessProtocol::coinFlip() {
     size_t encodedPointSize = curve_.GetCurve().EncodedPointSize(true);
 
     std::vector<CryptoPP::Integer> shares(k_);
@@ -232,7 +232,7 @@ int ProofOfFairness::coinFlip() {
     return 0;
 }
 
-void ProofOfFairness::distributeCommitments() {
+void FairnessProtocol::distributeCommitments() {
     size_t slotSize = 8 + 33 * k_;
     size_t numSlices = std::ceil(slotSize / 31.0);
     size_t encodedPointSize = curve_.GetCurve().EncodedPointSize(true);
@@ -335,7 +335,7 @@ void ProofOfFairness::distributeCommitments() {
     }
 }
 
-int ProofOfFairness::openCommitments() {
+int FairnessProtocol::openCommitments() {
     {
         std::lock_guard<std::mutex> lock(mutex_);
         std::cout << "Opening commitments" << std::endl;
@@ -406,7 +406,7 @@ int ProofOfFairness::openCommitments() {
 
 }
 
-int ProofOfFairness::proofKnowledge() {
+int FairnessProtocol::proofKnowledge() {
     {
         std::lock_guard<std::mutex> lock(mutex_);
         std::cout << "Proving knowledge" << std::endl;
@@ -694,7 +694,7 @@ int ProofOfFairness::proofKnowledge() {
 }
 
 
-inline CryptoPP::ECPPoint ProofOfFairness::commit(CryptoPP::Integer &r, CryptoPP::Integer &s) {
+inline CryptoPP::ECPPoint FairnessProtocol::commit(CryptoPP::Integer &r, CryptoPP::Integer &s) {
     CryptoPP::ECPPoint rG = curve_.GetCurve().ScalarMultiply(G, r);
     CryptoPP::ECPPoint sH = curve_.GetCurve().ScalarMultiply(H, s);
     CryptoPP::ECPPoint commitment = curve_.GetCurve().Add(rG, sH);

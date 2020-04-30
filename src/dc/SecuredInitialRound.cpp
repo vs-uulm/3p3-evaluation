@@ -40,6 +40,7 @@ std::unique_ptr<DCState> SecuredInitialRound::executeTask() {
 
     std::vector<CryptoPP::Integer> messageSlices;
 
+    std::vector<CryptoPP::Integer> seedPrivateKeys;
     int slotIndex = -1;
     if (l > 0) {
         std::vector<uint8_t> messageSlot(slotSize);
@@ -53,26 +54,18 @@ std::unique_ptr<DCState> SecuredInitialRound::executeTask() {
         messageSlot[7] = static_cast<uint8_t>((l & 0x00FF));
 
         // generate k random seeds, required for the commitments in the second round
-        submittedSeeds_.reserve(k_);
-
+        seedPrivateKeys.reserve(k_);
         for (auto it = DCNetwork_.members().begin(); it != DCNetwork_.members().end(); it++) {
             uint32_t memberIndex = std::distance(DCNetwork_.members().begin(), it);
-
-            std::array<uint8_t, 32> seed;
 
             // generate an ephemeral EC key pair
             CryptoPP::Integer r(PRNG, CryptoPP::Integer::One(), curve_.GetMaxExponent());
             CryptoPP::ECPPoint rG = curve_.ExponentiateBase(r);
 
-            // Perform an ephemeral ECDH KE with the given public key
-            CryptoPP::Integer sharedSecret = curve_.GetCurve().ScalarMultiply(it->second.publicKey(), r).x;
-
-            sharedSecret.Encode(seed.data(), 32);
-
             curve_.GetCurve().EncodePoint(&messageSlot[8 + 33 * memberIndex], rG, true);
 
             // store the seed
-            submittedSeeds_.push_back(std::move(seed));
+            seedPrivateKeys.push_back(std::move(r));
         }
 
         // Calculate the CRC
@@ -86,7 +79,6 @@ std::unique_ptr<DCState> SecuredInitialRound::executeTask() {
             CryptoPP::Integer slice(&messageSlot[31 * i], sliceSize);
             messageSlices.push_back(std::move(slice));
         }
-
     }
 
     std::vector<std::vector<std::vector<CryptoPP::Integer>>> shares(2 * k_);
@@ -134,11 +126,9 @@ std::unique_ptr<DCState> SecuredInitialRound::executeTask() {
 
     // generate and broadcast the commitments for the first round
     SecuredInitialRound::sharingPartOne(shares);
-    //std::cout << "Sharing part one finished" << std::endl;
 
     // collect and validate the shares
     int result = SecuredInitialRound::sharingPartTwo();
-    //std::cout << "Sharing part two finished" << std::endl;
     // a blame message has been received
     if (result < 0) {
         // TODO clean up the inbox
@@ -208,7 +198,7 @@ std::unique_ptr<DCState> SecuredInitialRound::executeTask() {
     // coin flip test
     bool coinFlipTest = false;
     if (coinFlipTest)
-        return std::make_unique<ProofOfFairness>(DCNetwork_, slotIndex, std::move(rValues_), std::move(commitments_));
+        return std::make_unique<FairnessProtocol>(DCNetwork_, slotIndex, std::move(rValues_), std::move(commitments_));
 
     // if no member wants to send a message, return to the Ready state
     if (slots.size() == 0) {
@@ -216,7 +206,7 @@ std::unique_ptr<DCState> SecuredInitialRound::executeTask() {
         return std::make_unique<ReadyState>(DCNetwork_);
     } else {
         return std::make_unique<SecuredFinalRound>(DCNetwork_, finalSlotIndex, std::move(slots),
-                                                   std::move(submittedSeeds_),
+                                                   std::move(seedPrivateKeys),
                                                    std::move(receivedSeeds));
     }
 }
@@ -510,8 +500,6 @@ std::vector<std::vector<uint8_t>> SecuredInitialRound::resultComputation() {
             S[slot][slice].Encode(&finalMessageSlots[slot][31 * slice], sliceSize);
         }
     }
-
-    //SecuredInitialRound::printSlots(finalMessageSlots);
 
     return finalMessageSlots;
 }

@@ -13,7 +13,8 @@
 
 class SecuredFinalRound : public DCState {
 public:
-    SecuredFinalRound(DCNetwork& DCNet, int slotIndex, std::vector<uint16_t> slots, std::vector<std::array<uint8_t, 32>> submittedSeeds, std::vector<std::array<uint8_t, 32>> receivedSeeds);
+    SecuredFinalRound(DCNetwork& DCNet, int slotIndex, std::vector<uint16_t> slots,
+            std::vector<CryptoPP::Integer> seedPrivateKeys, std::vector<std::array<uint8_t, 32>> receivedSeeds);
 
     virtual ~SecuredFinalRound();
 
@@ -45,7 +46,7 @@ private:
 
     std::vector<uint16_t> slots_;
 
-    std::vector<std::array<uint8_t, 32>> submittedSeeds_;
+    std::vector<CryptoPP::Integer> seedPrivateKeys_;
 
     std::vector<std::array<uint8_t, 32>> seeds_;
 

@@ -34,7 +34,7 @@ add_executable(
         src/dc/UnsecuredFinalRound.cpp
         src/dc/FairnessProtocol.cpp
         src/network/UnsecuredP2PConnection.cpp
-        src/network/UnsecuredNetworkManager.cpp src/network/UnsecuredNetworkManager.h)
+        src/network/UnsecuredNetworkManager.cpp src/network/UnsecuredNetworkManager.h src/dc/BlameProtocol.cpp src/dc/BlameProtocol.h)
 
 target_link_libraries(
         threePP

@@ -15,12 +15,12 @@ enum Outcome {
     ProofOfKnowledge
 };
 
-class ProofOfFairness : public DCState {
+class FairnessProtocol : public DCState {
 public:
-    ProofOfFairness(DCNetwork& DCNet, size_t slotIndex, std::vector<std::vector<std::vector<CryptoPP::Integer>>> rValues,
+    FairnessProtocol(DCNetwork& DCNet, size_t slotIndex, std::vector<std::vector<std::vector<CryptoPP::Integer>>> rValues,
             std::unordered_map<uint32_t, std::vector<std::vector<std::vector<CryptoPP::ECPPoint>>>> commitments);
 
-    virtual ~ProofOfFairness();
+    virtual ~FairnessProtocol();
 
     virtual std::unique_ptr<DCState> executeTask();
 

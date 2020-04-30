@@ -1,22 +1,19 @@
-#ifndef THREEPP_SECUREDINITIALROUND_H
-#define THREEPP_SECUREDINITIALROUND_H
+#ifndef THREEPP_BLAMEPROTOCOL_H
+#define THREEPP_BLAMEPROTOCOL_H
 
-#include <cryptopp/ecpoint.h>
 #include <cryptopp/crc.h>
-#include <cryptopp/osrng.h>
-#include <cryptopp/eccrypto.h>
-
-#include <unordered_map>
+#include <cryptopp/modes.h>
+#include "DCNetwork.h"
 #include "DCState.h"
-#include "../datastruct/ReceivedMessage.h"
 
-extern std::mutex mutex_;
-
-class SecuredInitialRound : public DCState {
+class BlameProtocol : public DCState {
 public:
-    SecuredInitialRound(DCNetwork& DCNet);
+    BlameProtocol(DCNetwork& DCNet, std::unordered_map<uint32_t, std::vector<std::vector<std::vector<CryptoPP::ECPPoint>>>> oldCommitments);
 
-    virtual ~SecuredInitialRound();
+    BlameProtocol(DCNetwork& DCNet, int slot, uint16_t slice, uint32_t suspiciousMember_, CryptoPP::Integer seedPrivateKey,
+                  std::unordered_map<uint32_t, std::vector<std::vector<std::vector<CryptoPP::ECPPoint>>>> oldCommitments);
+
+    virtual ~BlameProtocol();
 
     virtual std::unique_ptr<DCState> executeTask();
 
@@ -26,12 +23,6 @@ private:
     int sharingPartTwo();
 
     std::vector<std::vector<uint8_t>> resultComputation();
-
-    void injectBlameMessage(uint32_t suspectID, uint32_t slot, uint32_t slice, CryptoPP::Integer& r, CryptoPP::Integer& s);
-
-    void handleBlameMessage(ReceivedMessage& blameMessage);
-
-    void printSlots(std::vector<std::vector<uint8_t>>& slots);
 
     inline CryptoPP::ECPPoint commit(CryptoPP::Integer& r, CryptoPP::Integer& s);
 
@@ -43,9 +34,18 @@ private:
     // the position in of the own nodeID in the ordered member list
     size_t nodeIndex_;
 
+    int slotIndex_;
+
+    uint16_t sliceIndex_;
+
+    uint32_t suspiciousMember_;
+
+    CryptoPP::Integer seedPrivateKey_;
+
+    std::unordered_map<uint32_t, std::vector<std::vector<std::vector<CryptoPP::ECPPoint>>>> oldCommitments_;
+
     std::vector<std::vector<std::vector<CryptoPP::Integer>>> rValues_;
 
-    // initial commitments stored with the corresponding senderID
     std::unordered_map<uint32_t, std::vector<std::vector<std::vector<CryptoPP::ECPPoint>>>> commitments_;
 
     // sum of all shares
@@ -61,8 +61,11 @@ private:
 
     CryptoPP::AutoSeededRandomPool PRNG;
 
+    // Deterministic random number generator
+    CryptoPP::OFB_Mode<CryptoPP::AES>::Encryption DRNG;
+
     CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> curve_;
 };
 
 
-#endif //THREEPP_SECUREDINITIALROUND_H
+#endif //THREEPP_BLAMEPROTOCOL_H
