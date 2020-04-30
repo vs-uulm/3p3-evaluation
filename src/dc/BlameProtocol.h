@@ -24,6 +24,10 @@ private:
 
     std::vector<std::vector<uint8_t>> resultComputation();
 
+    void injectBlameMessage(uint32_t suspectID, uint32_t slot, uint32_t slice, CryptoPP::Integer& r, CryptoPP::Integer& s);
+
+    void handleBlameMessage(ReceivedMessage& blameMessage);
+
     inline CryptoPP::ECPPoint commit(CryptoPP::Integer& r, CryptoPP::Integer& s);
 
     DCNetwork& DCNetwork_;

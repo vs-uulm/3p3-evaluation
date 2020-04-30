@@ -11,7 +11,6 @@
 #include "../network/MessageHandler.h"
 #include "../dc/DCNetwork.h"
 #include "../datastruct/MessageType.h"
-#include "../utils/Utils.h"
 
 ip::address getIP() {
     boost::asio::io_service io_service;

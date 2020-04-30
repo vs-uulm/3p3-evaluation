@@ -20,15 +20,15 @@ void MessageHandler::run() {
             case HelloResponse:
             case ReadyMessage:
             case StartDCRound:
-            case CommitmentRoundOne:
-            case RoundOneSharingPartOne:
-            case RoundOneSharingPartTwo:
-            case CommitmentRoundTwo:
-            case RoundTwoSharingPartOne:
-            case RoundTwoSharingPartTwo:
-            case CommitmentSeedRound:
-            case SeedRoundSharingPartOne:
-            case SeedRoundSharingPartTwo:
+            case RoundOneCommitments:
+            case RoundOneSharingOne:
+            case RoundOneSharingTwo:
+            case RoundTwoCommitments:
+            case RoundTwoSharingOne:
+            case RoundTwoSharingTwo:
+            case SeedRoundCommitments:
+            case SeedRoundSharingOne:
+            case SeedRoundSharingTwo:
             case BlameMessage:
             case ZeroKnowledgeCommitments:
             case ZeroKnowledgeCoinCommitments:

@@ -133,7 +133,7 @@ void UnsecuredInitialRound::sharingPartOne(std::vector<std::vector<uint8_t>> &sh
         uint32_t memberIndex = std::distance(DCNetwork_.members().begin(), position);
 
 
-        OutgoingMessage rsMessage(position->second.connectionID(), RoundOneSharingPartOne, DCNetwork_.nodeID(),
+        OutgoingMessage rsMessage(position->second.connectionID(), RoundOneSharingOne, DCNetwork_.nodeID(),
                                   shares[memberIndex]);
         DCNetwork_.outbox().push(std::move(rsMessage));
     }
@@ -145,7 +145,7 @@ void UnsecuredInitialRound::sharingPartTwo() {
     while (remainingShares > 0) {
         auto sharingMessage = DCNetwork_.inbox().pop();
 
-        if (sharingMessage.msgType() == RoundOneSharingPartOne) {
+        if (sharingMessage.msgType() == RoundOneSharingOne) {
             for (uint32_t p = 0; p < 16 * k_; p++)
                 S[p] ^= sharingMessage.body()[p];
 
@@ -164,7 +164,7 @@ void UnsecuredInitialRound::sharingPartTwo() {
         if (position == DCNetwork_.members().end())
             position = DCNetwork_.members().begin();
 
-        OutgoingMessage sharingBroadcast(position->second.connectionID(), RoundOneSharingPartTwo, DCNetwork_.nodeID(),
+        OutgoingMessage sharingBroadcast(position->second.connectionID(), RoundOneSharingTwo, DCNetwork_.nodeID(),
                                          S);
         DCNetwork_.outbox().push(std::move(sharingBroadcast));
     }
@@ -176,7 +176,7 @@ void UnsecuredInitialRound::resultComputation() {
     while (remainingShares > 0) {
         auto sharingBroadcast = DCNetwork_.inbox().pop();
 
-        if (sharingBroadcast.msgType() == RoundOneSharingPartTwo) {
+        if (sharingBroadcast.msgType() == RoundOneSharingTwo) {
 
             for (uint32_t p = 0; p < 16 * k_; p++)
                 S[p] ^= sharingBroadcast.body()[p];

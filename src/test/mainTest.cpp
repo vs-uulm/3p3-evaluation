@@ -151,20 +151,6 @@ void instance(int ID) {
         std::vector<uint8_t> message(length);
         PRNG.GenerateBlock(message.data(), length);
 
-        // for tests only
-        // print the submitted message
-        /*
-        {
-            std::lock_guard<std::mutex> lock(cout_mutex);
-            std::cout << "Hash of the message submitted by node " << nodeID_ << ":" << std::endl;
-            std::vector<uint8_t> msgHash = utils::sha256(message);
-            for (uint8_t c : msgHash) {
-                std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) c;
-            }
-            std::cout << std::endl << std::endl;
-        }
-         */
-
         DCNet.submitMessage(message);
     }
 
@@ -177,14 +163,14 @@ void instance(int ID) {
 
     // submit messages to the DCNetwork
     for(uint32_t i = 0; i < 100; i++) {
-        uint32_t send = PRNG.GenerateWord32(0,3);
+        uint32_t send = PRNG.GenerateWord32(0,6);
         if(send == 0) {
             uint16_t length = PRNG.GenerateWord32(512, 1024);
             std::vector<uint8_t> message(length);
             PRNG.GenerateBlock(message.data(), length);
             DCNet.submitMessage(message);
         }
-        uint32_t sleep = PRNG.GenerateWord32(2,5);
+        uint32_t sleep = PRNG.GenerateWord32(5,5);
         std::this_thread::sleep_for(std::chrono::seconds(sleep));
     }
 

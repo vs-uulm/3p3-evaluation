@@ -29,12 +29,13 @@ add_executable(
         src/dc/SecuredInitialRound.cpp
         src/dc/SecuredFinalRound.cpp
         src/dc/DCMember.cpp
-        src/dc/SeedRound.cpp
         src/dc/UnsecuredInitialRound.cpp
         src/dc/UnsecuredFinalRound.cpp
         src/dc/FairnessProtocol.cpp
         src/network/UnsecuredP2PConnection.cpp
-        src/network/UnsecuredNetworkManager.cpp src/network/UnsecuredNetworkManager.h src/dc/BlameProtocol.cpp src/dc/BlameProtocol.h)
+        src/network/UnsecuredNetworkManager.cpp
+        src/dc/BlameProtocol.cpp
+)
 
 target_link_libraries(
         threePP
