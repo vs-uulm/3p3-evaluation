@@ -4,22 +4,19 @@
 #include <list>
 #include <cstdint>
 #include <vector>
+#include <set>
 #include "ReceivedMessage.h"
 
 class BufferedMessage {
 public:
-    BufferedMessage(ReceivedMessage& msg);
+    BufferedMessage(NetworkMessage& msg, uint32_t connectionID);
 
-    void add_sender(uint32_t senderID);
+    void addSender(uint32_t connectionID);
 
-    const std::vector<uint8_t>& msg_hash() const;
-
-    std::list<uint32_t>& sender_list();
+    bool receivedBy(uint32_t connectionID);
 
 private:
-    std::vector<uint8_t> msg_hash_;
-
-    std::list<uint32_t> sender_list_;
+    std::set<uint32_t> senderList_;
 };
 
 

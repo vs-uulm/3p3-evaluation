@@ -7,7 +7,7 @@
 #include <cryptopp/randpool.h>
 
 namespace utils {
-    std::vector<uint8_t> sha256(std::vector<uint8_t>& data);
+    std::string sha256(std::vector<uint8_t>& data);
 };
 
 

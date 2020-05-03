@@ -1,32 +1,42 @@
-#include <iostream>
 #include "MessageBuffer.h"
 #include "../utils/Utils.h"
 
-MessageBuffer::MessageBuffer(size_t max_size) : max_size_(max_size) {}
+MessageBuffer::MessageBuffer(size_t maxCapacity) : maxCapacity_(maxCapacity) {}
 
-std::shared_ptr<BufferedMessage> MessageBuffer::contains(NetworkMessage& msg) {
-    std::vector<uint8_t> body_hash = utils::sha256(msg.body());
+bool MessageBuffer::contains(ReceivedMessage& msg) {
+    std::string msgHash = utils::sha256(msg.body());
 
-    for(auto it = message_buffer_.begin(); it != message_buffer_.end(); it++)
-        if((*it)->msg_hash() == body_hash)
-            return *it;
+    auto position = indexBuffer_.find(msgHash);
+    if(position != indexBuffer_.end())
+        return true;
 
-    return nullptr;
+    return false;
 }
 
-void MessageBuffer::add(ReceivedMessage& msg) {
-    std::vector<uint8_t> body_hash = utils::sha256(msg.body());
+void MessageBuffer::insert(ReceivedMessage& msg) {
+    std::string msgHash = utils::sha256(msg.body());
 
-    // Check if the message has already been received from a different sender
-    for(auto it = message_buffer_.begin(); it != message_buffer_.end(); it++) {
-        if ((*it)->msg_hash() == body_hash) {
-            (*it)->sender_list().push_back(msg.connectionID());
-            return;
+    auto position = indexBuffer_.find(msgHash);
+    if(position != indexBuffer_.end()) {
+        indexBuffer_[msgHash] = msg.msgType();
+    } else {
+        if (FIFOBuffer_.size() == maxCapacity_) {
+            indexBuffer_.erase(FIFOBuffer_.front());
+            FIFOBuffer_.pop();
         }
-    }
-    if(message_buffer_.size() == max_size_)
-        message_buffer_.pop_front();
 
-    BufferedMessage buff_msg(msg);
-    message_buffer_.push_back(std::make_shared<BufferedMessage>(buff_msg));
+        FIFOBuffer_.push(msgHash);
+
+        indexBuffer_.insert(std::pair(msgHash, msg.msgType()));
+    }
+}
+
+uint8_t MessageBuffer::getType(ReceivedMessage &msg) {
+    std::string msgHash = utils::sha256(msg.body());
+
+    auto position = indexBuffer_.find(msgHash);
+    if(position != indexBuffer_.end())
+        return position->second;
+
+    return 0xFF;
 }

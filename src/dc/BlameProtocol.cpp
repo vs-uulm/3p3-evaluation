@@ -124,7 +124,7 @@ std::unique_ptr<DCState> BlameProtocol::executeTask() {
     // a blame message has been received
     if (result < 0) {
         // TODO clean up the inbox
-        return std::make_unique<FairnessProtocol>(DCNetwork_, newSlotIndex, rValues_, commitments_);
+        return std::make_unique<FairnessProtocol>(DCNetwork_, numSlices, newSlotIndex, rValues_, commitments_);
     }
 
     // collect and validate the final shares
@@ -204,7 +204,7 @@ std::unique_ptr<DCState> BlameProtocol::executeTask() {
     if(nonEmptySlots > oldCommitments_[nodeIndex_].size()) {
         std::cout << "Jamming Node identified." << std::endl;
         std::cout << "Switching to the Fairness Protocol" << std::endl;
-        return std::make_unique<FairnessProtocol>(DCNetwork_, newSlotIndex, std::move(rValues_), std::move(commitments_));
+        return std::make_unique<FairnessProtocol>(DCNetwork_, numSlices, newSlotIndex, std::move(rValues_), std::move(commitments_));
     }
 
     if(invalidCRC) {

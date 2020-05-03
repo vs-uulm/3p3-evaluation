@@ -2,8 +2,10 @@
 #define THREEPP_MESSAGEBUFFER_H
 
 #include <cstdint>
-#include <deque>
+#include <queue>
+#include <string>
 #include <memory>
+#include <unordered_map>
 
 #include "BufferedMessage.h"
 
@@ -11,14 +13,18 @@ class MessageBuffer {
 public:
     MessageBuffer(size_t max_size);
 
-    void add(ReceivedMessage& msg);
+    void insert(ReceivedMessage& msg);
 
-    std::shared_ptr<BufferedMessage> contains(NetworkMessage& msg);
+    bool contains(ReceivedMessage& msg);
+
+    uint8_t getType(ReceivedMessage& msg);
 
 private:
-    size_t max_size_;
+    size_t maxCapacity_;
 
-    std::deque<std::shared_ptr<BufferedMessage>> message_buffer_;
+    std::queue<std::string> FIFOBuffer_;
+
+    std::unordered_map<std::string, uint8_t> indexBuffer_;
 };
 
 

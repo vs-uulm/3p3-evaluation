@@ -2,26 +2,30 @@
 #define THREEPP_MESSAGETYPE_H
 
 enum MessageType {
+    // Setup messages
     RegisterMessage,
     RegisterResponse,
     NodeInfoMessage,
+
+    // DC-Network messages
     HelloMessage,
     HelloResponse,
     ReadyMessage,
     StartDCRound,
+
     RoundOneCommitments,
     RoundOneSharingOne,
     RoundOneSharingTwo,
-    SeedRoundCommitments,
-    SeedRoundSharingOne,
-    SeedRoundSharingTwo,
+
     RoundTwoCommitments,
     RoundTwoSharingOne,
     RoundTwoSharingTwo,
+
     BlameMessage,
     BlameProtocolCommitments,
     BlameProtocolSharingOne,
     BlameProtocolSharingTwo,
+
     ZeroKnowledgeCommitments,
     ZeroKnowledgeCoinCommitments,
     ZeroKnowledgeCoinSharingOne,
@@ -29,7 +33,15 @@ enum MessageType {
     ZeroKnowledgeOpenCommitments,
     ZeroKnowledgeSigmaExchange,
     ZeroKnowledgeSigmaResponse,
-    ZeroKnowledgeSigmaProof
+    ZeroKnowledgeSigmaProof,
+
+    // Adaptive Diffusion messages
+    AdaptiveDiffusionMessage,
+    VirtualSourceToken,
+
+    // Flood and Prune
+    FloodAndPrune
+
 };
 
 #endif //THREEPP_MESSAGETYPE_H

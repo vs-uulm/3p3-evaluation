@@ -17,7 +17,7 @@ enum Outcome {
 
 class FairnessProtocol : public DCState {
 public:
-    FairnessProtocol(DCNetwork& DCNet, size_t slotIndex, std::vector<std::vector<std::vector<CryptoPP::Integer>>> rValues,
+    FairnessProtocol(DCNetwork& DCNet, size_t numSlices, size_t slotIndex, std::vector<std::vector<std::vector<CryptoPP::Integer>>> rValues,
             std::unordered_map<uint32_t, std::vector<std::vector<std::vector<CryptoPP::ECPPoint>>>> commitments);
 
     virtual ~FairnessProtocol();
@@ -40,12 +40,12 @@ private:
     // DCNetwork size
     size_t k_;
 
+    size_t numSlices_;
+
     size_t slotIndex_;
 
     // the position in of the own nodeID in the ordered member list
     size_t nodeIndex_;
-
-    //std::unordered_map<uint32_t, std::vector<bool>> validatedSlots_;
 
     Outcome outcome_;
 

@@ -42,8 +42,12 @@ std::unique_ptr<DCState> ReadyState::executeTask() {
             }
         }
         // the loop is terminated when all members of the DC network are ready
-        OutgoingMessage startDCRound(BROADCAST, StartDCRound, DCNetwork_.nodeID());
-        DCNetwork_.outbox().push(startDCRound);
+        for(auto& member : DCNetwork_.members()) {
+            if(member.second.connectionID() != SELF) {
+                OutgoingMessage startDCRound(member.second.connectionID(), StartDCRound, DCNetwork_.nodeID());
+                DCNetwork_.outbox().push(startDCRound);
+            }
+        }
     }
     else {
         uint32_t groupManager = DCNetwork_.members().at(minimumID).connectionID();

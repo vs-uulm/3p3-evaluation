@@ -35,6 +35,7 @@ add_executable(
         src/network/UnsecuredP2PConnection.cpp
         src/network/UnsecuredNetworkManager.cpp
         src/dc/BlameProtocol.cpp
+        src/ad/AdaptiveDiffusion.cpp
 )
 
 target_link_libraries(
@@ -131,5 +132,17 @@ target_link_libraries(
         -lcryptopp
 )
 
+add_executable(
+        floodAndPrune
+        src/test/FloodAndPruneTest.cpp
+)
 
+target_link_libraries(
+        floodAndPrune
+        -L/usr/local/lib
+        -pthread
+        -lcrypto
+        -lssl
+        -lcryptopp
+)
 

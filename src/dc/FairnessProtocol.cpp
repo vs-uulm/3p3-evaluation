@@ -6,10 +6,10 @@
 #include "SecuredInitialRound.h"
 #include "InitState.h"
 
-FairnessProtocol::FairnessProtocol(DCNetwork &DCNet, size_t slotIndex,
+FairnessProtocol::FairnessProtocol(DCNetwork &DCNet, size_t numSlices, size_t slotIndex,
                                  std::vector<std::vector<std::vector<CryptoPP::Integer>>> rValues,
                                  std::unordered_map<uint32_t, std::vector<std::vector<std::vector<CryptoPP::ECPPoint>>>> commitments)
-        : DCNetwork_(DCNet), k_(DCNetwork_.k()), slotIndex_(slotIndex), rValues_(std::move(rValues)),
+        : DCNetwork_(DCNet), k_(DCNetwork_.k()), numSlices_(numSlices), slotIndex_(slotIndex), rValues_(std::move(rValues)),
           commitments_(std::move(commitments)) {
 
     curve_.Initialize(CryptoPP::ASN1::secp256k1());
@@ -21,9 +21,6 @@ FairnessProtocol::FairnessProtocol(DCNetwork &DCNet, size_t slotIndex,
 FairnessProtocol::~FairnessProtocol() {}
 
 std::unique_ptr<DCState> FairnessProtocol::executeTask() {
-    // TODO undo
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
     FairnessProtocol::distributeCommitments();
     // TODO add more general parameters like numSlots and numSlices
     int result = FairnessProtocol::coinFlip();
@@ -233,19 +230,17 @@ int FairnessProtocol::coinFlip() {
 }
 
 void FairnessProtocol::distributeCommitments() {
-    size_t slotSize = 8 + 33 * k_;
-    size_t numSlices = std::ceil(slotSize / 31.0);
     size_t encodedPointSize = curve_.GetCurve().EncodedPointSize(true);
 
     std::vector<std::vector<CryptoPP::ECPPoint>> sumC_(2 * k_);
     rho_.resize(2 * k_);
     r_.resize(2 * k_);
     for (uint32_t slot = 0; slot < 2 * k_; slot++) {
-        sumC_[slot].resize(numSlices);
-        rho_[slot].reserve(numSlices);
-        r_[slot].reserve(numSlices);
+        sumC_[slot].resize(numSlices_);
+        rho_[slot].reserve(numSlices_);
+        r_[slot].reserve(numSlices_);
 
-        for (uint32_t slice = 0; slice < numSlices; slice++) {
+        for (uint32_t slice = 0; slice < numSlices_; slice++) {
             // generate a random value r' for each slice
             CryptoPP::Integer r(PRNG, CryptoPP::Integer::One(), curve_.GetMaxExponent());
             // add r' to rho'
@@ -276,8 +271,8 @@ void FairnessProtocol::distributeCommitments() {
     encodedCommitments.reserve(2 * k_);
 
     for (uint32_t slot = 0; slot < 2 * k_; slot++) {
-        std::vector<uint8_t> commitmentVector(numSlices * encodedPointSize);
-        for (uint32_t slice = 0, offset = 0; slice < numSlices; slice++, offset += encodedPointSize)
+        std::vector<uint8_t> commitmentVector(numSlices_ * encodedPointSize);
+        for (uint32_t slice = 0, offset = 0; slice < numSlices_; slice++, offset += encodedPointSize)
             curve_.GetCurve().EncodePoint(&commitmentVector[offset], sumC_[permutation_[slot]][slice], true);
 
         encodedCommitments.push_back(std::move(commitmentVector));
@@ -316,9 +311,9 @@ void FairnessProtocol::distributeCommitments() {
         if (commitBroadcast.msgType() == ZeroKnowledgeCommitments) {
 
             std::vector<CryptoPP::ECPPoint> commitmentVector;
-            commitmentVector.reserve(numSlices);
+            commitmentVector.reserve(numSlices_);
 
-            for (uint32_t slice = 0, offset = 0; slice < numSlices; slice++, offset += encodedPointSize) {
+            for (uint32_t slice = 0, offset = 0; slice < numSlices_; slice++, offset += encodedPointSize) {
                 CryptoPP::ECPPoint commitment;
                 curve_.GetCurve().DecodePoint(commitment, &commitBroadcast.body()[offset],
                                               encodedPointSize);
@@ -340,8 +335,6 @@ int FairnessProtocol::openCommitments() {
         std::lock_guard<std::mutex> lock(mutex_);
         std::cout << "Opening commitments" << std::endl;
     }
-    size_t slotSize = 8 + 33 * k_;
-    size_t numSlices = std::ceil(slotSize / 31.0);
 
     // create pairs (slot, r')
     std::vector<std::vector<uint8_t>> encodedRhoMatrix;
@@ -349,11 +342,11 @@ int FairnessProtocol::openCommitments() {
 
     for (uint32_t slot = 0; slot < 2 * k_; slot++) {
         if (permutation_[slot] != slotIndex_) {
-            std::vector<uint8_t> encodedRhoVector(2 + 32 * numSlices);
+            std::vector<uint8_t> encodedRhoVector(2 + 32 * numSlices_);
             encodedRhoVector[0] = (slot & 0xFF00) >> 8;
             encodedRhoVector[1] = (slot & 0x00FF);
 
-            for (uint32_t slice = 0, offset = 2; slice < numSlices; slice++, offset += 32)
+            for (uint32_t slice = 0, offset = 2; slice < numSlices_; slice++, offset += 32)
                 rho_[permutation_[slot]][slice].Encode(&encodedRhoVector[offset], 32);
 
             encodedRhoMatrix.push_back(std::move(encodedRhoVector));
@@ -383,7 +376,7 @@ int FairnessProtocol::openCommitments() {
         if (receivedMessage.msgType() == ZeroKnowledgeOpenCommitments) {
             uint32_t slot = (receivedMessage.body()[0] << 8) | receivedMessage.body()[1];
 
-            for (uint32_t slice = 0, offset = 2; slice < numSlices; slice++, offset += 32) {
+            for (uint32_t slice = 0, offset = 2; slice < numSlices_; slice++, offset += 32) {
                 CryptoPP::Integer rho(&receivedMessage.body()[offset], 32);
                 CryptoPP::Integer s(CryptoPP::Integer::Zero());
                 CryptoPP::ECPPoint commitment = commit(rho, s);
@@ -411,8 +404,6 @@ int FairnessProtocol::proofKnowledge() {
         std::lock_guard<std::mutex> lock(mutex_);
         std::cout << "Proving knowledge" << std::endl;
     }
-    size_t slotSize = 8 + 33 * k_;
-    size_t numSlices = std::ceil(slotSize / 31.0);
     size_t encodedPointSize = curve_.GetCurve().EncodedPointSize(true);
 
     // generate sigmas
@@ -424,10 +415,10 @@ int FairnessProtocol::proofKnowledge() {
     for (uint32_t slot = 0; slot < 2 * k_; slot++) {
         std::vector<CryptoPP::ECPPoint> blindedSigmaVector;
         std::vector<CryptoPP::Integer> sigmaVector;
-        blindedSigmaVector.reserve(numSlices);
-        sigmaVector.reserve(numSlices);
+        blindedSigmaVector.reserve(numSlices_);
+        sigmaVector.reserve(numSlices_);
 
-        for (uint32_t slice = 0; slice < numSlices; slice++) {
+        for (uint32_t slice = 0; slice < numSlices_; slice++) {
             CryptoPP::Integer sigma(PRNG, CryptoPP::Integer::One(), curve_.GetMaxExponent());
             CryptoPP::ECPPoint blindedSigma = curve_.GetCurve().ScalarMultiply(G, sigma);
             sigmaVector.push_back(std::move(sigma));
@@ -441,14 +432,14 @@ int FairnessProtocol::proofKnowledge() {
     encodedSigmas.reserve(2 * k_);
 
     for (uint32_t slot = 0; slot < 2 * k_; slot++) {
-        std::vector<uint8_t> sigmaVector(4 + numSlices * encodedPointSize);
+        std::vector<uint8_t> sigmaVector(4 + numSlices_ * encodedPointSize);
 
         sigmaVector[0] = (slot & 0xFF00) >> 8;
         sigmaVector[1] = (slot & 0x00FF);
         sigmaVector[2] = (permutation_[slot] & 0xFF00) >> 8;
         sigmaVector[3] = (permutation_[slot] & 0x00FF);
 
-        for (uint32_t slice = 0, offset = 4; slice < numSlices; slice++, offset += encodedPointSize)
+        for (uint32_t slice = 0, offset = 4; slice < numSlices_; slice++, offset += encodedPointSize)
             curve_.GetCurve().EncodePoint(&sigmaVector[offset], blindedSigmaMatrix[slot][slice], true);
 
         encodedSigmas.push_back(std::move(sigmaVector));
@@ -491,13 +482,13 @@ int FairnessProtocol::proofKnowledge() {
         if (sigmaBroadcast.msgType() == ZeroKnowledgeSigmaExchange) {
 
             std::vector<CryptoPP::ECPPoint> sigmaVector;
-            sigmaVector.reserve(numSlices);
+            sigmaVector.reserve(numSlices_);
 
             uint32_t slot = (sigmaBroadcast.body()[0] << 8) | sigmaBroadcast.body()[1];
             uint32_t permutation = (sigmaBroadcast.body()[2] << 8) | sigmaBroadcast.body()[3];
             slotMapping[sigmaBroadcast.senderID()][permutation] = slot;
 
-            for (uint32_t slice = 0, offset = 4; slice < numSlices; slice++, offset += encodedPointSize) {
+            for (uint32_t slice = 0, offset = 4; slice < numSlices_; slice++, offset += encodedPointSize) {
                 CryptoPP::ECPPoint blindedSigma;
                 curve_.GetCurve().DecodePoint(blindedSigma, &sigmaBroadcast.body()[offset],
                                               encodedPointSize);
@@ -519,9 +510,9 @@ int FairnessProtocol::proofKnowledge() {
 
     for (uint32_t slot = 0; slot < 2 * k_; slot++) {
         std::vector<CryptoPP::Integer> zVector;
-        zVector.reserve(numSlices);
+        zVector.reserve(numSlices_);
 
-        for (uint32_t slice = 0; slice < numSlices; slice++) {
+        for (uint32_t slice = 0; slice < numSlices_; slice++) {
             CryptoPP::Integer z(PRNG, CryptoPP::Integer::One(), curve_.GetMaxExponent());
             zVector.push_back(std::move(z));
         }
@@ -532,9 +523,9 @@ int FairnessProtocol::proofKnowledge() {
     zEncoded.reserve(2 * k_);
 
     for (uint32_t slot = 0; slot < 2 * k_; slot++) {
-        std::vector<uint8_t> zVector(numSlices * 32);
+        std::vector<uint8_t> zVector(numSlices_ * 32);
 
-        for (uint32_t slice = 0, offset = 0; slice < numSlices; slice++, offset += 32)
+        for (uint32_t slice = 0, offset = 0; slice < numSlices_; slice++, offset += 32)
             zMatrix[slot][slice].Encode(&zVector[offset], 32);
 
         zEncoded.push_back(std::move(zVector));
@@ -570,9 +561,9 @@ int FairnessProtocol::proofKnowledge() {
         if (zBroadcast.msgType() == ZeroKnowledgeSigmaResponse) {
 
             std::vector<CryptoPP::Integer> zVector;
-            zVector.reserve(numSlices);
+            zVector.reserve(numSlices_);
 
-            for (uint32_t slice = 0, offset = 0; slice < numSlices; slice++, offset += 32) {
+            for (uint32_t slice = 0, offset = 0; slice < numSlices_; slice++, offset += 32) {
                 CryptoPP::Integer z(&zBroadcast.body()[offset], 32);
                 zVector.push_back(std::move(z));
             }
@@ -596,9 +587,9 @@ int FairnessProtocol::proofKnowledge() {
             wMatrix.reserve(2 * k_);
             for (uint32_t slot = 0; slot < 2 * k_; slot++) {
                 std::vector<CryptoPP::Integer> wVector;
-                wVector.reserve(numSlices);
+                wVector.reserve(numSlices_);
 
-                for (uint32_t slice = 0; slice < numSlices; slice++) {
+                for (uint32_t slice = 0; slice < numSlices_; slice++) {
                     CryptoPP::Integer w =
                             r_[slot][slice] * zStorage[member->first][slot][slice] + sigmaMatrix[slot][slice];
                     w = w.Modulo(curve_.GetSubgroupOrder());
@@ -619,11 +610,11 @@ int FairnessProtocol::proofKnowledge() {
             wMatrix.reserve(2 * k_);
 
             for (uint32_t slot = 0; slot < 2 * k_; slot++) {
-                std::vector<uint8_t> wVector(2 + numSlices * 32);
+                std::vector<uint8_t> wVector(2 + numSlices_ * 32);
 
                 wVector[0] = (slot & 0xFF00) >> 8;
                 wVector[1] = (slot & 0x00FF);
-                for (uint32_t slice = 0, offset = 2; slice < numSlices; slice++, offset += 32)
+                for (uint32_t slice = 0, offset = 2; slice < numSlices_; slice++, offset += 32)
                     wStorage[member->first][slot][slice].Encode(&wVector[offset], 32);
 
                 wMatrix.push_back(std::move(wVector));
@@ -656,7 +647,7 @@ int FairnessProtocol::proofKnowledge() {
 
             uint32_t slot = (wBroadcast.body()[0] << 8) | wBroadcast.body()[1];
 
-            for (uint32_t slice = 0, offset = 2; slice < numSlices; slice++, offset += 32) {
+            for (uint32_t slice = 0, offset = 2; slice < numSlices_; slice++, offset += 32) {
                 CryptoPP::Integer w(&wBroadcast.body()[offset], 32);
                 CryptoPP::ECPPoint wG = curve_.GetCurve().ScalarMultiply(G, w);
 

@@ -61,7 +61,7 @@ std::unique_ptr<DCState> UnsecuredFinalRound::executeTask() {
         std::lock_guard<std::mutex> lock(mutex_);
         std::cout << "Node: " << std::dec << DCNetwork_.nodeID() << std::endl;
         for (auto &slot : S) {
-            std::vector<uint8_t> msgHash = utils::sha256(slot);
+            std::string msgHash = utils::sha256(slot);
             std::cout << "|";
             for (uint8_t c : msgHash) {
                 std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) c;
@@ -70,6 +70,10 @@ std::unique_ptr<DCState> UnsecuredFinalRound::executeTask() {
         }
         std::cout << std::endl;
     }
+
+    // hand the messages to upper level
+    for(auto& slot : S)
+        DCNetwork_.outboxFinal().push(std::move(slot));
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
     return std::make_unique<UnsecuredInitialRound>(DCNetwork_);

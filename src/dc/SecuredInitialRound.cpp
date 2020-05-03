@@ -198,7 +198,7 @@ std::unique_ptr<DCState> SecuredInitialRound::executeTask() {
     // coin flip test
     bool coinFlipTest = false;
     if (coinFlipTest)
-        return std::make_unique<FairnessProtocol>(DCNetwork_, slotIndex, std::move(rValues_), std::move(commitments_));
+        return std::make_unique<FairnessProtocol>(DCNetwork_, numSlices, slotIndex, std::move(rValues_), std::move(commitments_));
 
     // if no member wants to send a message, return to the Ready state
     if (slots.size() == 0) {

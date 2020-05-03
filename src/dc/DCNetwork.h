@@ -29,7 +29,8 @@ enum SecurityLevel {
 class DCNetwork {
 public:
     DCNetwork(DCMember self, size_t k, SecurityLevel securityLevel, CryptoPP::Integer privateKey,
-            std::unordered_map<uint32_t, Node>& neighbors, MessageQueue<ReceivedMessage>& inbox, MessageQueue<OutgoingMessage>& outbox);
+            std::unordered_map<uint32_t, Node>& neighbors, MessageQueue<ReceivedMessage>& inboxDC,
+            MessageQueue<OutgoingMessage>& outboxThreePP, MessageQueue<std::vector<uint8_t>>& outboxFinal);
 
     std::map<uint32_t, DCMember>& members();
 
@@ -38,6 +39,8 @@ public:
     MessageQueue<ReceivedMessage>& inbox();
 
     MessageQueue<OutgoingMessage>& outbox();
+
+    MessageQueue<std::vector<uint8_t>>& outboxFinal();
 
     std::queue<std::vector<uint8_t>>& submittedMessages();
 
@@ -67,9 +70,11 @@ private:
 
     std::unordered_map<uint32_t, Node>& neighbors_;
 
-    MessageQueue<ReceivedMessage>& inbox_;
+    MessageQueue<ReceivedMessage>& inboxDC_;
 
-    MessageQueue<OutgoingMessage>& outbox_;
+    MessageQueue<OutgoingMessage>& outboxThreePP_;
+
+    MessageQueue<std::vector<uint8_t>>& outboxFinal_;
 
     std::queue<std::vector<uint8_t>> submittedMessages_;
 

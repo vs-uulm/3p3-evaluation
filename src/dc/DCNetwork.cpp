@@ -3,9 +3,10 @@
 #include "InitState.h"
 
 DCNetwork::DCNetwork(DCMember self, size_t k, SecurityLevel securityLevel, CryptoPP::Integer privateKey,
-        std::unordered_map<uint32_t, Node>& neigbors, MessageQueue<ReceivedMessage>& inbox, MessageQueue<OutgoingMessage>& outbox)
+        std::unordered_map<uint32_t, Node>& neigbors, MessageQueue<ReceivedMessage>& inboxDC,
+        MessageQueue<OutgoingMessage>& outboxThreePP, MessageQueue<std::vector<uint8_t>>& outboxFinal)
 : nodeID_(self.nodeID()), k_(k), securityLevel_(securityLevel), privateKey_(privateKey), neighbors_(neigbors),
-  inbox_(inbox), outbox_(outbox), state_(std::make_unique<InitState>(*this)) {
+  inboxDC_(inboxDC), outboxThreePP_(outboxThreePP), outboxFinal_(outboxFinal), state_(std::make_unique<InitState>(*this)) {
     members_.insert(std::pair(nodeID_, self));
 }
 
@@ -28,10 +29,15 @@ std::unordered_map<uint32_t, Node>& DCNetwork::neighbors() {
 }
 
 MessageQueue<ReceivedMessage>& DCNetwork::inbox() {
-    return inbox_;
+    return inboxDC_;
 }
+
 MessageQueue<OutgoingMessage>& DCNetwork::outbox() {
-    return outbox_;
+    return outboxThreePP_;
+}
+
+MessageQueue<std::vector<uint8_t>>& DCNetwork::outboxFinal() {
+    return outboxFinal_;
 }
 
 std::queue<std::vector<uint8_t>>& DCNetwork::submittedMessages() {

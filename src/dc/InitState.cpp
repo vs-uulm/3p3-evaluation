@@ -14,8 +14,7 @@ InitState::~InitState() {}
 std::unique_ptr<DCState> InitState::executeTask() {
     while (DCNetwork_.members().size() < DCNetwork_.k()) {
         auto receivedMessage = DCNetwork_.inbox().pop();
-        //if(DCNetwork_.nodeID() == 5)
-            //std::cout << (int) receivedMessage.msgType() << std::endl;
+
         // skip early arriving ready messages
         while((receivedMessage.msgType() != HelloMessage) && (receivedMessage.msgType() != HelloResponse)) {
             std::this_thread::sleep_for(std::chrono::milliseconds(5));

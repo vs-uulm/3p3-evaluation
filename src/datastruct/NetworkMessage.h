@@ -4,6 +4,12 @@
 #include <vector>
 #include <array>
 
+const uint32_t BROADCAST  = 0xFFFFFFFF;
+
+const uint32_t DC_NETWORK = 0xFFFFFFFE;
+
+const uint32_t SELF       = 0xFFFFFFFD;
+
 class NetworkMessage {
 public:
     NetworkMessage();

@@ -8,21 +8,25 @@
 
 class MessageHandler {
 public:
-    MessageHandler(uint32_t nodeID, MessageQueue<ReceivedMessage>& inbox, MessageQueue<ReceivedMessage>& inboxDCNet,
-            MessageQueue<OutgoingMessage>& outbox);
+    MessageHandler(uint32_t nodeID, MessageQueue<ReceivedMessage>& inboxThreePP, MessageQueue<ReceivedMessage>& inboxDCNet,
+            MessageQueue<OutgoingMessage>& outboxThreePP, MessageQueue<std::vector<uint8_t>>& outboxFinal);
 
     void run();
 
 private:
-    MessageQueue<ReceivedMessage>& inbox_;
+    MessageQueue<ReceivedMessage>& inboxThreePP_;
 
     MessageQueue<ReceivedMessage>& inboxDCNet_;
 
-    MessageQueue<OutgoingMessage>& outbox_;
+    MessageQueue<OutgoingMessage>& outboxThreePP_;
+
+    MessageQueue<std::vector<uint8_t>>& outboxFinal_;
 
     MessageBuffer msgBuffer;
 
     uint32_t nodeID_;
+
+    std::set<uint32_t> DCMembers_;
 };
 
 

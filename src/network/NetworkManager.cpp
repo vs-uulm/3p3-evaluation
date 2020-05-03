@@ -83,13 +83,13 @@ int NetworkManager::connectToCA(const std::string& ip_address, uint16_t port) {
 
 int NetworkManager::sendMessage(OutgoingMessage msg) {
     if(msg.receiverID() == BROADCAST) {
-        for (auto& connection : connections_) {
-            if (connection.second->is_open()) {
-                connection.second->send_msg(msg);
-            }
-        }
-    } else {
-        if (!connections_[msg.receiverID()]->is_open())
+        for(auto& connection : connections_)
+            if(connection.second->connectionID() != msg.receivedFrom())
+                if(connection.second->is_open())
+                    connection.second->send_msg(msg);
+    }
+    else {
+        if(!connections_[msg.receiverID()]->is_open())
             return -1;
         connections_[msg.receiverID()]->send_msg(msg);
     }

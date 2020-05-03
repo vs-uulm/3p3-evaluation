@@ -41,15 +41,16 @@ int main(int argc, char** argv) {
     curve.Initialize(CryptoPP::ASN1::secp256k1());
 
     CryptoPP::AutoSeededRandomPool PRNG;
-    MessageQueue<ReceivedMessage> inbox;
-    MessageQueue<ReceivedMessage> inboxDCNet;
-    MessageQueue<OutgoingMessage> outbox;
+    MessageQueue<ReceivedMessage> inboxThreePP;
+    MessageQueue<ReceivedMessage> inboxDC;
+    MessageQueue<OutgoingMessage> outboxThreePP;
+    MessageQueue<std::vector<uint8_t>> outboxFinal;
 
     io_context io_context_;
     uint16_t port_ = 5555;
     ip::address ip_address = getIP();
 
-    NetworkManager networkManager(io_context_, port_, inbox);
+    NetworkManager networkManager(io_context_, port_, inboxThreePP);
     // Run the io_context which handles the network manager
     std::thread networkThread1([&io_context_]() {
         io_context_.run();
@@ -81,7 +82,7 @@ int main(int argc, char** argv) {
     OutgoingMessage registerMessage(CAConnectionID, RegisterMessage, SELF, messageBody);
     networkManager.sendMessage(registerMessage);
 
-    auto registerResponse = inbox.pop();
+    auto registerResponse = inboxThreePP.pop();
     if(registerResponse.msgType() != RegisterResponse)
         exit(1);
 
@@ -90,7 +91,7 @@ int main(int argc, char** argv) {
                        | (registerResponse.body()[2] << 8) | registerResponse.body()[3];
 
     // wait until the nodeInfo message arrives
-    auto nodeInfo = inbox.pop();
+    auto nodeInfo = inboxThreePP.pop();
     if(nodeInfo.msgType() != NodeInfoMessage)
         exit(1);
 
@@ -139,7 +140,7 @@ int main(int argc, char** argv) {
     }
 
     // start the message handler in a separate thread
-    MessageHandler messageHandler(nodeID_, inbox, inboxDCNet, outbox);
+    MessageHandler messageHandler(nodeID_, inboxThreePP, inboxDC, outboxThreePP, outboxFinal);
     std::thread messageHandlerThread([&]() {
         messageHandler.run();
     });
@@ -147,7 +148,7 @@ int main(int argc, char** argv) {
     // start the write thread
     std::thread writerThread([&]() {
         for (;;) {
-            auto message = outbox.pop();
+            auto message = outboxThreePP.pop();
             int result = networkManager.sendMessage(message);
             if (result < 0) {
                 std::cout << "Error: could not send message" << std::endl;
@@ -157,7 +158,7 @@ int main(int argc, char** argv) {
 
     // start the DCNetwork
     DCMember self(nodeID_, SELF, publicKey);
-    DCNetwork DCNetwork_(self, numNodes+1, securityLevel, privateKey, neighbors, inboxDCNet, outbox);
+    DCNetwork DCNetwork_(self, numNodes+1, securityLevel, privateKey, neighbors, inboxDC, outboxThreePP, outboxFinal);
 
     // submit the first message to the DC-Network
     uint32_t send = PRNG.GenerateWord32(0,3);
