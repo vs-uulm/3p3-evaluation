@@ -11,6 +11,7 @@
 #include "../network/MessageHandler.h"
 #include "../dc/DCNetwork.h"
 #include "../datastruct/MessageType.h"
+#include "../network/UnsecuredNetworkManager.h"
 
 ip::address getIP() {
     boost::asio::io_service io_service;
@@ -25,7 +26,7 @@ ip::address getIP() {
 
 int main(int argc, char** argv) {
     if((argc != 2) || (atoi(argv[1]) < 0) || (atoi(argv[1]) > 2)) {
-        std::cout << "usage: dockerInstace INSTANCES SecurityLevel" << std::endl;
+        std::cout << "usage: ./dockerInstance SecurityLevel" << std::endl;
         std::cout << "0: unsecured" << std::endl;
         std::cout << "1: secured" << std::endl;
         std::cout << "2: adaptive" << std::endl;
@@ -50,7 +51,8 @@ int main(int argc, char** argv) {
     uint16_t port_ = 5555;
     ip::address ip_address = getIP();
 
-    NetworkManager networkManager(io_context_, port_, inboxThreePP);
+    //NetworkManager networkManager(io_context_, port_, inboxThreePP);
+    UnsecuredNetworkManager networkManager(io_context_, port_, inboxThreePP);
     // Run the io_context which handles the network manager
     std::thread networkThread1([&io_context_]() {
         io_context_.run();
@@ -98,8 +100,8 @@ int main(int argc, char** argv) {
     // First determine the number of nodes received
     uint32_t numNodes = (nodeInfo.body()[0] << 24) | (nodeInfo.body()[1] << 16) | (nodeInfo.body()[2] << 8) | (nodeInfo.body()[3]);
 
-    std::unordered_map<uint32_t, Node> neighbors;
-    neighbors.reserve(numNodes);
+    std::unordered_map<uint32_t, Node> nodes;
+    nodes.reserve(numNodes);
 
     // decode the submitted info
     size_t infoSize = 10 + curve.GetCurve().EncodedPointSize(true);
@@ -121,7 +123,7 @@ int main(int argc, char** argv) {
         curve.GetCurve().DecodePoint(publicKey, &nodeInfo.body()[offset+10], curve.GetCurve().EncodedPointSize(true));
 
         Node neighbor(nodeID, publicKey, port, ip_address);
-        neighbors.insert(std::pair(nodeID, neighbor));
+        nodes.insert(std::pair(nodeID, neighbor));
     }
 
     // wait until all nodes have received the information
@@ -129,7 +131,7 @@ int main(int argc, char** argv) {
 
     // Add neighbors
     for(uint32_t i = 0; i < nodeID_; i++) {
-        uint32_t connectionID = networkManager.addNeighbor(neighbors[i]);
+        uint32_t connectionID = networkManager.addNeighbor(nodes[i]);
         if (connectionID < 0) {
             std::cout << "Error: could not add neighbour" << std::endl;
             continue;
@@ -139,8 +141,10 @@ int main(int argc, char** argv) {
         networkManager.sendMessage(helloMessage);
     }
 
+    std::vector<uint32_t>& neighbors = networkManager.neighbors();
+
     // start the message handler in a separate thread
-    MessageHandler messageHandler(nodeID_, inboxThreePP, inboxDC, outboxThreePP, outboxFinal);
+    MessageHandler messageHandler(nodeID_, neighbors, inboxThreePP, inboxDC, outboxThreePP, outboxFinal);
     std::thread messageHandlerThread([&]() {
         messageHandler.run();
     });
@@ -158,7 +162,7 @@ int main(int argc, char** argv) {
 
     // start the DCNetwork
     DCMember self(nodeID_, SELF, publicKey);
-    DCNetwork DCNetwork_(self, numNodes+1, securityLevel, privateKey, neighbors, inboxDC, outboxThreePP, outboxFinal);
+    DCNetwork DCNetwork_(self, numNodes+1, securityLevel, privateKey, nodes, inboxDC, outboxThreePP, outboxFinal);
 
     // submit the first message to the DC-Network
     uint32_t send = PRNG.GenerateWord32(0,3);

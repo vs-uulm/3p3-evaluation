@@ -22,7 +22,6 @@ FairnessProtocol::~FairnessProtocol() {}
 
 std::unique_ptr<DCState> FairnessProtocol::executeTask() {
     FairnessProtocol::distributeCommitments();
-    // TODO add more general parameters like numSlots and numSlices
     int result = FairnessProtocol::coinFlip();
 
     if (result < 0) {

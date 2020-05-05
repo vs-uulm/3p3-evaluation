@@ -22,10 +22,14 @@ public:
 
     int sendMessage(OutgoingMessage msg);
 
+    std::vector<uint32_t>& neighbors();
+
     void start_accept();
 
 private:
     void accept_handler(const boost::system::error_code& e, std::shared_ptr<P2PConnection> connection);
+
+    uint32_t getConnectionID();
 
     std::mutex mutex_;
 
@@ -38,6 +42,8 @@ private:
     uint32_t maxConnectionID_;
 
     MessageQueue<ReceivedMessage>& inbox_;
+
+    std::vector<uint32_t> neighbors_;
 
     std::unordered_map<uint32_t, std::shared_ptr<P2PConnection>> connections_;
 

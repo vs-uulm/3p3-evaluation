@@ -10,7 +10,7 @@
 
 
 ReadyState::ReadyState(DCNetwork& DCNet) : DCNetwork_(DCNet) {
-    //std::cout << "Ready State" << std::endl;
+    std::cout << "Ready State" << std::endl;
 }
 
 ReadyState::~ReadyState() {}
@@ -30,7 +30,7 @@ std::unique_ptr<DCState> ReadyState::executeTask() {
         while(readyNodes.size() < memberCount - 1) {
             auto readyMessage = DCNetwork_.inbox().pop();
             if(readyMessage.msgType() != ReadyMessage) {
-                std::cout << "Ready State:  inappropriate message received: " << (int) readyMessage.msgType() << std::endl;
+                //std::cout << "Ready State:  inappropriate message received: " << (int) readyMessage.msgType() << std::endl;
                 DCNetwork_.inbox().push(readyMessage);
                 std::this_thread::sleep_for(std::chrono::milliseconds(5));
                 readyMessage = DCNetwork_.inbox().pop();
@@ -58,8 +58,12 @@ std::unique_ptr<DCState> ReadyState::executeTask() {
 
         // wait for the round start message
         auto receivedMessage = DCNetwork_.inbox().pop();
-        if(receivedMessage.msgType() != StartDCRound)
-            std::cout << "Ready State: inappropriate message received: " << (int) receivedMessage.msgType() << std::endl;
+        while(receivedMessage.msgType() != StartDCRound) {
+            //std::cout << "Ready State: inappropriate message received: " << (int) receivedMessage.msgType() << std::endl;
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+            DCNetwork_.inbox().push(receivedMessage);
+            receivedMessage = DCNetwork_.inbox().pop();
+        }
     }
     // perform a state transition
     if(DCNetwork_.securityLevel() == Secured)

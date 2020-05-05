@@ -35,7 +35,6 @@ add_executable(
         src/network/UnsecuredP2PConnection.cpp
         src/network/UnsecuredNetworkManager.cpp
         src/dc/BlameProtocol.cpp
-        src/ad/AdaptiveDiffusion.cpp
 )
 
 target_link_libraries(
@@ -55,6 +54,8 @@ add_executable(
         src/network/P2PConnection.cpp
         src/datastruct/OutgoingMessage.cpp
         src/network/NetworkManager.cpp
+        src/network/UnsecuredP2PConnection.cpp
+        src/network/UnsecuredNetworkManager.cpp
         src/datastruct/MessageBuffer.cpp
         src/datastruct/BufferedMessage.cpp
         src/network/MessageHandler.cpp
@@ -90,6 +91,8 @@ add_executable(
         src/network/P2PConnection.cpp
         src/datastruct/OutgoingMessage.cpp
         src/network/NetworkManager.cpp
+        src/network/UnsecuredP2PConnection.cpp
+        src/network/UnsecuredNetworkManager.cpp
         src/datastruct/ReceivedMessage.cpp
         src/datastruct/NetworkMessage.cpp
 )
@@ -135,10 +138,48 @@ target_link_libraries(
 add_executable(
         floodAndPrune
         src/test/FloodAndPruneTest.cpp
+        src/network/Node.cpp
+        src/network/P2PConnection.cpp
+        src/datastruct/OutgoingMessage.cpp
+        src/network/NetworkManager.cpp
+        src/datastruct/MessageBuffer.cpp
+        src/datastruct/BufferedMessage.cpp
+        src/network/MessageHandler.cpp
+        src/datastruct/ReceivedMessage.cpp
+        src/utils/Utils.cpp
+        src/datastruct/MessageType.h
+        src/datastruct/NetworkMessage.cpp
 )
 
 target_link_libraries(
         floodAndPrune
+        -L/usr/local/lib
+        -pthread
+        -lcrypto
+        -lssl
+        -lcryptopp
+)
+
+add_executable(
+        adaptiveDiffusion
+        src/test/AdaptiveDiffusionTest.cpp
+        src/network/Node.cpp
+        src/network/P2PConnection.cpp
+        src/datastruct/OutgoingMessage.cpp
+        src/network/NetworkManager.cpp
+        src/datastruct/MessageBuffer.cpp
+        src/datastruct/BufferedMessage.cpp
+        src/network/MessageHandler.cpp
+        src/datastruct/ReceivedMessage.cpp
+        src/utils/Utils.cpp
+        src/datastruct/MessageType.h
+        src/datastruct/NetworkMessage.cpp
+        src/ad/VirtualSource.cpp
+        src/ad/AdaptiveDiffusion.h
+)
+
+target_link_libraries(
+        adaptiveDiffusion
         -L/usr/local/lib
         -pthread
         -lcrypto

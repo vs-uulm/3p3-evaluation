@@ -21,6 +21,8 @@ SecuredInitialRound::SecuredInitialRound(DCNetwork &DCNet)
 
     // determine the index of the own nodeID in the ordered member list
     nodeIndex_ = std::distance(DCNetwork_.members().begin(), DCNetwork_.members().find(DCNetwork_.nodeID()));
+
+    std::cout << "Initial Round" << std::endl;
 }
 
 SecuredInitialRound::~SecuredInitialRound() {}
@@ -203,7 +205,8 @@ std::unique_ptr<DCState> SecuredInitialRound::executeTask() {
     // if no member wants to send a message, return to the Ready state
     if (slots.size() == 0) {
         std::cout << "No sender in this round" << std::endl;
-        return std::make_unique<ReadyState>(DCNetwork_);
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        return std::make_unique<SecuredInitialRound>(DCNetwork_);
     } else {
         return std::make_unique<SecuredFinalRound>(DCNetwork_, finalSlotIndex, std::move(slots),
                                                    std::move(seedPrivateKeys),

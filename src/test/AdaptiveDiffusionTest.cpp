@@ -1,8 +1,10 @@
 #include <cstdint>
+#include <cstdint>
 #include <thread>
 #include <list>
 #include <iostream>
 #include <cryptopp/oids.h>
+#include <iomanip>
 
 #include "../network/P2PConnection.h"
 #include "../network/NetworkManager.h"
@@ -10,11 +12,27 @@
 #include "../dc/DCNetwork.h"
 #include "../datastruct/MessageType.h"
 #include "../utils/Utils.h"
-#include "../network/UnsecuredNetworkManager.h"
 
 std::mutex cout_mutex;
 
-const uint32_t INSTANCES = 4;
+const uint32_t INSTANCES = 16;
+
+std::vector<std::vector<uint32_t>> topology = {{1, 4, 5},
+                                               {2, 6},
+                                               {3, 7},
+                                               {7},
+                                               {5, 8, 9},
+                                               {6, 10},
+                                               {7, 11},
+                                               {11},
+                                               {9, 12, 13},
+                                               {10, 14},
+                                               {11, 15},
+                                               {15},
+                                               {13},
+                                               {14},
+                                               {15},
+                                               {}};
 
 void instance(int ID) {
     CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> curve;
@@ -31,9 +49,7 @@ void instance(int ID) {
 
     ip::address_v4 ip_address(ip::address_v4::from_string("127.0.0.1"));
 
-    // TODO
-    //NetworkManager networkManager(io_context_, port_, inboxThreePP);
-    UnsecuredNetworkManager networkManager(io_context_, port_, inboxThreePP);
+    NetworkManager networkManager(io_context_, port_, inboxThreePP);
     // Run the io_context which handles the network manager
     std::thread networkThread1([&io_context_]() {
         io_context_.run();
@@ -72,7 +88,7 @@ void instance(int ID) {
     }
     // decode the received nodeID
     uint32_t nodeID_ = ((registerResponse.body()[0]) << 24) | (registerResponse.body()[1] << 16)
-                            | (registerResponse.body()[2] << 8) | registerResponse.body()[3];
+                       | (registerResponse.body()[2] << 8) | registerResponse.body()[3];
 
 
     // wait until the nodeInfo message arrives
@@ -94,7 +110,7 @@ void instance(int ID) {
     for(uint32_t i = 0, offset = 4; i < numNodes; i++, offset += infoSize) {
         // extract the nodeID
         uint32_t nodeID = (nodeInfo.body()[offset] << 24) | (nodeInfo.body()[offset+1] << 16)
-                            | (nodeInfo.body()[offset+2] << 8) | (nodeInfo.body()[offset+3]);
+                          | (nodeInfo.body()[offset+2] << 8) | (nodeInfo.body()[offset+3]);
         // extract the port
         uint16_t port = (nodeInfo.body()[offset+4] << 8) | nodeInfo.body()[offset+5];
 
@@ -112,28 +128,21 @@ void instance(int ID) {
     }
 
     // Add neighbors
-    for(uint32_t i = 0; i < nodeID_; i++) {
-        uint32_t connectionID = networkManager.addNeighbor(nodes[i]);
+    for(uint32_t nodeID : topology[nodeID_]) {
+        uint32_t connectionID = networkManager.addNeighbor(nodes[nodeID]);
         if (connectionID < 0) {
             std::cout << "Error: could not add neighbour" << std::endl;
             continue;
         }
-
-        // Add the node as a member of the DC-Network
-        OutgoingMessage helloMessage(connectionID, HelloMessage, nodeID_);
-        networkManager.sendMessage(helloMessage);
     }
 
     // wait until all nodes are connected
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     std::vector<uint32_t>& neighbors = networkManager.neighbors();
-    {
-        std::lock_guard<std::mutex> lock(cout_mutex);
-        std::cout << "Num Neighbors: " << neighbors.size() << std::endl;
-    }
+
     // start the message handler in a separate thread
-    MessageHandler messageHandler(nodeID_, neighbors, inboxThreePP, inboxDC, outboxThreePP, outboxFinal);
+    MessageHandler messageHandler(nodeID_, inboxThreePP, inboxDC, outboxThreePP, outboxFinal);
     std::thread messageHandlerThread([&]() {
         messageHandler.run();
     });
@@ -148,42 +157,27 @@ void instance(int ID) {
             }
         }
     });
-    // start the DCNetwork
-    DCMember self(nodeID_, SELF, publicKey);
-    DCNetwork DCNet(self, INSTANCES, Unsecured, privateKey, nodes, inboxDC, outboxThreePP, outboxFinal);
 
-    // submit messages to the DCNetwork
-    if (nodeID_ < 2) {
-        uint16_t length = PRNG.GenerateWord32(512, 1024);
-        std::vector<uint8_t> message(length);
-        PRNG.GenerateBlock(message.data(), length);
-
-        DCNet.submitMessage(message);
-    }
-
-    std::thread DCThread([&]() {
-        DCNet.run();
+    // start the read thread
+    std::thread readThread([&]() {
+        for(;;) {
+            std::vector<uint8_t> receivedMessage = outboxFinal.pop();
+            std::lock_guard<std::mutex> lock(cout_mutex);
+            std::cout << "Node " << std::dec << nodeID_ << ": message received:" << std::endl;
+            for(uint8_t c : receivedMessage)
+                std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) c;
+            std::cout << std::endl;
+        }
     });
 
+    if(nodeID_ == 5) {
+        std::string message("Adaptive Diffusion test message.");
+        std::vector<uint8_t> vecString(message.begin(), message.end());
 
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-
-    // submit messages to the DCNetwork
-    for(uint32_t i = 0; i < 100; i++) {
-        uint32_t send = PRNG.GenerateWord32(0,3);
-        if(send == 0) {
-            //uint16_t length = PRNG.GenerateWord32(512, 1024);
-            uint16_t length = 1024;
-            std::vector<uint8_t> message(length);
-            PRNG.GenerateBlock(message.data(), length);
-            DCNet.submitMessage(message);
-        }
-        uint32_t sleep = PRNG.GenerateWord32(5,5);
-        std::this_thread::sleep_for(std::chrono::seconds(sleep));
+        OutgoingMessage adTest(BROADCAST, AdaptiveDiffusionMessage, nodeID_, std::move(vecString));
+        outboxThreePP.push(adTest);
     }
 
-
-    DCThread.join();
     writerThread.join();
     messageHandlerThread.join();
     networkThread1.join();
@@ -203,8 +197,8 @@ void nodeAuthority() {
     uint16_t port = 7777;
 
     // TODO
-    //NetworkManager networkManager(io_context_, port, inbox);
-    UnsecuredNetworkManager networkManager(io_context_, port, inbox);
+    NetworkManager networkManager(io_context_, port, inbox);
+    //UnsecuredNetworkManager networkManager(io_context_, port, inbox);
     // Run the io_context which handles the network manager
     std::thread networkThread([&io_context_]() {
         io_context_.run();

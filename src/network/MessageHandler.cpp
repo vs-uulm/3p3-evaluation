@@ -2,11 +2,11 @@
 #include "MessageHandler.h"
 #include "../datastruct/MessageType.h"
 
-MessageHandler::MessageHandler(uint32_t nodeID, MessageQueue<ReceivedMessage>& inboxThreePP,
-                               MessageQueue<ReceivedMessage>& inboxDCNet, MessageQueue<OutgoingMessage>& outboxThreePP,
-                               MessageQueue<std::vector<uint8_t>>& outboxFinal)
+MessageHandler::MessageHandler(uint32_t nodeID, std::vector<uint32_t>& neighbors,
+                               MessageQueue<ReceivedMessage>& inboxThreePP, MessageQueue<ReceivedMessage>& inboxDCNet,
+                               MessageQueue<OutgoingMessage>& outboxThreePP, MessageQueue<std::vector<uint8_t>>& outboxFinal)
         : inboxThreePP_(inboxThreePP), inboxDCNet_(inboxDCNet), outboxThreePP_(outboxThreePP), outboxFinal_(outboxFinal),
-          msgBuffer(0), nodeID_(nodeID) {}
+          msgBuffer(16), nodeID_(nodeID), neighbors_(neighbors) {}
 
 void MessageHandler::run() {
     for (;;) {
@@ -65,7 +65,8 @@ void MessageHandler::run() {
                     outboxThreePP_.push(std::move(floodMessage));
 
                     // pass the received message to the upper layer
-                    outboxFinal_.push(std::move(receivedMessage.body()));
+                    if(receivedMessage.senderID() != SELF)
+                        outboxFinal_.push(std::move(receivedMessage.body()));
                 } else if(msgBuffer.getType(receivedMessage) != FloodAndPrune) {
                     // only updates the message type
                     msgBuffer.insert(receivedMessage);

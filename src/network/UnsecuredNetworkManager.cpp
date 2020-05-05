@@ -23,6 +23,7 @@ void UnsecuredNetworkManager::accept_handler(const boost::system::error_code& e,
     } else {
         connection->read();
         connections_.insert(std::pair(connection->connectionID(), connection));
+        neighbors_.push_back(connection->connectionID());
         start_accept();
     }
 }
@@ -36,6 +37,7 @@ int UnsecuredNetworkManager::addNeighbor(const Node &node) {
         if (connection->connect(node.ip_address(), node.port()) == 0) {
 
             connections_.insert(std::pair(connectionID, connection));
+            neighbors_.push_back(connectionID);
             return connectionID;
         }
         std::cout << "ConnectionID" << connectionID << std::endl;
@@ -54,6 +56,7 @@ int UnsecuredNetworkManager::connectToCA(const std::string& ip_address, uint16_t
     for(int retryCount = 3; retryCount > 0; retryCount--) {
         if (connection->connect(ip::address_v4::from_string(ip_address), port) == 0) {
             connections_.insert(std::pair(connectionID, connection));
+            neighbors_.push_back(connectionID);
             return connectionID;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
@@ -71,7 +74,7 @@ int UnsecuredNetworkManager::sendMessage(OutgoingMessage msg) {
         }
     } else {
         if (!connections_[msg.receiverID()]->is_open()) {
-            std::cout << "Error" << std::endl;
+            //std::cout << "Error" << std::endl;
             return -1;
         }
         connections_[msg.receiverID()]->send_msg(msg);
@@ -80,13 +83,13 @@ int UnsecuredNetworkManager::sendMessage(OutgoingMessage msg) {
     return 0;
 }
 
-size_t UnsecuredNetworkManager::numConnections() {
-    return connections_.size();
-}
-
 uint32_t UnsecuredNetworkManager::getConnectionID() {
     std::lock_guard<std::mutex> lock(mutex_);
     uint32_t connectionID = maxConnectionID_;
     maxConnectionID_++;
     return connectionID;
+}
+
+std::vector<uint32_t>& UnsecuredNetworkManager::neighbors() {
+    return neighbors_;
 }

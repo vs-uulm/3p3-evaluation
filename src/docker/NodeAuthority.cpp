@@ -3,6 +3,7 @@
 #include "../network/NetworkManager.h"
 #include "../dc/DCNetwork.h"
 #include "../datastruct/MessageType.h"
+#include "../network/UnsecuredNetworkManager.h"
 
 int main(int argc, char** argv) {
     if(argc != 2)
@@ -25,7 +26,8 @@ int main(int argc, char** argv) {
     io_context io_context_;
     uint16_t port = 7777;
 
-    NetworkManager networkManager(io_context_, port, inbox);
+    //NetworkManager networkManager(io_context_, port, inbox);
+    UnsecuredNetworkManager networkManager(io_context_, port, inbox);
 
     // Run the io_context which handles the network manager
     std::thread networkThread([&io_context_]() {

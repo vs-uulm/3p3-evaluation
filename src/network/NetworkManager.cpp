@@ -15,14 +15,8 @@ NetworkManager::NetworkManager(io_context& io_context, uint16_t port, MessageQue
     start_accept();
 }
 
-
 void NetworkManager::start_accept() {
-    uint32_t connectionID;
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        connectionID = maxConnectionID_;
-        maxConnectionID_++;
-    }
+    uint32_t connectionID = getConnectionID();
     auto new_connection = std::make_shared<P2PConnection>(connectionID, io_context_, ssl_context_, inbox_);
     acceptor_.async_accept(new_connection->socket().lowest_layer(),
                            boost::bind(&NetworkManager::accept_handler, this,
@@ -35,23 +29,20 @@ void NetworkManager::accept_handler(const boost::system::error_code& e, std::sha
     } else {
         connection->async_handshake();
         connections_.insert(std::pair(connection->connectionID(), connection));
+        neighbors_.push_back(connection->connectionID());
         start_accept();
     }
 }
 
 int NetworkManager::addNeighbor(const Node &node) {
-    uint32_t connectionID;
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        connectionID = maxConnectionID_;
-        maxConnectionID_++;
-    }
+    uint32_t connectionID = getConnectionID();
 
     auto connection = std::make_shared<P2PConnection>(connectionID, io_context_, ssl_context_, inbox_);
 
     for(int retryCount = 5; retryCount > 0; retryCount--) {
         if (connection->connect(node.ip_address(), node.port()) == 0) {
             connections_.insert(std::pair(connectionID, connection));
+            neighbors_.push_back(connectionID);
             return connectionID;
         }
         std::cout << "ConnectionID" << connectionID << std::endl;
@@ -64,21 +55,24 @@ int NetworkManager::addNeighbor(const Node &node) {
 }
 
 int NetworkManager::connectToCA(const std::string& ip_address, uint16_t port) {
-    uint32_t connectionID;
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        connectionID = maxConnectionID_;
-        maxConnectionID_++;
-    }
+    uint32_t connectionID = getConnectionID();
 
     auto connection = std::make_shared<P2PConnection>(connectionID, io_context_, ssl_context_, inbox_);
     for(;;) {
         if (connection->connect(ip::address_v4::from_string(ip_address), port) == 0) {
             connections_.insert(std::pair(connectionID, connection));
+            neighbors_.push_back(connectionID);
             return connectionID;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
     }
+}
+
+uint32_t NetworkManager::getConnectionID() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    uint32_t connectionID = maxConnectionID_;
+    maxConnectionID_++;
+    return connectionID;
 }
 
 int NetworkManager::sendMessage(OutgoingMessage msg) {
@@ -94,4 +88,8 @@ int NetworkManager::sendMessage(OutgoingMessage msg) {
         connections_[msg.receiverID()]->send_msg(msg);
     }
     return 0;
+}
+
+std::vector<uint32_t>& NetworkManager::neighbors() {
+    return neighbors_;
 }
