@@ -53,10 +53,9 @@ int UnsecuredNetworkManager::connectToCA(const std::string& ip_address, uint16_t
     uint32_t connectionID = getConnectionID();
 
     auto connection = std::make_shared<UnsecuredP2PConnection>(connectionID, io_context_, inbox_);
-    for(int retryCount = 3; retryCount > 0; retryCount--) {
+    for(;;) {
         if (connection->connect(ip::address_v4::from_string(ip_address), port) == 0) {
             connections_.insert(std::pair(connectionID, connection));
-            neighbors_.push_back(connectionID);
             return connectionID;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
@@ -73,10 +72,12 @@ int UnsecuredNetworkManager::sendMessage(OutgoingMessage msg) {
             }
         }
     } else {
-        if (!connections_[msg.receiverID()]->is_open()) {
-            //std::cout << "Error" << std::endl;
+        if(connections_.count(msg.receiverID()) < 1) {
+            std::cout << msg.receiverID() << " " << std::dec << (int) msg.header()[0] << std::endl;
             return -1;
         }
+        if (!connections_[msg.receiverID()]->is_open())
+            return -1;
         connections_[msg.receiverID()]->send_msg(msg);
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -90,6 +91,6 @@ uint32_t UnsecuredNetworkManager::getConnectionID() {
     return connectionID;
 }
 
-std::vector<uint32_t>& UnsecuredNetworkManager::neighbors() {
+std::vector<uint32_t> UnsecuredNetworkManager::neighbors() {
     return neighbors_;
 }

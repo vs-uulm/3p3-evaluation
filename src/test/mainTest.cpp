@@ -14,7 +14,7 @@
 
 std::mutex cout_mutex;
 
-const uint32_t INSTANCES = 4;
+const uint32_t INSTANCES = 12;
 
 void instance(int ID) {
     CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> curve;
@@ -127,11 +127,6 @@ void instance(int ID) {
     // wait until all nodes are connected
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    std::vector<uint32_t>& neighbors = networkManager.neighbors();
-    {
-        std::lock_guard<std::mutex> lock(cout_mutex);
-        std::cout << "Num Neighbors: " << neighbors.size() << std::endl;
-    }
     // start the message handler in a separate thread
     MessageHandler messageHandler(nodeID_, neighbors, inboxThreePP, inboxDC, outboxThreePP, outboxFinal);
     std::thread messageHandlerThread([&]() {
@@ -150,7 +145,7 @@ void instance(int ID) {
     });
     // start the DCNetwork
     DCMember self(nodeID_, SELF, publicKey);
-    DCNetwork DCNet(self, INSTANCES, Unsecured, privateKey, nodes, inboxDC, outboxThreePP, outboxFinal);
+    DCNetwork DCNet(self, INSTANCES, Secured, privateKey, nodes, inboxDC, outboxThreePP, outboxFinal);
 
     // submit messages to the DCNetwork
     if (nodeID_ < 2) {

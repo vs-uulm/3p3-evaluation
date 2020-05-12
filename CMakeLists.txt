@@ -16,7 +16,6 @@ add_executable(
         src/datastruct/OutgoingMessage.cpp
         src/network/NetworkManager.cpp
         src/datastruct/MessageBuffer.cpp
-        src/datastruct/BufferedMessage.cpp
         src/network/MessageHandler.cpp
         src/datastruct/ReceivedMessage.cpp
         src/utils/Utils.cpp
@@ -35,7 +34,8 @@ add_executable(
         src/network/UnsecuredP2PConnection.cpp
         src/network/UnsecuredNetworkManager.cpp
         src/dc/BlameProtocol.cpp
-)
+        src/ad/VirtualSource.cpp
+        src/ad/AdaptiveDiffusion.cpp)
 
 target_link_libraries(
         threePP
@@ -57,7 +57,6 @@ add_executable(
         src/network/UnsecuredP2PConnection.cpp
         src/network/UnsecuredNetworkManager.cpp
         src/datastruct/MessageBuffer.cpp
-        src/datastruct/BufferedMessage.cpp
         src/network/MessageHandler.cpp
         src/datastruct/ReceivedMessage.cpp
         src/utils/Utils.cpp
@@ -73,6 +72,8 @@ add_executable(
         src/dc/UnsecuredInitialRound.cpp
         src/dc/UnsecuredFinalRound.cpp
         src/dc/FairnessProtocol.cpp
+        src/ad/VirtualSource.cpp
+        src/ad/AdaptiveDiffusion.cpp
 )
 
 target_link_libraries(
@@ -143,12 +144,14 @@ add_executable(
         src/datastruct/OutgoingMessage.cpp
         src/network/NetworkManager.cpp
         src/datastruct/MessageBuffer.cpp
-        src/datastruct/BufferedMessage.cpp
         src/network/MessageHandler.cpp
         src/datastruct/ReceivedMessage.cpp
         src/utils/Utils.cpp
         src/datastruct/MessageType.h
         src/datastruct/NetworkMessage.cpp
+        src/ad/AdaptiveDiffusion.cpp
+        src/network/UnsecuredP2PConnection.cpp
+        src/network/UnsecuredNetworkManager.cpp
 )
 
 target_link_libraries(
@@ -168,14 +171,15 @@ add_executable(
         src/datastruct/OutgoingMessage.cpp
         src/network/NetworkManager.cpp
         src/datastruct/MessageBuffer.cpp
-        src/datastruct/BufferedMessage.cpp
         src/network/MessageHandler.cpp
         src/datastruct/ReceivedMessage.cpp
         src/utils/Utils.cpp
         src/datastruct/MessageType.h
         src/datastruct/NetworkMessage.cpp
         src/ad/VirtualSource.cpp
-        src/ad/AdaptiveDiffusion.h
+        src/ad/AdaptiveDiffusion.cpp
+        src/network/UnsecuredP2PConnection.cpp
+        src/network/UnsecuredNetworkManager.cpp
 )
 
 target_link_libraries(

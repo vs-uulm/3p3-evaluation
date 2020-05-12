@@ -7,24 +7,26 @@
 #include <memory>
 #include <unordered_map>
 
-#include "BufferedMessage.h"
+#include "ReceivedMessage.h"
 
 class MessageBuffer {
 public:
     MessageBuffer(size_t max_size);
 
-    void insert(ReceivedMessage& msg);
+    int insert(ReceivedMessage& msg);
 
     bool contains(ReceivedMessage& msg);
 
     uint8_t getType(ReceivedMessage& msg);
+
+    ReceivedMessage getMessage(std::string& msgHash);
 
 private:
     size_t maxCapacity_;
 
     std::queue<std::string> FIFOBuffer_;
 
-    std::unordered_map<std::string, uint8_t> indexBuffer_;
+    std::unordered_map<std::string, ReceivedMessage> indexBuffer_;
 };
 
 

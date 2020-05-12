@@ -10,7 +10,7 @@
 
 
 ReadyState::ReadyState(DCNetwork& DCNet) : DCNetwork_(DCNet) {
-    std::cout << "Ready State" << std::endl;
+    //std::cout << "Ready State" << std::endl;
 }
 
 ReadyState::~ReadyState() {}

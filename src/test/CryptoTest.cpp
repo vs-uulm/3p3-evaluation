@@ -8,6 +8,7 @@
 #include <cryptopp/modes.h>
 #include <iostream>
 #include <iomanip>
+#include <set>
 
 const CryptoPP::ECPPoint G(CryptoPP::Integer("362dc3caf8a0e8afd06f454a6da0cdce6e539bc3f15e79a15af8aa842d7e3ec2h"),
                             CryptoPP::Integer("b9f8addb295b0fd4d7c49a686eac7b34a9a11ed2d6d243ad065282dc13bce575h"));
@@ -16,6 +17,7 @@ const CryptoPP::ECPPoint H(CryptoPP::Integer("a3cf0a4b6e1d9146c73e9a82e4bfdc37ee
                             CryptoPP::Integer("db4369fabd3d770dd4c19d81ac69a1749963d69c687d7c4e12d186548b94cb2ah"));
 
 int main() {
+    /*
     CryptoPP::AutoSeededRandomPool PRNG;
 
     CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> ec_group;
@@ -86,7 +88,6 @@ int main() {
     std::cout << std::hex << CC_.x << std::endl;
     std::cout << std::hex << CC_.y << std::endl;
 
-    /*
     CryptoPP::Integer maximum_k1 = ec_group.GetMaxExponent();
     std::cout << "Maximum K1:  " << std::hex << maximum_k1 << std::endl;
 

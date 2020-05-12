@@ -1,6 +1,9 @@
 #include <iostream>
+#include <thread>
 #include "MessageHandler.h"
 #include "../datastruct/MessageType.h"
+#include "../ad/AdaptiveDiffusion.h"
+#include "../ad/VirtualSource.h"
 
 MessageHandler::MessageHandler(uint32_t nodeID, std::vector<uint32_t>& neighbors,
                                MessageQueue<ReceivedMessage>& inboxThreePP, MessageQueue<ReceivedMessage>& inboxDCNet,
@@ -47,13 +50,29 @@ void MessageHandler::run() {
                 if(!msgBuffer.contains(receivedMessage)) {
                     msgBuffer.insert(receivedMessage);
                     outboxFinal_.push(receivedMessage.body());
-                } else {
-                    // TODO sub-graph broadcast
+                } else if(receivedMessage.senderID() > 1) {
+                    uint32_t TTL = receivedMessage.senderID()-1;
+                    std::set<uint32_t> neighborsSubset;
+                    while(neighborsSubset.size() <  std::min(AdaptiveDiffusion::Eta, neighbors_.size())) {
+                        uint32_t neighbor = PRNG.GenerateWord32(0, neighbors_.size()-1);
+                        neighborsSubset.insert(neighbors_[neighbor]);
+                    }
+                    for(uint32_t neighbor : neighbors_) {
+                        OutgoingMessage adForward(neighbor, AdaptiveDiffusionMessage, TTL, receivedMessage.body());
+                        outboxThreePP_.push(std::move(adForward));
+                    }
                 }
                 break;
-            case VirtualSourceToken:
-                // TODO
+            case VirtualSourceToken: {
+                std::string msgHash(&receivedMessage.body()[4], &receivedMessage.body()[36]);
+                std::vector<uint8_t> message = msgBuffer.getMessage(msgHash).body();
+                std::thread virtualSourceThread([=]() {
+                    VirtualSource virtualSource(nodeID_, neighbors_, outboxThreePP_, inboxThreePP_, message, receivedMessage);
+                    virtualSource.executeTask();
+                });
+                virtualSourceThread.detach();
                 break;
+            }
             case FloodAndPrune: {
                 if(!msgBuffer.contains(receivedMessage)) {
                     // Add the message to the message buffer
@@ -70,6 +89,11 @@ void MessageHandler::run() {
                 } else if(msgBuffer.getType(receivedMessage) != FloodAndPrune) {
                     // only updates the message type
                     msgBuffer.insert(receivedMessage);
+
+                    // flood the message
+                    OutgoingMessage floodMessage(BROADCAST, FloodAndPrune, nodeID_, receivedMessage.connectionID(),
+                                                 receivedMessage.body());
+                    outboxThreePP_.push(std::move(floodMessage));
                 }
                 break;
             }

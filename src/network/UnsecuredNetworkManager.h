@@ -21,7 +21,7 @@ public:
 
     void start_accept();
 
-    std::vector<uint32_t>& neighbors();
+    std::vector<uint32_t> neighbors();
 
 private:
     void accept_handler(const boost::system::error_code& e, std::shared_ptr<UnsecuredP2PConnection> connection);

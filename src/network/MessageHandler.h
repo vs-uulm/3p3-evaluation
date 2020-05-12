@@ -1,6 +1,8 @@
 #ifndef THREEPP_MESSAGEHANDLER_H
 #define THREEPP_MESSAGEHANDLER_H
 
+#include <set>
+#include <cryptopp/osrng.h>
 #include "../datastruct/OutgoingMessage.h"
 #include "../datastruct/MessageQueue.h"
 #include "../datastruct/ReceivedMessage.h"
@@ -30,6 +32,8 @@ private:
     std::vector<uint32_t>& neighbors_;
 
     std::set<uint32_t> DCMembers_;
+
+    CryptoPP::AutoSeededRandomPool PRNG;
 };
 
 

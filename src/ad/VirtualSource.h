@@ -3,27 +3,47 @@
 
 #include <cstdint>
 #include <vector>
+#include <random>
+#include <cryptopp/osrng.h>
+
+#include "../datastruct/MessageQueue.h"
+#include "../datastruct/OutgoingMessage.h"
+#include "../datastruct/ReceivedMessage.h"
 
 class VirtualSource {
 public:
-    VirtualSource(std::vector<uint32_t>& neighbors, std::vector<uint8_t> message);
+    VirtualSource(uint32_t nodeID, std::vector<uint32_t>& neighbors, MessageQueue<OutgoingMessage>& outboxThreePP,
+                  MessageQueue<ReceivedMessage>& inboxThreePP, std::vector<uint8_t> message);
 
-    VirtualSource(std::vector<uint32_t>& neighbors, std::vector<uint8_t> message, std::vector<uint8_t> VSToken);
+    VirtualSource(uint32_t nodeID, std::vector<uint32_t>& neighbors, MessageQueue<OutgoingMessage>& outboxThreePP,
+                  MessageQueue<ReceivedMessage>& inboxThreePP, std::vector<uint8_t> message, ReceivedMessage VSToken);
 
-    void forwardMessage();
+    void executeTask();
+
+    void spreadMessage();
 
 private:
     uint16_t s;
 
     uint16_t h;
 
-    uint32_t v_prev;
+    uint32_t numForwards;
 
-    std::vector<uint8_t> r;
+    uint32_t nodeID_;
 
     std::vector<uint8_t> message_;
 
-    std::vector<uint32_t>& neighbors_;
+    std::set<uint32_t> neighbors_;
+
+    MessageQueue<OutgoingMessage>& outboxThreePP_;
+
+    MessageQueue<ReceivedMessage>& inboxThreePP_;
+
+    std::default_random_engine randomEngine_;
+
+    std::uniform_real_distribution<double> uniformDistribution_;
+
+    CryptoPP::AutoSeededRandomPool PRNG;
 };
 
 

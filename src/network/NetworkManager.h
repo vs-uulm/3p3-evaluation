@@ -22,7 +22,7 @@ public:
 
     int sendMessage(OutgoingMessage msg);
 
-    std::vector<uint32_t>& neighbors();
+    std::vector<uint32_t> neighbors();
 
     void start_accept();
 

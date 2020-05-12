@@ -22,7 +22,7 @@ SecuredInitialRound::SecuredInitialRound(DCNetwork &DCNet)
     // determine the index of the own nodeID in the ordered member list
     nodeIndex_ = std::distance(DCNetwork_.members().begin(), DCNetwork_.members().find(DCNetwork_.nodeID()));
 
-    std::cout << "Initial Round" << std::endl;
+    //std::cout << "Initial Round" << std::endl;
 }
 
 SecuredInitialRound::~SecuredInitialRound() {}

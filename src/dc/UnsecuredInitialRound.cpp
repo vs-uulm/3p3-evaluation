@@ -13,7 +13,7 @@
 UnsecuredInitialRound::UnsecuredInitialRound(DCNetwork &DCNet) : DCNetwork_(DCNet), k_(DCNetwork_.k()) {
     nodeIndex_ = std::distance(DCNetwork_.members().begin(), DCNetwork_.members().find(DCNetwork_.nodeID()));
 
-    std::cout << "Initial Round" << std::endl;
+    //std::cout << "Initial Round" << std::endl;
 }
 
 UnsecuredInitialRound::~UnsecuredInitialRound() {}

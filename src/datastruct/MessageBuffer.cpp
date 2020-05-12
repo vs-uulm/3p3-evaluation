@@ -13,12 +13,13 @@ bool MessageBuffer::contains(ReceivedMessage& msg) {
     return false;
 }
 
-void MessageBuffer::insert(ReceivedMessage& msg) {
+int MessageBuffer::insert(ReceivedMessage& msg) {
     std::string msgHash = utils::sha256(msg.body());
 
     auto position = indexBuffer_.find(msgHash);
     if(position != indexBuffer_.end()) {
-        indexBuffer_[msgHash] = msg.msgType();
+        indexBuffer_.erase(position);
+        indexBuffer_.insert(std::pair(msgHash, msg));
     } else {
         if (FIFOBuffer_.size() == maxCapacity_) {
             indexBuffer_.erase(FIFOBuffer_.front());
@@ -26,17 +27,21 @@ void MessageBuffer::insert(ReceivedMessage& msg) {
         }
 
         FIFOBuffer_.push(msgHash);
-
-        indexBuffer_.insert(std::pair(msgHash, msg.msgType()));
+        indexBuffer_.insert(std::pair(msgHash, msg));
     }
+    return 0;
 }
 
-uint8_t MessageBuffer::getType(ReceivedMessage &msg) {
+uint8_t MessageBuffer::getType(ReceivedMessage& msg) {
     std::string msgHash = utils::sha256(msg.body());
 
     auto position = indexBuffer_.find(msgHash);
     if(position != indexBuffer_.end())
-        return position->second;
+        return position->second.msgType();
 
     return 0xFF;
+}
+
+ReceivedMessage MessageBuffer::getMessage(std::string& msgHash) {
+    return indexBuffer_[msgHash];
 }

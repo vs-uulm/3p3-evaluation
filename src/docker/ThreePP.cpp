@@ -24,8 +24,8 @@ ip::address getIP() {
     return ip_address;
 }
 
-int main(int argc, char** argv) {
-    if((argc != 2) || (atoi(argv[1]) < 0) || (atoi(argv[1]) > 2)) {
+int main(int argc, char **argv) {
+    if ((argc != 2) || (atoi(argv[1]) < 0) || (atoi(argv[1]) > 2)) {
         std::cout << "usage: ./dockerInstance SecurityLevel" << std::endl;
         std::cout << "0: unsecured" << std::endl;
         std::cout << "1: secured" << std::endl;
@@ -38,7 +38,7 @@ int main(int argc, char** argv) {
     // wait for cleaner logging
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
-    CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> curve;
+    CryptoPP::DL_GroupParameters_EC <CryptoPP::ECP> curve;
     curve.Initialize(CryptoPP::ASN1::secp256k1());
 
     CryptoPP::AutoSeededRandomPool PRNG;
@@ -62,7 +62,7 @@ int main(int argc, char** argv) {
     // wait a moment to ensure the central container is running
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     int CAConnectionID = networkManager.connectToCA("172.28.1.1", 7777);
-    if(CAConnectionID < 0) {
+    if (CAConnectionID < 0) {
         std::cout << "Error: could not connect to the central authority" << std::endl;
     }
 
@@ -85,7 +85,7 @@ int main(int argc, char** argv) {
     networkManager.sendMessage(registerMessage);
 
     auto registerResponse = inboxThreePP.pop();
-    if(registerResponse.msgType() != RegisterResponse)
+    if (registerResponse.msgType() != RegisterResponse)
         exit(1);
 
     // decode the received nodeID
@@ -94,33 +94,34 @@ int main(int argc, char** argv) {
 
     // wait until the nodeInfo message arrives
     auto nodeInfo = inboxThreePP.pop();
-    if(nodeInfo.msgType() != NodeInfoMessage)
+    if (nodeInfo.msgType() != NodeInfoMessage)
         exit(1);
 
     // First determine the number of nodes received
-    uint32_t numNodes = (nodeInfo.body()[0] << 24) | (nodeInfo.body()[1] << 16) | (nodeInfo.body()[2] << 8) | (nodeInfo.body()[3]);
+    uint32_t numNodes =
+            (nodeInfo.body()[0] << 24) | (nodeInfo.body()[1] << 16) | (nodeInfo.body()[2] << 8) | (nodeInfo.body()[3]);
 
     std::unordered_map<uint32_t, Node> nodes;
     nodes.reserve(numNodes);
 
     // decode the submitted info
     size_t infoSize = 10 + curve.GetCurve().EncodedPointSize(true);
-    for(uint32_t i = 0, offset = 4; i < numNodes; i++, offset += infoSize) {
+    for (uint32_t i = 0, offset = 4; i < numNodes; i++, offset += infoSize) {
         // extract the nodeID
-        uint32_t nodeID = (nodeInfo.body()[offset] << 24) | (nodeInfo.body()[offset+1] << 16)
-                          | (nodeInfo.body()[offset+2] << 8) | (nodeInfo.body()[offset+3]);
+        uint32_t nodeID = (nodeInfo.body()[offset] << 24) | (nodeInfo.body()[offset + 1] << 16)
+                          | (nodeInfo.body()[offset + 2] << 8) | (nodeInfo.body()[offset + 3]);
 
         // extract the port
-        uint16_t port = (nodeInfo.body()[offset+4] << 8) | nodeInfo.body()[offset+5];
+        uint16_t port = (nodeInfo.body()[offset + 4] << 8) | nodeInfo.body()[offset + 5];
 
         // extract the IP adddress
         std::array<uint8_t, 4> decodedIP;
-        std::copy(&nodeInfo.body()[offset+6], &nodeInfo.body()[offset+10], &decodedIP[0]);
+        std::copy(&nodeInfo.body()[offset + 6], &nodeInfo.body()[offset + 10], &decodedIP[0]);
         ip::address_v4 ip_address(decodedIP);
 
         // decode the public key
         CryptoPP::ECPPoint publicKey;
-        curve.GetCurve().DecodePoint(publicKey, &nodeInfo.body()[offset+10], curve.GetCurve().EncodedPointSize(true));
+        curve.GetCurve().DecodePoint(publicKey, &nodeInfo.body()[offset + 10], curve.GetCurve().EncodedPointSize(true));
 
         Node neighbor(nodeID, publicKey, port, ip_address);
         nodes.insert(std::pair(nodeID, neighbor));
@@ -130,7 +131,7 @@ int main(int argc, char** argv) {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     // Add neighbors
-    for(uint32_t i = 0; i < nodeID_; i++) {
+    for (uint32_t i = 0; i < nodeID_; i++) {
         uint32_t connectionID = networkManager.addNeighbor(nodes[i]);
         if (connectionID < 0) {
             std::cout << "Error: could not add neighbour" << std::endl;
@@ -141,7 +142,7 @@ int main(int argc, char** argv) {
         networkManager.sendMessage(helloMessage);
     }
 
-    std::vector<uint32_t>& neighbors = networkManager.neighbors();
+    std::vector<uint32_t> neighbors = networkManager.neighbors();
 
     // start the message handler in a separate thread
     MessageHandler messageHandler(nodeID_, neighbors, inboxThreePP, inboxDC, outboxThreePP, outboxFinal);
@@ -162,11 +163,11 @@ int main(int argc, char** argv) {
 
     // start the DCNetwork
     DCMember self(nodeID_, SELF, publicKey);
-    DCNetwork DCNetwork_(self, numNodes+1, securityLevel, privateKey, nodes, inboxDC, outboxThreePP, outboxFinal);
+    DCNetwork DCNetwork_(self, numNodes + 1, securityLevel, privateKey, nodes, inboxDC, outboxThreePP, outboxFinal);
 
     // submit the first message to the DC-Network
-    uint32_t send = PRNG.GenerateWord32(0,3);
-    if(send == 0) {
+    uint32_t send = PRNG.GenerateWord32(0, 3);
+    if (send == 0) {
         uint16_t length = PRNG.GenerateWord32(512, 1024);
         std::vector<uint8_t> message(length);
         PRNG.GenerateBlock(message.data(), length);
@@ -179,19 +180,21 @@ int main(int argc, char** argv) {
 
 
     // submit more messages to the DCNetwork
-    for(uint32_t i = 0; i < 100; i++) {
-        uint32_t send = PRNG.GenerateWord32(0,3);
-        if(send == 0) {
-            uint16_t length = PRNG.GenerateWord32(512, 1024);
-            std::vector<uint8_t> message(length);
-            PRNG.GenerateBlock(message.data(), length);
-            DCNetwork_.submitMessage(message);
+    for (uint32_t i = 0; i < 100; i++) {
+        if (nodeID_ < numNodes / 4) {
+            uint32_t send = PRNG.GenerateWord32(0, 1);
+            if (send == 0) {
+                uint16_t length = PRNG.GenerateWord32(512, 1024);
+                std::vector<uint8_t> message(length);
+                PRNG.GenerateBlock(message.data(), length);
+                DCNetwork_.submitMessage(message);
+            }
         }
         uint32_t sleep;
-        if(securityLevel == Secured)
-            sleep = PRNG.GenerateWord32(2,10);
+        if (securityLevel == Secured)
+            sleep = PRNG.GenerateWord32(2, 10);
         else
-            sleep = PRNG.GenerateWord32(1,5);
+            sleep = PRNG.GenerateWord32(1, 5);
         std::this_thread::sleep_for(std::chrono::seconds(sleep));
     }
 

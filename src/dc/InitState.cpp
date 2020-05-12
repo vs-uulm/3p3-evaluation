@@ -6,7 +6,7 @@
 #include "../datastruct/MessageType.h"
 
 InitState::InitState(DCNetwork& DCNet) : DCNetwork_(DCNet) {
-    std::cout << "Init State" << std::endl;
+    //std::cout << "Init State" << std::endl;
 }
 
 InitState::~InitState() {}

@@ -5,17 +5,18 @@
 #include <cmath>
 #include "../datastruct/MessageQueue.h"
 #include "../datastruct/OutgoingMessage.h"
+#include "../utils/Utils.h"
 
 namespace AdaptiveDiffusion {
-    uint32_t Eta = 2;
-    uint32_t d = 4;
+    double p(uint16_t s, uint16_t h);
 
-    double p(uint32_t s, uint32_t h) {
-        if(Eta == 2)
-            return (s-2*h+2)/(s+2);
-        else
-            return (std::pow(Eta-1, s/2.0-h+1)-1) / (std::pow(Eta-1, s/2.0+1)-1);
-    }
+    std::vector<uint8_t> generateVSToken(uint16_t s, uint16_t h, std::vector<uint8_t>& message);
+
+    size_t maxRemainingSteps(uint16_t s);
+
+    extern size_t Eta;
+    extern size_t maxDepth;
+    extern size_t RTT;
 };
 
 

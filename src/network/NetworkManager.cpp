@@ -61,7 +61,6 @@ int NetworkManager::connectToCA(const std::string& ip_address, uint16_t port) {
     for(;;) {
         if (connection->connect(ip::address_v4::from_string(ip_address), port) == 0) {
             connections_.insert(std::pair(connectionID, connection));
-            neighbors_.push_back(connectionID);
             return connectionID;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
@@ -83,6 +82,10 @@ int NetworkManager::sendMessage(OutgoingMessage msg) {
                     connection.second->send_msg(msg);
     }
     else {
+        if(connections_.count(msg.receiverID()) < 1) {
+            std::cout << msg.receiverID() << std::endl;
+            return -1;
+        }
         if(!connections_[msg.receiverID()]->is_open())
             return -1;
         connections_[msg.receiverID()]->send_msg(msg);
@@ -90,6 +93,6 @@ int NetworkManager::sendMessage(OutgoingMessage msg) {
     return 0;
 }
 
-std::vector<uint32_t>& NetworkManager::neighbors() {
+std::vector<uint32_t> NetworkManager::neighbors() {
     return neighbors_;
 }

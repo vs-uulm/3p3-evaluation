@@ -12,6 +12,8 @@
 #include "../dc/DCNetwork.h"
 #include "../datastruct/MessageType.h"
 #include "../utils/Utils.h"
+#include "../ad/VirtualSource.h"
+#include "../network/UnsecuredNetworkManager.h"
 
 std::mutex cout_mutex;
 
@@ -49,7 +51,7 @@ void instance(int ID) {
 
     ip::address_v4 ip_address(ip::address_v4::from_string("127.0.0.1"));
 
-    NetworkManager networkManager(io_context_, port_, inboxThreePP);
+    UnsecuredNetworkManager networkManager(io_context_, port_, inboxThreePP);
     // Run the io_context which handles the network manager
     std::thread networkThread1([&io_context_]() {
         io_context_.run();
@@ -139,10 +141,10 @@ void instance(int ID) {
     // wait until all nodes are connected
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    std::vector<uint32_t>& neighbors = networkManager.neighbors();
+    std::vector<uint32_t> neighbors = networkManager.neighbors();
 
     // start the message handler in a separate thread
-    MessageHandler messageHandler(nodeID_, inboxThreePP, inboxDC, outboxThreePP, outboxFinal);
+    MessageHandler messageHandler(nodeID_, neighbors, inboxThreePP, inboxDC, outboxThreePP, outboxFinal);
     std::thread messageHandlerThread([&]() {
         messageHandler.run();
     });
@@ -170,12 +172,14 @@ void instance(int ID) {
         }
     });
 
-    if(nodeID_ == 5) {
-        std::string message("Adaptive Diffusion test message.");
-        std::vector<uint8_t> vecString(message.begin(), message.end());
-
-        OutgoingMessage adTest(BROADCAST, AdaptiveDiffusionMessage, nodeID_, std::move(vecString));
-        outboxThreePP.push(adTest);
+    if(nodeID_ == 0) {
+        std::thread virtualSourceThread([&]() {
+            std::string message("Adaptive Diffusion test message.");
+            std::vector<uint8_t> vecString(message.begin(), message.end());
+            VirtualSource virtualSource(nodeID_, neighbors, outboxThreePP, inboxThreePP, vecString);
+            virtualSource.executeTask();
+        });
+        virtualSourceThread.detach();
     }
 
     writerThread.join();
@@ -196,8 +200,7 @@ void nodeAuthority() {
     io_context io_context_;
     uint16_t port = 7777;
 
-    // TODO
-    NetworkManager networkManager(io_context_, port, inbox);
+    UnsecuredNetworkManager networkManager(io_context_, port, inbox);
     //UnsecuredNetworkManager networkManager(io_context_, port, inbox);
     // Run the io_context which handles the network manager
     std::thread networkThread([&io_context_]() {

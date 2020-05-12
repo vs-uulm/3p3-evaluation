@@ -16,7 +16,6 @@ int UnsecuredP2PConnection::connect(ip::address_v4 ip_address, uint16_t port) {
     try {
         socket_.connect(tcp::endpoint(ip_address, port));
     } catch (const boost::system::system_error& e) {
-        std::cout << "Error" << std::endl;
         return -1;
     }
     read();
