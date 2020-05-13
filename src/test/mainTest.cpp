@@ -14,7 +14,7 @@
 
 std::mutex cout_mutex;
 
-const uint32_t INSTANCES = 12;
+const uint32_t INSTANCES = 6;
 
 void instance(int ID) {
     CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> curve;
@@ -126,6 +126,8 @@ void instance(int ID) {
 
     // wait until all nodes are connected
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    std::vector<uint32_t> neighbors = networkManager.neighbors();
 
     // start the message handler in a separate thread
     MessageHandler messageHandler(nodeID_, neighbors, inboxThreePP, inboxDC, outboxThreePP, outboxFinal);

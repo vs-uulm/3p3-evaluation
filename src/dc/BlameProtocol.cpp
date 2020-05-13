@@ -123,7 +123,9 @@ std::unique_ptr<DCState> BlameProtocol::executeTask() {
     //std::cout << "Sharing part two finished" << std::endl;
     // a blame message has been received
     if (result < 0) {
-        // TODO clean up the inbox
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        DCNetwork_.inbox().clear();
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
         return std::make_unique<FairnessProtocol>(DCNetwork_, numSlices, newSlotIndex, rValues_, commitments_);
     }
 
@@ -134,7 +136,9 @@ std::unique_ptr<DCState> BlameProtocol::executeTask() {
         // a blame message indicates that a member may have been excluded from the group
         // therefore a transition to the init state is performed,
         // which will execute a group membership protocol
-        // TODO clean up the inbox
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        DCNetwork_.inbox().clear();
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
         return std::make_unique<InitState>(DCNetwork_);
     }
 

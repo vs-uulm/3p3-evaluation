@@ -49,7 +49,7 @@ target_link_libraries(
 #docker version
 add_executable(
         dockerInstance
-        src/docker/ThreePP.cpp
+        src/docker/ThreePPContainer.cpp
         src/network/Node.cpp
         src/network/P2PConnection.cpp
         src/datastruct/OutgoingMessage.cpp
@@ -87,7 +87,7 @@ target_link_libraries(
 
 add_executable(
         dockerAuthority
-        src/docker/NodeAuthority.cpp
+        src/docker/LogContainer.cpp
         src/network/Node.cpp
         src/network/P2PConnection.cpp
         src/datastruct/OutgoingMessage.cpp

@@ -17,8 +17,8 @@ std::unique_ptr<DCState> InitState::executeTask() {
 
         // skip early arriving ready messages
         while((receivedMessage.msgType() != HelloMessage) && (receivedMessage.msgType() != HelloResponse)) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(5));
             DCNetwork_.inbox().push(receivedMessage);
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
             receivedMessage = DCNetwork_.inbox().pop();
         }
 
