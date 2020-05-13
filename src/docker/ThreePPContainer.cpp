@@ -163,7 +163,7 @@ int main(int argc, char **argv) {
 
     // start the DCNetwork
     DCMember self(nodeID_, SELF, publicKey);
-    DCNetwork DCNetwork_(self, numNodes + 1, securityLevel, privateKey, nodes, inboxDC, outboxThreePP, outboxFinal);
+    DCNetwork DCNetwork_(self, numNodes + 1, securityLevel, privateKey, 1, nodes, inboxDC, outboxThreePP, outboxFinal);
 
     // submit the first message to the DC-Network
     uint32_t send = PRNG.GenerateWord32(0, 3);

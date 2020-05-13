@@ -28,7 +28,7 @@ enum SecurityLevel {
 
 class DCNetwork {
 public:
-    DCNetwork(DCMember self, size_t k, SecurityLevel securityLevel, CryptoPP::Integer privateKey,
+    DCNetwork(DCMember self, size_t k, SecurityLevel securityLevel, CryptoPP::Integer privateKey, uint32_t numThreads,
             std::unordered_map<uint32_t, Node>& neighbors, MessageQueue<ReceivedMessage>& inboxDC,
             MessageQueue<OutgoingMessage>& outboxThreePP, MessageQueue<std::vector<uint8_t>>& outboxFinal);
 
@@ -48,6 +48,8 @@ public:
 
     size_t k();
 
+    uint32_t numThreads();
+
     SecurityLevel securityLevel();
 
     CryptoPP::Integer& privateKey();
@@ -65,6 +67,9 @@ private:
     SecurityLevel securityLevel_;
 
     CryptoPP::Integer privateKey_;
+
+    uint32_t numThreads_;
+
     // Key: nodeID
     std::map<uint32_t, DCMember> members_;
 

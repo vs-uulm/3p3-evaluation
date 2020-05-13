@@ -2,10 +2,10 @@
 #include "DCNetwork.h"
 #include "InitState.h"
 
-DCNetwork::DCNetwork(DCMember self, size_t k, SecurityLevel securityLevel, CryptoPP::Integer privateKey,
+DCNetwork::DCNetwork(DCMember self, size_t k, SecurityLevel securityLevel, CryptoPP::Integer privateKey, uint32_t numThreads,
         std::unordered_map<uint32_t, Node>& neigbors, MessageQueue<ReceivedMessage>& inboxDC,
         MessageQueue<OutgoingMessage>& outboxThreePP, MessageQueue<std::vector<uint8_t>>& outboxFinal)
-: nodeID_(self.nodeID()), k_(k), securityLevel_(securityLevel), privateKey_(privateKey), neighbors_(neigbors),
+: nodeID_(self.nodeID()), k_(k), securityLevel_(securityLevel), privateKey_(privateKey), numThreads_(numThreads), neighbors_(neigbors),
   inboxDC_(inboxDC), outboxThreePP_(outboxThreePP), outboxFinal_(outboxFinal), state_(std::make_unique<InitState>(*this)) {
     members_.insert(std::pair(nodeID_, self));
 }
@@ -50,6 +50,10 @@ uint32_t DCNetwork::nodeID() {
 
 size_t DCNetwork::k() {
     return k_;
+}
+
+uint32_t DCNetwork::numThreads() {
+    return numThreads_;
 }
 
 CryptoPP::Integer & DCNetwork::privateKey() {

@@ -147,7 +147,7 @@ void instance(int ID) {
     });
     // start the DCNetwork
     DCMember self(nodeID_, SELF, publicKey);
-    DCNetwork DCNet(self, INSTANCES, Secured, privateKey, nodes, inboxDC, outboxThreePP, outboxFinal);
+    DCNetwork DCNet(self, INSTANCES, Secured, privateKey, 1, nodes, inboxDC, outboxThreePP, outboxFinal);
 
     // submit messages to the DCNetwork
     if (nodeID_ < 2) {

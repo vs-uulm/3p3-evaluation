@@ -9,6 +9,7 @@
 #include <iostream>
 #include <iomanip>
 #include <set>
+#include <thread>
 
 const CryptoPP::ECPPoint G(CryptoPP::Integer("362dc3caf8a0e8afd06f454a6da0cdce6e539bc3f15e79a15af8aa842d7e3ec2h"),
                             CryptoPP::Integer("b9f8addb295b0fd4d7c49a686eac7b34a9a11ed2d6d243ad065282dc13bce575h"));
@@ -16,12 +17,59 @@ const CryptoPP::ECPPoint G(CryptoPP::Integer("362dc3caf8a0e8afd06f454a6da0cdce6e
 const CryptoPP::ECPPoint H(CryptoPP::Integer("a3cf0a4b6e1d9146c73e9a82e4bfdc37ee1587bc2bf3b0c19cb159ae362e38beh"),
                             CryptoPP::Integer("db4369fabd3d770dd4c19d81ac69a1749963d69c687d7c4e12d186548b94cb2ah"));
 
-int main() {
-    /*
-    CryptoPP::AutoSeededRandomPool PRNG;
+std::mutex mut;
 
-    CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> ec_group;
-    ec_group.Initialize(CryptoPP::ASN1::secp256k1());
+unsigned NUM_THREADS = 6;
+
+uint32_t num_values = 128;
+std::vector<std::vector<CryptoPP::ECPPoint>> testMatrix(num_values);
+
+int main() {
+    std::list<std::thread> threads;
+    std::vector<std::vector<CryptoPP::ECPPoint>> testMatrix(num_values);
+    auto start = std::chrono::high_resolution_clock::now();
+    for(uint32_t i = 0; i < NUM_THREADS; i++) {
+        uint32_t min = num_values / static_cast<double>(NUM_THREADS) * i;
+        uint32_t max = num_values / static_cast<double>(NUM_THREADS) * (i+1);
+
+        std::thread exec([min, max, &testMatrix](){
+            {
+                std::lock_guard<std::mutex> lock(mut);
+                std::cout << "Thread started with min=" << min << " max=" << max << std::endl;
+            }
+            CryptoPP::AutoSeededRandomPool PRNG;
+            CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> ec_group;
+            ec_group.Initialize(CryptoPP::ASN1::secp256k1());
+            std::vector<CryptoPP::ECPPoint> vec;
+            vec.reserve(128);
+            for(uint32_t i = min; i < max; i++) {
+                for(uint32_t c = 0; c < 128; c++) {
+                    CryptoPP::Integer r(PRNG, CryptoPP::Integer::One(), ec_group.GetMaxExponent());
+                    CryptoPP::Integer s(PRNG, CryptoPP::Integer::One(), ec_group.GetMaxExponent());
+                    // generate the commitment for the j-th slice of the i-th share
+                    CryptoPP::ECPPoint rG = ec_group.GetCurve().ScalarMultiply(G, r);
+                    CryptoPP::ECPPoint sH = ec_group.GetCurve().ScalarMultiply(H, s);
+                    CryptoPP::ECPPoint commitment = ec_group.GetCurve().Add(rG, sH);
+                    vec.push_back(std::move(commitment));
+                }
+                {
+                    //std::lock_guard<std::mutex> lock(mut);
+                    testMatrix[i] = std::move(vec);
+                }
+            }
+        });
+        threads.push_back(std::move(exec));
+    }
+
+    for(auto& t : threads)
+        t.join();
+
+    auto finish = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = finish - start;
+    std::cout << "Finished in " << elapsed.count() << "s" <<std::endl;
+
+
+    /*
 
     CryptoPP::Integer d(PRNG, CryptoPP::Integer::One(), ec_group.GetMaxExponent());
     CryptoPP::Integer r(PRNG, CryptoPP::Integer::One(), ec_group.GetMaxExponent());
