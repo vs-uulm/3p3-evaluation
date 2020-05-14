@@ -25,8 +25,9 @@ ip::address getIP() {
 }
 
 int main(int argc, char **argv) {
-    if ((argc != 2) || (atoi(argv[1]) < 0) || (atoi(argv[1]) > 2)) {
-        std::cout << "usage: ./dockerInstance SecurityLevel" << std::endl;
+    if ((argc != 3) || (atoi(argv[1]) < 0) || (atoi(argv[1]) > 2)) {
+        std::cout << "usage: ./dockerInstance SecurityLevel numThreads" << std::endl;
+        std::cout << "SecurityLevel" << std::endl;
         std::cout << "0: unsecured" << std::endl;
         std::cout << "1: secured" << std::endl;
         std::cout << "2: adaptive" << std::endl;
@@ -34,6 +35,7 @@ int main(int argc, char **argv) {
     }
 
     SecurityLevel securityLevel = static_cast<SecurityLevel>(atoi(argv[1]));
+    uint32_t numThreads = atoi(argv[2]);
 
     // wait for cleaner logging
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
@@ -163,7 +165,7 @@ int main(int argc, char **argv) {
 
     // start the DCNetwork
     DCMember self(nodeID_, SELF, publicKey);
-    DCNetwork DCNetwork_(self, numNodes + 1, securityLevel, privateKey, 1, nodes, inboxDC, outboxThreePP, outboxFinal);
+    DCNetwork DCNetwork_(self, numNodes + 1, securityLevel, privateKey, numThreads, nodes, inboxDC, outboxThreePP, outboxFinal);
 
     // submit the first message to the DC-Network
     uint32_t send = PRNG.GenerateWord32(0, 3);

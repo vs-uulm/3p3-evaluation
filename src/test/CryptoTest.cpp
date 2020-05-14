@@ -21,10 +21,57 @@ std::mutex mut;
 
 unsigned NUM_THREADS = 6;
 
-uint32_t num_values = 128;
+uint32_t num_values = 256;
 std::vector<std::vector<CryptoPP::ECPPoint>> testMatrix(num_values);
 
 int main() {
+    /*
+    size_t numPoints = std::pow(2,16);
+    std::vector<CryptoPP::ECPPoint> testPoints;
+    testPoints.reserve(numPoints);
+
+    CryptoPP::AutoSeededRandomPool PRNG;
+    CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> ec_group;
+    ec_group.Initialize(CryptoPP::ASN1::secp256k1());
+
+    auto start = std::chrono::high_resolution_clock::now();
+
+    for(size_t i = 0; i < numPoints; i++) {
+        CryptoPP::Integer r(PRNG, CryptoPP::Integer::One(), ec_group.GetMaxExponent());
+        //CryptoPP::Integer r(ec_group.GetMaxExponent());
+        CryptoPP::ECPPoint rG = ec_group.GetCurve().ScalarMultiply(G, r);
+        testPoints.push_back(std::move(rG));
+    }
+    auto finish = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = finish - start;
+    std::cout << "Generation: " << elapsed.count() << "s" <<std::endl;
+
+    std::vector<uint8_t> encoded1(numPoints * 33);
+    std::vector<uint8_t> encoded2(numPoints * 36);
+
+    start = std::chrono::high_resolution_clock::now();
+
+    for(size_t i = 0, offset = 0; i < numPoints; i++, offset += 33) {
+        ec_group.GetCurve().EncodePoint(&encoded1[offset], testPoints[i],true);
+    }
+
+    finish = std::chrono::high_resolution_clock::now();
+    elapsed = finish - start;
+    std::cout << "Encoding 1: " << elapsed.count() << "s" <<std::endl;
+
+
+
+    start = std::chrono::high_resolution_clock::now();
+
+    for(size_t i = 0, offset = 0; i < numPoints; i++, offset += 36) {
+        ec_group.GetCurve().EncodePoint(&encoded2[offset], testPoints[i],true);
+    }
+
+    finish = std::chrono::high_resolution_clock::now();
+    elapsed = finish - start;
+    std::cout << "Encoding 2: " << elapsed.count() << "s" <<std::endl;
+    */
+
     std::list<std::thread> threads;
     std::vector<std::vector<CryptoPP::ECPPoint>> testMatrix(num_values);
     auto start = std::chrono::high_resolution_clock::now();
@@ -70,7 +117,6 @@ int main() {
 
 
     /*
-
     CryptoPP::Integer d(PRNG, CryptoPP::Integer::One(), ec_group.GetMaxExponent());
     CryptoPP::Integer r(PRNG, CryptoPP::Integer::One(), ec_group.GetMaxExponent());
     CryptoPP::Integer z(PRNG, CryptoPP::Integer::One(), ec_group.GetMaxExponent());
