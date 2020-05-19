@@ -46,6 +46,11 @@ void MessageHandler::run() {
             case ZeroKnowledgeSigmaProof:
                 inboxDCNet_.push(std::move(receivedMessage));
                 break;
+            case FinalDCMessage:
+                // TODO generate VS token
+                msgBuffer.insert(receivedMessage);
+                outboxFinal_.push(receivedMessage.body());
+                break;
             case AdaptiveDiffusionMessage:
                 if(!msgBuffer.contains(receivedMessage)) {
                     msgBuffer.insert(receivedMessage);

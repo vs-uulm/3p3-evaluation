@@ -40,7 +40,7 @@ int main(int argc, char **argv) {
     // wait for cleaner logging
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
-    CryptoPP::DL_GroupParameters_EC <CryptoPP::ECP> curve;
+    CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> curve;
     curve.Initialize(CryptoPP::ASN1::secp256k1());
 
     CryptoPP::AutoSeededRandomPool PRNG;
@@ -63,10 +63,7 @@ int main(int argc, char **argv) {
     // connect to the central node authority
     // wait a moment to ensure the central container is running
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    int CAConnectionID = networkManager.connectToCA("172.28.1.1", 7777);
-    if (CAConnectionID < 0) {
-        std::cout << "Error: could not connect to the central authority" << std::endl;
-    }
+    networkManager.connectToCA("172.28.1.1", 7777);
 
     // generate an EC keypair
     CryptoPP::Integer privateKey(PRNG, CryptoPP::Integer::One(), curve.GetMaxExponent());
@@ -83,7 +80,7 @@ int main(int argc, char **argv) {
     // set the compressed public key
     curve.GetCurve().EncodePoint(messageBody.data() + 6, publicKey, true);
 
-    OutgoingMessage registerMessage(CAConnectionID, RegisterMessage, SELF, messageBody);
+    OutgoingMessage registerMessage(CENTRAL, RegisterMessage, SELF, messageBody);
     networkManager.sendMessage(registerMessage);
 
     auto registerResponse = inboxThreePP.pop();
@@ -155,8 +152,8 @@ int main(int argc, char **argv) {
     // start the write thread
     std::thread writerThread([&]() {
         for (;;) {
-            auto message = outboxThreePP.pop();
-            int result = networkManager.sendMessage(message);
+            OutgoingMessage message = outboxThreePP.pop();
+            int result = networkManager.sendMessage(std::move(message));
             if (result < 0) {
                 std::cout << "Error: could not send message" << std::endl;
             }
@@ -165,9 +162,11 @@ int main(int argc, char **argv) {
 
     // start the DCNetwork
     DCMember self(nodeID_, SELF, publicKey);
-    DCNetwork DCNetwork_(self, numNodes + 1, securityLevel, privateKey, numThreads, nodes, inboxDC, outboxThreePP, outboxFinal);
+    DCNetwork DCNetwork_(self, numNodes + 1, securityLevel, privateKey, numThreads, nodes, inboxDC, outboxThreePP,
+                         true);
 
     // submit the first message to the DC-Network
+    /*
     uint32_t send = PRNG.GenerateWord32(0, 3);
     if (send == 0) {
         uint16_t length = PRNG.GenerateWord32(512, 1024);
@@ -175,22 +174,20 @@ int main(int argc, char **argv) {
         PRNG.GenerateBlock(message.data(), length);
         DCNetwork_.submitMessage(message);
     }
+     */
 
     std::thread DCThread([&]() {
         DCNetwork_.run();
     });
 
-
+    uint32_t iterations = 100;
     // submit more messages to the DCNetwork
-    for (uint32_t i = 0; i < 100; i++) {
-        if (nodeID_ < numNodes / 4) {
-            uint32_t send = PRNG.GenerateWord32(0, 1);
-            if (send == 0) {
-                uint16_t length = PRNG.GenerateWord32(512, 1024);
-                std::vector<uint8_t> message(length);
-                PRNG.GenerateBlock(message.data(), length);
-                DCNetwork_.submitMessage(message);
-            }
+    for (uint32_t i = 0; i < iterations; i++) {
+        if (nodeID_ < 2) {
+            uint16_t length = PRNG.GenerateWord32(512, 1024);
+            std::vector<uint8_t> message(length);
+            PRNG.GenerateBlock(message.data(), length);
+            DCNetwork_.submitMessage(message);
         }
         uint32_t sleep;
         if (securityLevel == Secured)
@@ -199,6 +196,14 @@ int main(int argc, char **argv) {
             sleep = PRNG.GenerateWord32(1, 5);
         std::this_thread::sleep_for(std::chrono::seconds(sleep));
     }
+
+    // Terminate after all messages have been received
+    while(outboxFinal.size() < 2 * iterations) {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    networkManager.terminate();
+    exit(0);
 
 
     DCThread.join();

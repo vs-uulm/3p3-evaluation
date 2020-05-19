@@ -16,6 +16,7 @@ services:
     build:
       context: .
       dockerfile: ./docker/central/Dockerfile
+    volumes: ['./evaluation:/home/threePP']
     networks:
       p2p-network:
         ipv4_address: 172.28.1.1

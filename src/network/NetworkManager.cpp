@@ -54,15 +54,9 @@ int NetworkManager::addNeighbor(const Node &node) {
     return -1;
 }
 
-int NetworkManager::connectToCA(const std::string& ip_address, uint16_t port) {
-    uint32_t connectionID = getConnectionID();
-
-    auto connection = std::make_shared<P2PConnection>(connectionID, io_context_, ssl_context_, inbox_);
-    for(;;) {
-        if (connection->connect(ip::address_v4::from_string(ip_address), port) == 0) {
-            connections_.insert(std::pair(connectionID, connection));
-            return connectionID;
-        }
+void NetworkManager::connectToCA(const std::string& ip_address, uint16_t port) {
+    centralInstance_ = std::make_shared<P2PConnection>(CENTRAL, io_context_, ssl_context_, inbox_);
+    while(centralInstance_->connect(ip::address_v4::from_string(ip_address), port) != 0) {
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
     }
 }
@@ -80,8 +74,14 @@ int NetworkManager::sendMessage(OutgoingMessage msg) {
             if(connection.second->connectionID() != msg.receivedFrom())
                 if(connection.second->is_open())
                     connection.second->send_msg(msg);
-    }
-    else {
+    } else if(msg.receiverID() == SELF) {
+        ReceivedMessage receivedMessage(SELF, msg.header()[0], SELF, msg.body());
+        inbox_.push(std::move(receivedMessage));
+    } else if(msg.receiverID() == CENTRAL) {
+        if (!centralInstance_->is_open())
+            return -1;
+        centralInstance_->send_msg(msg);
+    } else {
         if(connections_.count(msg.receiverID()) < 1) {
             std::cout << msg.receiverID() << std::endl;
             return -1;
@@ -93,6 +93,6 @@ int NetworkManager::sendMessage(OutgoingMessage msg) {
     return 0;
 }
 
-std::vector<uint32_t> NetworkManager::neighbors() {
+std::vector<uint32_t>& NetworkManager::neighbors() {
     return neighbors_;
 }

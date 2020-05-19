@@ -18,11 +18,11 @@ public:
 
     int addNeighbor(const Node& node);
 
-    int connectToCA(const std::string& ip_address, uint16_t port);
+    void connectToCA(const std::string& ip_address, uint16_t port);
 
     int sendMessage(OutgoingMessage msg);
 
-    std::vector<uint32_t> neighbors();
+    std::vector<uint32_t>& neighbors();
 
     void start_accept();
 
@@ -44,6 +44,8 @@ private:
     MessageQueue<ReceivedMessage>& inbox_;
 
     std::vector<uint32_t> neighbors_;
+
+    std::shared_ptr<P2PConnection> centralInstance_;
 
     std::unordered_map<uint32_t, std::shared_ptr<P2PConnection>> connections_;
 

@@ -41,10 +41,8 @@ void instance(int ID) {
     });
 
     // connect to the central node authority
-    int CAConnectionID = networkManager.connectToCA("127.0.0.1", 7777);
-    if(CAConnectionID < 0) {
-        std::cout << "Error: could not connect to the central authority" << std::endl;
-    }
+    networkManager.connectToCA("127.0.0.1", 7777);
+
 
     // generate an EC keypair
     CryptoPP::Integer privateKey(PRNG, CryptoPP::Integer::One(), curve.GetMaxExponent());
@@ -61,7 +59,7 @@ void instance(int ID) {
     // set the compressed public key
     curve.GetCurve().EncodePoint(messageBody.data() + 6, publicKey, true);
 
-    OutgoingMessage registerMessage(CAConnectionID, RegisterMessage, SELF, messageBody);
+    OutgoingMessage registerMessage(CENTRAL, RegisterMessage, SELF, messageBody);
     networkManager.sendMessage(registerMessage);
     auto registerResponse = inboxThreePP.pop();
 
@@ -127,7 +125,7 @@ void instance(int ID) {
     // wait until all nodes are connected
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    std::vector<uint32_t> neighbors = networkManager.neighbors();
+    std::vector<uint32_t>& neighbors = networkManager.neighbors();
 
     // start the message handler in a separate thread
     MessageHandler messageHandler(nodeID_, neighbors, inboxThreePP, inboxDC, outboxThreePP, outboxFinal);
@@ -138,8 +136,8 @@ void instance(int ID) {
     // start the write thread
     std::thread writerThread([&]() {
         for (;;) {
-            auto message = outboxThreePP.pop();
-            int result = networkManager.sendMessage(message);
+            OutgoingMessage message = outboxThreePP.pop();
+            int result = networkManager.sendMessage(std::move(message));
             if (result < 0) {
                 std::cout << "Error: could not send message" << std::endl;
             }
@@ -147,38 +145,30 @@ void instance(int ID) {
     });
     // start the DCNetwork
     DCMember self(nodeID_, SELF, publicKey);
-    DCNetwork DCNet(self, INSTANCES, Secured, privateKey, 2, nodes, inboxDC, outboxThreePP, outboxFinal);
+    DCNetwork DCNet(self, INSTANCES, Unsecured, privateKey, 1, nodes, inboxDC, outboxThreePP, true);
 
     // submit messages to the DCNetwork
-    if (nodeID_ < 2) {
-        uint16_t length = PRNG.GenerateWord32(512, 1024);
-        std::vector<uint8_t> message(length);
-        PRNG.GenerateBlock(message.data(), length);
-
-        DCNet.submitMessage(message);
-    }
-
     std::thread DCThread([&]() {
         DCNet.run();
     });
 
-
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-
     // submit messages to the DCNetwork
-    for(uint32_t i = 0; i < 100; i++) {
-        uint32_t send = PRNG.GenerateWord32(0,3);
-        if(send == 0) {
-            //uint16_t length = PRNG.GenerateWord32(512, 1024);
-            uint16_t length = 1024;
+    for(uint32_t i = 0; i < 5; i++) {
+        if(nodeID_ < 2) {
+            uint16_t length = PRNG.GenerateWord32(512, 1024);
             std::vector<uint8_t> message(length);
             PRNG.GenerateBlock(message.data(), length);
             DCNet.submitMessage(message);
         }
-        uint32_t sleep = PRNG.GenerateWord32(5,5);
-        std::this_thread::sleep_for(std::chrono::seconds(sleep));
+        //uint32_t sleep = PRNG.GenerateWord32(2,5);
+        //std::this_thread::sleep_for(std::chrono::seconds(sleep));
     }
 
+    // Terminate after all messages have been received
+    while(outboxFinal.size() < 10) {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+    exit(0);
 
     DCThread.join();
     writerThread.join();
@@ -200,7 +190,7 @@ void nodeAuthority() {
     uint16_t port = 7777;
 
     // TODO
-    //NetworkManager networkManager(io_context_, port, inbox);
+    // NetworkManager networkManager(io_context_, port, inbox);
     UnsecuredNetworkManager networkManager(io_context_, port, inbox);
     // Run the io_context which handles the network manager
     std::thread networkThread([&io_context_]() {
@@ -252,6 +242,7 @@ void nodeAuthority() {
         OutgoingMessage nodeInfoMessage(node.second.first, NodeInfoMessage, 0, nodeInfo);
         networkManager.sendMessage(nodeInfoMessage);
     }
+
     networkThread.join();
 }
 

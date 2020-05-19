@@ -1,3 +1,4 @@
+#include <fstream>
 #include <cryptopp/oids.h>
 #include "../network/P2PConnection.h"
 #include "../network/NetworkManager.h"
@@ -79,6 +80,66 @@ int main(int argc, char** argv) {
         OutgoingMessage nodeInfoMessage(node.second.first, NodeInfoMessage, 0, nodeInfo);
         networkManager.sendMessage(nodeInfoMessage);
     }
+
+    // create the log file
+    time_t now = time(0);
+    tm* timeStamp = localtime(&now);
+    std::string months[12] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+    std::stringstream ss;
+    ss << "/home/threePP/Log_";
+    ss << months[timeStamp->tm_mon];
+    ss << 1 + timeStamp->tm_mday << "__";
+    ss << 1 + timeStamp->tm_hour << "_";
+    ss << 1 + timeStamp->tm_min << "_";
+    ss << 1 + timeStamp->tm_sec << ".csv";
+
+    std::ofstream logFile;
+    logFile.open (ss.str());
+
+    logFile << "Round,";
+    for(uint32_t i=0; i < INSTANCES; i++) {
+        logFile << "Node " << i << ", Runtime";
+        if(i < INSTANCES-1)
+            logFile << ",";
+        else
+            logFile << std::endl;
+    }
+
+    std::vector<std::pair<bool, double>> runtimes(INSTANCES);
+    uint32_t iterations = 100;
+    // collect log data
+    for(uint32_t i = 0; i < 2 * iterations * INSTANCES; i++) {
+        auto receivedMessage = inbox.pop();
+        if(receivedMessage.msgType() != LoggingMessage) {
+            std::cout << "Unknown message type received: " << receivedMessage.msgType() << std::endl;
+            continue;
+        }
+
+        runtimes[receivedMessage.senderID()].first = receivedMessage.body()[10];
+        runtimes[receivedMessage.senderID()].second = *reinterpret_cast<double *>(&receivedMessage.body()[0]);
+
+        if((((i+1) % INSTANCES) == 0) && (i > 0)) {
+            // set the round
+            logFile << receivedMessage.body()[9] + 1 << ",";
+            // set runtimes and send flag
+            for(uint32_t j = 0; j < INSTANCES; j++) {
+                if(runtimes[j].first)
+                    logFile << "sending,";
+                else
+                    logFile << ",";
+
+                logFile << runtimes[j].second;
+                if(j < INSTANCES-1)
+                    logFile << ",";
+                else
+                    logFile << std::endl;
+            }
+        }
+    }
+    logFile.close();
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    exit(0);
+
     networkThread.join();
     return 0;
 }

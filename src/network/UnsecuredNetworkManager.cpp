@@ -49,36 +49,33 @@ int UnsecuredNetworkManager::addNeighbor(const Node &node) {
     return -1;
 }
 
-int UnsecuredNetworkManager::connectToCA(const std::string& ip_address, uint16_t port) {
-    uint32_t connectionID = getConnectionID();
-
-    auto connection = std::make_shared<UnsecuredP2PConnection>(connectionID, io_context_, inbox_);
-    for(;;) {
-        if (connection->connect(ip::address_v4::from_string(ip_address), port) == 0) {
-            connections_.insert(std::pair(connectionID, connection));
-            return connectionID;
-        }
+void UnsecuredNetworkManager::connectToCA(const std::string& ip_address, uint16_t port) {
+    centralInstance_ = std::make_shared<UnsecuredP2PConnection>(CENTRAL, io_context_, inbox_);
+    while(centralInstance_->connect(ip::address_v4::from_string(ip_address), port) != 0)
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
-    }
-    return -1;
 }
 
 int UnsecuredNetworkManager::sendMessage(OutgoingMessage msg) {
-
     if(msg.receiverID() == BROADCAST) {
         for (auto& connection : connections_) {
             if (connection.second->is_open()) {
-                connection.second->send_msg(msg);
+                connection.second->send_msg(std::move(msg));
             }
         }
+    } else if(msg.receiverID() == SELF) {
+        ReceivedMessage receivedMessage(SELF, msg.header()[0], SELF, msg.body());
+        inbox_.push(std::move(receivedMessage));
+    } else if(msg.receiverID() == CENTRAL) {
+        if (!centralInstance_->is_open())
+            return -1;
+        centralInstance_->send_msg(std::move(msg));
     } else {
         if(connections_.count(msg.receiverID()) < 1) {
-            std::cout << msg.receiverID() << " " << std::dec << (int) msg.header()[0] << std::endl;
             return -1;
         }
         if (!connections_[msg.receiverID()]->is_open())
             return -1;
-        connections_[msg.receiverID()]->send_msg(msg);
+        connections_[msg.receiverID()]->send_msg(std::move(msg));
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
     return 0;
@@ -91,6 +88,12 @@ uint32_t UnsecuredNetworkManager::getConnectionID() {
     return connectionID;
 }
 
-std::vector<uint32_t> UnsecuredNetworkManager::neighbors() {
+std::vector<uint32_t>& UnsecuredNetworkManager::neighbors() {
     return neighbors_;
+}
+
+void UnsecuredNetworkManager::terminate() {
+    for(auto& connection : connections_)
+        connection.second->disconnect();
+    centralInstance_->disconnect();
 }

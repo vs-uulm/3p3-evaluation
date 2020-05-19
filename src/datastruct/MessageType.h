@@ -35,13 +35,17 @@ enum MessageType {
     ZeroKnowledgeSigmaResponse,
     ZeroKnowledgeSigmaProof,
 
+    FinalDCMessage,
+
     // Adaptive Diffusion messages
     AdaptiveDiffusionMessage,
     VirtualSourceToken,
 
     // Flood and Prune
-    FloodAndPrune
+    FloodAndPrune,
 
+    // Evaluation
+    LoggingMessage
 };
 
 #endif //THREEPP_MESSAGETYPE_H

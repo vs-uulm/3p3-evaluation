@@ -17,6 +17,7 @@ UnsecuredFinalRound::UnsecuredFinalRound(DCNetwork &DCNet, int slotIndex, std::v
 UnsecuredFinalRound::~UnsecuredFinalRound() {}
 
 std::unique_ptr<DCState> UnsecuredFinalRound::executeTask() {
+    auto start = std::chrono::high_resolution_clock::now();
     size_t numSlots = slots_.size();
 
     std::vector<uint8_t> submittedMessage;
@@ -57,6 +58,26 @@ std::unique_ptr<DCState> UnsecuredFinalRound::executeTask() {
 
     UnsecuredFinalRound::resultComputation();
 
+    // Logging
+    if (DCNetwork_.logging()) {
+        auto finish = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed = finish - start;
+        double duration = elapsed.count();
+
+        std::vector<uint8_t> log(sizeof(double) + 3);
+        // runtime
+        std::memcpy(log.data(), &duration, sizeof(double));
+        // security level
+        log[sizeof(double)] = (DCNetwork_.securityLevel() == Unsecured) ? 0 : 1;
+        // round 1
+        log[sizeof(double) + 1] = 1;
+        //sending
+        log[sizeof(double) + 2] = (slotIndex_ > -1) ? 1 : 0;
+
+        OutgoingMessage logMessage(CENTRAL, LoggingMessage, DCNetwork_.nodeID(), std::move(log));
+        DCNetwork_.outbox().push(std::move(logMessage));
+    }
+
     {
         std::lock_guard<std::mutex> lock(mutex_);
         std::cout << "Node: " << std::dec << DCNetwork_.nodeID() << std::endl;
@@ -72,8 +93,10 @@ std::unique_ptr<DCState> UnsecuredFinalRound::executeTask() {
     }
 
     // hand the messages to upper level
-    for(auto& slot : S)
-        DCNetwork_.outboxFinal().push(std::move(slot));
+    for(auto& slot : S) {
+        OutgoingMessage finalMessage(SELF, FinalDCMessage, SELF, std::move(slot));
+        DCNetwork_.outbox().push(std::move(finalMessage));
+    }
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
     return std::make_unique<UnsecuredInitialRound>(DCNetwork_);

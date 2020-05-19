@@ -43,6 +43,8 @@ SecuredFinalRound::SecuredFinalRound(DCNetwork &DCNet, int slotIndex, std::vecto
 SecuredFinalRound::~SecuredFinalRound() {}
 
 std::unique_ptr<DCState> SecuredFinalRound::executeTask() {
+    auto start = std::chrono::high_resolution_clock::now();
+
     size_t numSlots = slots_.size();
 
     std::vector<size_t> numSlices;
@@ -189,6 +191,26 @@ std::unique_ptr<DCState> SecuredFinalRound::executeTask() {
         }
     }
 
+    // Logging
+    if (DCNetwork_.logging()) {
+        auto finish = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed = finish - start;
+        double duration = elapsed.count();
+
+        std::vector<uint8_t> log(sizeof(double) + 3);
+        // runtime
+        std::memcpy(log.data(), &duration, sizeof(double));
+        // security level
+        log[sizeof(double)] = (DCNetwork_.securityLevel() == Unsecured) ? 0 : 1;
+        // round 1
+        log[sizeof(double) + 1] = 1;
+        //sending
+        log[sizeof(double) + 2] = (slotIndex_ > -1) ? 1 : 0;
+
+        OutgoingMessage logMessage(CENTRAL, LoggingMessage, DCNetwork_.nodeID(), std::move(log));
+        DCNetwork_.outbox().push(std::move(logMessage));
+    }
+
     // print the reconstructed message slots
     {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -204,8 +226,11 @@ std::unique_ptr<DCState> SecuredFinalRound::executeTask() {
         std::cout << std::endl;
     }
 
-    for(auto& slot : messages)
-        DCNetwork_.outboxFinal().push(std::move(slot));
+    // pass the final message through the message handler to store it in the message buffer
+    for(auto& slot : messages) {
+        OutgoingMessage finalMessage(SELF, FinalDCMessage, SELF, std::move(slot));
+        DCNetwork_.outbox().push(std::move(finalMessage));
+    }
 
     return std::make_unique<ReadyState>(DCNetwork_);
 }

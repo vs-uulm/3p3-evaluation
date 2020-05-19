@@ -30,7 +30,7 @@ class DCNetwork {
 public:
     DCNetwork(DCMember self, size_t k, SecurityLevel securityLevel, CryptoPP::Integer privateKey, uint32_t numThreads,
             std::unordered_map<uint32_t, Node>& neighbors, MessageQueue<ReceivedMessage>& inboxDC,
-            MessageQueue<OutgoingMessage>& outboxThreePP, MessageQueue<std::vector<uint8_t>>& outboxFinal);
+            MessageQueue<OutgoingMessage>& outboxThreePP, bool logging);
 
     std::map<uint32_t, DCMember>& members();
 
@@ -39,8 +39,6 @@ public:
     MessageQueue<ReceivedMessage>& inbox();
 
     MessageQueue<OutgoingMessage>& outbox();
-
-    MessageQueue<std::vector<uint8_t>>& outboxFinal();
 
     std::queue<std::vector<uint8_t>>& submittedMessages();
 
@@ -53,6 +51,8 @@ public:
     SecurityLevel securityLevel();
 
     CryptoPP::Integer& privateKey();
+
+    bool logging();
 
     void run();
 
@@ -79,12 +79,12 @@ private:
 
     MessageQueue<OutgoingMessage>& outboxThreePP_;
 
-    MessageQueue<std::vector<uint8_t>>& outboxFinal_;
-
     std::queue<std::vector<uint8_t>> submittedMessages_;
 
     // current state of the DC network
     std::unique_ptr<DCState> state_;
+
+    bool logging_;
 };
 
 

@@ -19,6 +19,7 @@ UnsecuredInitialRound::UnsecuredInitialRound(DCNetwork &DCNet) : DCNetwork_(DCNe
 UnsecuredInitialRound::~UnsecuredInitialRound() {}
 
 std::unique_ptr<DCState> UnsecuredInitialRound::executeTask() {
+    auto start = std::chrono::high_resolution_clock::now();
     // check if there is a submitted message and determine it's length,
     // but don't remove it from the message queue just yet
     uint16_t l = 0;
@@ -108,6 +109,26 @@ std::unique_ptr<DCState> UnsecuredInitialRound::executeTask() {
             // store the size of the slot along with the seed
             slots.push_back(slotSize);
         }
+    }
+
+    // Logging
+    if (DCNetwork_.logging()) {
+        auto finish = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed = finish - start;
+        double duration = elapsed.count();
+
+        std::vector<uint8_t> log(sizeof(double) + 3);
+        // runtime
+        std::memcpy(log.data(), &duration, sizeof(double));
+        // security level
+        log[sizeof(double)] = (DCNetwork_.securityLevel() == Unsecured) ? 0 : 1;
+        // round 1
+        log[sizeof(double) + 1] = 0;
+        //sending
+        log[sizeof(double) + 2] = (finalSlotIndex > -1) ? 1 : 0;
+
+        OutgoingMessage logMessage(CENTRAL, LoggingMessage, DCNetwork_.nodeID(), std::move(log));
+        DCNetwork_.outbox().push(std::move(logMessage));
     }
 
     if (finalSlotIndex > -1) {

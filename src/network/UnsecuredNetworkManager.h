@@ -15,13 +15,15 @@ public:
 
     int addNeighbor(const Node& node);
 
-    int connectToCA(const std::string& ip_address, uint16_t port);
+    void connectToCA(const std::string& ip_address, uint16_t port);
 
     int sendMessage(OutgoingMessage msg);
 
     void start_accept();
 
-    std::vector<uint32_t> neighbors();
+    std::vector<uint32_t>& neighbors();
+
+    void terminate();
 
 private:
     void accept_handler(const boost::system::error_code& e, std::shared_ptr<UnsecuredP2PConnection> connection);
@@ -39,6 +41,8 @@ private:
     MessageQueue<ReceivedMessage>& inbox_;
 
     std::vector<uint32_t> neighbors_;
+
+    std::shared_ptr<UnsecuredP2PConnection> centralInstance_;
 
     std::unordered_map<uint32_t, std::shared_ptr<UnsecuredP2PConnection>> connections_;
 

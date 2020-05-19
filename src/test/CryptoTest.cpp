@@ -10,6 +10,8 @@
 #include <iomanip>
 #include <set>
 #include <thread>
+#include <string>
+#include <sstream>
 
 const CryptoPP::ECPPoint G(CryptoPP::Integer("362dc3caf8a0e8afd06f454a6da0cdce6e539bc3f15e79a15af8aa842d7e3ec2h"),
                             CryptoPP::Integer("b9f8addb295b0fd4d7c49a686eac7b34a9a11ed2d6d243ad065282dc13bce575h"));
@@ -25,7 +27,37 @@ uint32_t num_values = 256;
 std::vector<std::vector<CryptoPP::ECPPoint>> testMatrix(num_values);
 
 int main() {
-    /*
+
+    CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> ec_group;
+    ec_group.Initialize(CryptoPP::ASN1::secp256k1());
+    CryptoPP::AutoSeededRandomPool PRNG;
+    CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> threadCurve1;
+    threadCurve1.Initialize(CryptoPP::ASN1::secp256k1());
+    CryptoPP::Integer r(PRNG, CryptoPP::Integer::One(), ec_group.GetMaxExponent());
+    CryptoPP::Integer s(PRNG, CryptoPP::Integer::One(), ec_group.GetMaxExponent());
+    CryptoPP::ECPPoint rG = threadCurve1.GetCurve().ScalarMultiply(G, r);
+    CryptoPP::ECPPoint sH = threadCurve1.GetCurve().ScalarMultiply(H, s);
+    CryptoPP::ECPPoint commitment = threadCurve1.GetCurve().Add(rG, sH);
+    std::cout << "Test Point" << std::endl << std::hex << commitment.x << std::endl << commitment.y << std::endl;
+    std::vector<uint8_t> encodingTest(33);
+    //for(uint8_t c : encodingTest)
+    //  std::cout << std::hex << (int) c;
+    //  std::cout << std::endl;
+    threadCurve1.GetCurve().EncodePoint(&encodingTest[0], commitment, true);
+    for(uint8_t c : encodingTest)
+        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) c;
+    std::cout << std::endl;
+    CryptoPP::ECPPoint decodedPoint2;
+    threadCurve1.GetCurve().DecodePoint(decodedPoint2, &encodingTest[0], 33);
+    std::cout << "Decoding Test" << std::endl << std::hex << decodedPoint2.x << std::endl << decodedPoint2.y << std::endl;
+
+    CryptoPP::ECPPoint commitment1 = threadCurve1.GetCurve().CascadeMultiply(r, G, s, H);
+    std::vector<uint8_t> encodingTest1(33);
+    threadCurve1.GetCurve().EncodePoint(&encodingTest1[0], commitment1, true);
+    CryptoPP::ECPPoint decodedPoint1;
+    threadCurve1.GetCurve().DecodePoint(decodedPoint1, &encodingTest1[0], 33);
+    std::cout << "Decoding Test" << std::endl << std::hex << decodedPoint1.x << std::endl << decodedPoint1.y << std::endl;
+
     size_t numPoints = std::pow(2,16);
     std::vector<CryptoPP::ECPPoint> testPoints;
     testPoints.reserve(numPoints);
@@ -70,11 +102,11 @@ int main() {
     finish = std::chrono::high_resolution_clock::now();
     elapsed = finish - start;
     std::cout << "Encoding 2: " << elapsed.count() << "s" <<std::endl;
-    */
 
+    /*
     std::list<std::thread> threads;
     std::vector<std::vector<CryptoPP::ECPPoint>> testMatrix(num_values);
-    auto start = std::chrono::high_resolution_clock::now();
+    start = std::chrono::high_resolution_clock::now();
     for(uint32_t i = 0; i < NUM_THREADS; i++) {
         uint32_t min = num_values / static_cast<double>(NUM_THREADS) * i;
         uint32_t max = num_values / static_cast<double>(NUM_THREADS) * (i+1);
@@ -111,12 +143,11 @@ int main() {
     for(auto& t : threads)
         t.join();
 
-    auto finish = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> elapsed = finish - start;
+    finish = std::chrono::high_resolution_clock::now();
+    elapsed = finish - start;
     std::cout << "Finished in " << elapsed.count() << "s" <<std::endl;
 
 
-    /*
     CryptoPP::Integer d(PRNG, CryptoPP::Integer::One(), ec_group.GetMaxExponent());
     CryptoPP::Integer r(PRNG, CryptoPP::Integer::One(), ec_group.GetMaxExponent());
     CryptoPP::Integer z(PRNG, CryptoPP::Integer::One(), ec_group.GetMaxExponent());
