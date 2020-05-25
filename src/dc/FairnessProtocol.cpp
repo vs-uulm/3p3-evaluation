@@ -167,8 +167,8 @@ int FairnessProtocol::coinFlip() {
     }
 
     // reduce R and S
-    R = R.Modulo(curve_.GetSubgroupOrder());
-    S = S.Modulo(curve_.GetSubgroupOrder());
+    R = R.Modulo(curve_.GetGroupOrder());
+    S = S.Modulo(curve_.GetGroupOrder());
 
     std::vector<uint8_t> encodedShare(64);
     R.Encode(&encodedShare[0], 32);
@@ -218,7 +218,7 @@ int FairnessProtocol::coinFlip() {
         }
     }
 
-    S = S.Modulo(curve_.GetSubgroupOrder());
+    S = S.Modulo(curve_.GetGroupOrder());
 
     if(S.IsEven())
         outcome_ = OpenCommitments;
@@ -257,7 +257,7 @@ void FairnessProtocol::distributeCommitments() {
 
             CryptoPP::ECPPoint r_G = curve_.GetCurve().ScalarMultiply(G, r_[slot][slice]);
             sumC_[slot][slice] = curve_.GetCurve().Add(sumC_[slot][slice], r_G);
-            rho_[slot][slice] = rho_[slot][slice].Modulo(curve_.GetSubgroupOrder());
+            rho_[slot][slice] = rho_[slot][slice].Modulo(curve_.GetGroupOrder());
         }
     }
 
@@ -591,7 +591,7 @@ int FairnessProtocol::proofKnowledge() {
                 for (uint32_t slice = 0; slice < numSlices_; slice++) {
                     CryptoPP::Integer w =
                             r_[slot][slice] * zStorage[member->first][slot][slice] + sigmaMatrix[slot][slice];
-                    w = w.Modulo(curve_.GetSubgroupOrder());
+                    w = w.Modulo(curve_.GetGroupOrder());
                     wVector.push_back(std::move(w));
                 }
                 wMatrix.push_back(std::move(wVector));

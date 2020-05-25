@@ -113,7 +113,7 @@ std::unique_ptr<DCState> SecuredInitialRound::executeTask() {
 
         // reduce the slices in the k-th share
         for (uint32_t slice = 0; slice < numSlices; slice++)
-            shares[slot][k_ - 1][slice] = shares[slot][k_ - 1][slice].Modulo(curve_.GetSubgroupOrder());
+            shares[slot][k_ - 1][slice] = shares[slot][k_ - 1][slice].Modulo(curve_.GetGroupOrder());
     }
 
     // store the slices of the own share in S
@@ -426,8 +426,8 @@ int SecuredInitialRound::sharingPartTwo() {
         broadcastSlot[1] = (slot & 0x00FF);
 
         for (uint32_t slice = 0, offset = 2; slice < numSlices; slice++, offset += 64) {
-            S[slot][slice] = S[slot][slice].Modulo(curve_.GetSubgroupOrder());
-            R[slot][slice] = R[slot][slice].Modulo(curve_.GetSubgroupOrder());
+            S[slot][slice] = S[slot][slice].Modulo(curve_.GetGroupOrder());
+            R[slot][slice] = R[slot][slice].Modulo(curve_.GetGroupOrder());
 
             R[slot][slice].Encode(&broadcastSlot[offset], 32);
             S[slot][slice].Encode(&broadcastSlot[offset] + 32, 32);
@@ -504,8 +504,8 @@ std::vector<std::vector<uint8_t>> SecuredInitialRound::resultComputation() {
     // validate the final commitments
     for (uint32_t slot = 0; slot < 2 * k_; slot++) {
         for (uint32_t slice = 0; slice < numSlices; slice++) {
-            R[slot][slice] = R[slot][slice].Modulo(curve_.GetSubgroupOrder());
-            S[slot][slice] = S[slot][slice].Modulo(curve_.GetSubgroupOrder());
+            R[slot][slice] = R[slot][slice].Modulo(curve_.GetGroupOrder());
+            S[slot][slice] = S[slot][slice].Modulo(curve_.GetGroupOrder());
 
             CryptoPP::ECPPoint commitment = commit(R[slot][slice], S[slot][slice]);
 

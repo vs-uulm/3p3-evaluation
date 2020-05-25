@@ -36,6 +36,8 @@ private:
     // sum of all shares
     std::vector<std::vector<uint8_t>> S;
 
+    CryptoPP::CRC32 CRC32_;
+
     CryptoPP::AutoSeededRandomPool PRNG;
 };
 

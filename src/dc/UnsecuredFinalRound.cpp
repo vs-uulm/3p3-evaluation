@@ -6,6 +6,7 @@
 #include "SecuredInitialRound.h"
 #include "../utils/Utils.h"
 #include "UnsecuredInitialRound.h"
+#include "BlameProtocol.h"
 
 UnsecuredFinalRound::UnsecuredFinalRound(DCNetwork &DCNet, int slotIndex, std::vector<uint16_t> slots)
         : DCNetwork_(DCNet), k_(DCNetwork_.k()), slotIndex_(slotIndex), slots_(std::move(slots)) {
@@ -34,17 +35,21 @@ std::unique_ptr<DCState> UnsecuredFinalRound::executeTask() {
     for (uint32_t slot = 0; slot < numSlots; slot++) {
         shares[slot].resize(k_);
 
-        if (static_cast<uint32_t>(slotIndex_) == slot)
-            shares[slot][k_ - 1] = submittedMessage;
-        else
-            shares[slot][k_ - 1].resize(slots_[slot]);
+        shares[slot][k_ - 1].resize(4 + slots_[slot]);
+        if (static_cast<uint32_t>(slotIndex_) == slot) {
+            // Calculate the CRC
+            CRC32_.Update(submittedMessage.data(), submittedMessage.size());
+            CRC32_.Final(shares[slot][k_ - 1].data());
+
+            std::copy(submittedMessage.begin(), submittedMessage.end(), &shares[slot][k_ - 1][4]);
+        }
 
         for (uint32_t share = 0; share < k_ - 1; share++) {
-            shares[slot][share].resize(slots_[slot]);
-            PRNG.GenerateBlock(shares[slot][share].data(), slots_[slot]);
+            shares[slot][share].resize(4 + slots_[slot]);
+            PRNG.GenerateBlock(shares[slot][share].data(), 4 + slots_[slot]);
 
             // XOR The value to the final share
-            for (uint32_t p = 0; p < slots_[slot]; p++)
+            for (uint32_t p = 0; p < 4 + slots_[slot]; p++)
                 shares[slot][k_ - 1][p] ^= shares[slot][share][p];
         }
 
@@ -92,9 +97,20 @@ std::unique_ptr<DCState> UnsecuredFinalRound::executeTask() {
         std::cout << std::endl;
     }
 
+    // Verify the CRCs
+    for(auto& slot : S) {
+        CRC32_.Update(&slot[4], slot.size() - 4);
+        bool valid = CRC32_.Verify(slot.data());
+        if(!valid) {
+            // Switch to the secured version
+            return std::make_unique<SecuredInitialRound>(DCNetwork_);
+        }
+    }
+
     // hand the messages to upper level
     for(auto& slot : S) {
-        OutgoingMessage finalMessage(SELF, FinalDCMessage, SELF, std::move(slot));
+        std::vector<uint8_t> message(slot.begin() + 4, slot.end());
+        OutgoingMessage finalMessage(SELF, FinalDCMessage, SELF, std::move(message));
         DCNetwork_.outbox().push(std::move(finalMessage));
     }
 
@@ -114,7 +130,7 @@ void UnsecuredFinalRound::sharingPartOne(std::vector<std::vector<std::vector<uin
         uint32_t memberIndex = std::distance(DCNetwork_.members().begin(), position);
 
         for (uint32_t slot = 0; slot < numSlots; slot++) {
-            std::vector<uint8_t> share(2 + slots_[slot]);
+            std::vector<uint8_t> share(6 + slots_[slot]);
             share[0] = (slot & 0xFF00) >> 8;
             share[1] = (slot & 0x00FF);
             std::copy(shares[slot][memberIndex].begin(), shares[slot][memberIndex].end(), &share[2]);
@@ -136,7 +152,7 @@ void UnsecuredFinalRound::sharingPartTwo() {
         if (sharingMessage.msgType() == RoundTwoSharingOne) {
 
             size_t slot = (sharingMessage.body()[0] << 8) | sharingMessage.body()[1];
-            for (uint32_t p = 0; p < slots_[slot]; p++)
+            for (uint32_t p = 0; p < 4 + slots_[slot]; p++)
                 S[slot][p] ^= sharingMessage.body()[p+2];
 
             remainingShares--;
@@ -153,7 +169,7 @@ void UnsecuredFinalRound::sharingPartTwo() {
             position = DCNetwork_.members().begin();
 
         for (uint32_t slot = 0; slot < numSlots; slot++) {
-            std::vector<uint8_t> addedShares(2 + slots_[slot]);
+            std::vector<uint8_t> addedShares(6 + slots_[slot]);
             addedShares[0] = (slot & 0xFF00) >> 8;
             addedShares[1] = (slot & 0x00FF);
             std::copy(S[slot].begin(), S[slot].end(), &addedShares[2]);
@@ -175,7 +191,7 @@ void UnsecuredFinalRound::resultComputation() {
 
             size_t slot = (sharingBroadcast.body()[0]) | sharingBroadcast.body()[1];
 
-            for (uint32_t p = 0; p < slots_[slot]; p++)
+            for (uint32_t p = 0; p < 4 + slots_[slot]; p++)
                 S[slot][p] ^= sharingBroadcast.body()[p+2];
 
             remainingShares--;

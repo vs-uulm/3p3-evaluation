@@ -8,6 +8,7 @@
 #include <cryptopp/drbg.h>
 #include <cryptopp/modes.h>
 #include <unordered_map>
+#include <cryptopp/crc.h>
 #include "DCState.h"
 #include "../datastruct/ReceivedMessage.h"
 
@@ -66,6 +67,8 @@ private:
     std::vector<std::vector<CryptoPP::ECPPoint>> C;
 
     CryptoPP::AutoSeededRandomPool PRNG;
+
+    CryptoPP::CRC32 CRC32_;
 
     // Deterministic random number generator
     CryptoPP::OFB_Mode<CryptoPP::AES>::Encryption DRNG;

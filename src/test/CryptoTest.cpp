@@ -30,6 +30,17 @@ int main() {
 
     CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> ec_group;
     ec_group.Initialize(CryptoPP::ASN1::secp256k1());
+
+    CryptoPP::Integer order(ec_group.GetSubgroupOrder());
+    CryptoPP::Integer subgroupOrder(ec_group.GetGroupOrder());
+
+    std::cout << "Group Order:" << std::endl;
+    std::cout << std::hex << order << std::endl;
+
+    std::cout << "Subgroup Order:" << std::endl;
+    std::cout << std::hex << subgroupOrder << std::endl;
+
+    /*
     CryptoPP::AutoSeededRandomPool PRNG;
     CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> threadCurve1;
     threadCurve1.Initialize(CryptoPP::ASN1::secp256k1());

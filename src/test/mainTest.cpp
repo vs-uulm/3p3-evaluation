@@ -155,7 +155,7 @@ void instance(int ID) {
     // submit messages to the DCNetwork
     for(uint32_t i = 0; i < 5; i++) {
         if(nodeID_ < 2) {
-            uint16_t length = PRNG.GenerateWord32(512, 1024);
+            uint16_t length = PRNG.GenerateWord32(128, 128);
             std::vector<uint8_t> message(length);
             PRNG.GenerateBlock(message.data(), length);
             DCNet.submitMessage(message);
