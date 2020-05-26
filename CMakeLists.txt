@@ -72,6 +72,7 @@ add_executable(
         src/dc/UnsecuredInitialRound.cpp
         src/dc/UnsecuredFinalRound.cpp
         src/dc/FairnessProtocol.cpp
+        src/dc/BlameProtocol.cpp
         src/ad/VirtualSource.cpp
         src/ad/AdaptiveDiffusion.cpp
 )

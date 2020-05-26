@@ -25,8 +25,8 @@ ip::address getIP() {
 }
 
 int main(int argc, char **argv) {
-    if ((argc != 3) || (atoi(argv[1]) < 0) || (atoi(argv[1]) > 2)) {
-        std::cout << "usage: ./dockerInstance SecurityLevel numThreads" << std::endl;
+    if ((argc != 5) || (atoi(argv[1]) < 0) || (atoi(argv[1]) > 2)) {
+        std::cout << "usage: ./dockerInstance SecurityLevel numThreads numSenders messageLength" << std::endl;
         std::cout << "SecurityLevel" << std::endl;
         std::cout << "0: unsecured" << std::endl;
         std::cout << "1: secured" << std::endl;
@@ -36,6 +36,8 @@ int main(int argc, char **argv) {
 
     SecurityLevel securityLevel = static_cast<SecurityLevel>(atoi(argv[1]));
     uint32_t numThreads = atoi(argv[2]);
+    uint32_t numSenders = atoi(argv[3]);
+    uint32_t messageLength = atoi(argv[4]);
 
     // wait for cleaner logging
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
@@ -165,17 +167,6 @@ int main(int argc, char **argv) {
     DCNetwork DCNetwork_(self, numNodes + 1, securityLevel, privateKey, numThreads, nodes, inboxDC, outboxThreePP,
                          true);
 
-    // submit the first message to the DC-Network
-    /*
-    uint32_t send = PRNG.GenerateWord32(0, 3);
-    if (send == 0) {
-        uint16_t length = PRNG.GenerateWord32(512, 1024);
-        std::vector<uint8_t> message(length);
-        PRNG.GenerateBlock(message.data(), length);
-        DCNetwork_.submitMessage(message);
-    }
-     */
-
     std::thread DCThread([&]() {
         DCNetwork_.run();
     });
@@ -183,18 +174,12 @@ int main(int argc, char **argv) {
     uint32_t iterations = 100;
     // submit more messages to the DCNetwork
     for (uint32_t i = 0; i < iterations; i++) {
-        if (nodeID_ < 2) {
-            uint16_t length = PRNG.GenerateWord32(512, 1024);
-            std::vector<uint8_t> message(length);
-            PRNG.GenerateBlock(message.data(), length);
+        if (nodeID_ < numSenders) {
+            //uint16_t length = PRNG.GenerateWord32(512, 1024);
+            std::vector<uint8_t> message(messageLength);
+            PRNG.GenerateBlock(message.data(), messageLength);
             DCNetwork_.submitMessage(message);
         }
-        uint32_t sleep;
-        if (securityLevel == Secured)
-            sleep = PRNG.GenerateWord32(2, 10);
-        else
-            sleep = PRNG.GenerateWord32(1, 5);
-        std::this_thread::sleep_for(std::chrono::seconds(sleep));
     }
 
     // Terminate after all messages have been received

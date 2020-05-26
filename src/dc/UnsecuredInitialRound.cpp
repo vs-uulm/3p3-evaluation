@@ -19,6 +19,8 @@ UnsecuredInitialRound::UnsecuredInitialRound(DCNetwork &DCNet) : DCNetwork_(DCNe
 UnsecuredInitialRound::~UnsecuredInitialRound() {}
 
 std::unique_ptr<DCState> UnsecuredInitialRound::executeTask() {
+    std::vector<double> runtimes;
+
     auto start = std::chrono::high_resolution_clock::now();
     // check if there is a submitted message and determine it's length,
     // but don't remove it from the message queue just yet
@@ -70,11 +72,29 @@ std::unique_ptr<DCState> UnsecuredInitialRound::executeTask() {
     // store the own share in S
     S = shares[nodeIndex_];
 
+    // logging
+    auto finish = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = finish - start;
+    runtimes.push_back(elapsed.count());
+    start = std::chrono::high_resolution_clock::now();
+
     // generate and broadcast the commitments for the first round
     UnsecuredInitialRound::sharingPartOne(shares);
 
+    // logging
+    finish = std::chrono::high_resolution_clock::now();
+    elapsed = finish - start;
+    runtimes.push_back(elapsed.count());
+    start = std::chrono::high_resolution_clock::now();
+
     // collect and validate the shares
     UnsecuredInitialRound::sharingPartTwo();
+
+    // logging
+    finish = std::chrono::high_resolution_clock::now();
+    elapsed = finish - start;
+    runtimes.push_back(elapsed.count());
+    start = std::chrono::high_resolution_clock::now();
 
 
     // collect and validate the final shares
@@ -117,15 +137,18 @@ std::unique_ptr<DCState> UnsecuredInitialRound::executeTask() {
         std::chrono::duration<double> elapsed = finish - start;
         double duration = elapsed.count();
 
-        std::vector<uint8_t> log(sizeof(double) + 3);
-        // runtime
-        std::memcpy(log.data(), &duration, sizeof(double));
+        std::vector<uint8_t> log(4 * sizeof(double) + 3);
+        // runtimes
+        std::memcpy(&log[0], &runtimes[0], sizeof(double));
+        std::memcpy(&log[8], &runtimes[1], sizeof(double));
+        std::memcpy(&log[16], &runtimes[2], sizeof(double));
+        std::memcpy(&log[24], &duration, sizeof(double));
         // security level
-        log[sizeof(double)] = (DCNetwork_.securityLevel() == Unsecured) ? 0 : 1;
+        log[4 * sizeof(double)] = (DCNetwork_.securityLevel() == Unsecured) ? 0 : 1;
         // round 1
-        log[sizeof(double) + 1] = 0;
+        log[4 * sizeof(double) + 1] = 1;
         //sending
-        log[sizeof(double) + 2] = (finalSlotIndex > -1) ? 1 : 0;
+        log[4 * sizeof(double) + 2] = (finalSlotIndex > -1) ? 1 : 0;
 
         OutgoingMessage logMessage(CENTRAL, LoggingMessage, DCNetwork_.nodeID(), std::move(log));
         DCNetwork_.outbox().push(std::move(logMessage));

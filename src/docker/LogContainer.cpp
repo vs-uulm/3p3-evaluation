@@ -96,16 +96,16 @@ int main(int argc, char** argv) {
     std::ofstream logFile;
     logFile.open (ss.str());
 
-    logFile << "Round,";
+    logFile << "Round,Security,";
     for(uint32_t i=0; i < INSTANCES; i++) {
-        logFile << "Node " << i << ", Runtime";
+        logFile << "Node " << i << ",Preparation,SharingI,SharingII,Result,Total";
         if(i < INSTANCES-1)
             logFile << ",";
         else
             logFile << std::endl;
     }
 
-    std::vector<std::pair<bool, double>> runtimes(INSTANCES);
+    std::vector<std::pair<bool, std::vector<double>>> runtimes(INSTANCES);
     uint32_t iterations = 100;
     // collect log data
     for(uint32_t i = 0; i < 2 * iterations * INSTANCES; i++) {
@@ -115,12 +115,19 @@ int main(int argc, char** argv) {
             continue;
         }
 
-        runtimes[receivedMessage.senderID()].first = receivedMessage.body()[10];
-        runtimes[receivedMessage.senderID()].second = *reinterpret_cast<double *>(&receivedMessage.body()[0]);
+        runtimes[receivedMessage.senderID()].first = receivedMessage.body()[34];
+        std::vector<double> nodeRuntimes;
+        nodeRuntimes.push_back(*reinterpret_cast<double *>(&receivedMessage.body()[0]));
+        nodeRuntimes.push_back(*reinterpret_cast<double *>(&receivedMessage.body()[8]));
+        nodeRuntimes.push_back(*reinterpret_cast<double *>(&receivedMessage.body()[16]));
+        nodeRuntimes.push_back(*reinterpret_cast<double *>(&receivedMessage.body()[24]));
+        runtimes[receivedMessage.senderID()].second = nodeRuntimes;
 
         if((((i+1) % INSTANCES) == 0) && (i > 0)) {
             // set the round
-            logFile << receivedMessage.body()[9] + 1 << ",";
+            logFile << (int) receivedMessage.body()[33] << ",";
+            // set the security level
+            logFile << ((receivedMessage.body()[32] == 0) ? "unsecured" : "secured") << ",";
             // set runtimes and send flag
             for(uint32_t j = 0; j < INSTANCES; j++) {
                 if(runtimes[j].first)
@@ -128,7 +135,12 @@ int main(int argc, char** argv) {
                 else
                     logFile << ",";
 
-                logFile << runtimes[j].second;
+                double total = 0;
+                for(double runtime : runtimes[j].second) {
+                    total += runtime;
+                    logFile << runtime << ",";
+                }
+                logFile << total;
                 if(j < INSTANCES-1)
                     logFile << ",";
                 else

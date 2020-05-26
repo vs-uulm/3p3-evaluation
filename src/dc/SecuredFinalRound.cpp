@@ -44,6 +44,7 @@ SecuredFinalRound::SecuredFinalRound(DCNetwork &DCNet, int slotIndex, std::vecto
 SecuredFinalRound::~SecuredFinalRound() {}
 
 std::unique_ptr<DCState> SecuredFinalRound::executeTask() {
+    std::vector<double> runtimes;
     auto start = std::chrono::high_resolution_clock::now();
 
     size_t numSlots = slots_.size();
@@ -126,8 +127,19 @@ std::unique_ptr<DCState> SecuredFinalRound::executeTask() {
     for (auto &slot : shares)
         totalNumSlices += slot[0].size();
 
+    // logging
+    auto finished = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = finished - start;
+    runtimes.push_back(elapsed.count());
+    start = std::chrono::high_resolution_clock::now();
 
     SecuredFinalRound::sharingPartOne(shares);
+
+    // logging
+    finished = std::chrono::high_resolution_clock::now();
+    elapsed = finished - start;
+    runtimes.push_back(elapsed.count());
+    start = std::chrono::high_resolution_clock::now();
 
     int result = SecuredFinalRound::sharingPartTwo();
     // a blame message has been received
@@ -137,6 +149,12 @@ std::unique_ptr<DCState> SecuredFinalRound::executeTask() {
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
         return std::make_unique<InitState>(DCNetwork_);
     }
+
+    // logging
+    finished = std::chrono::high_resolution_clock::now();
+    elapsed = finished - start;
+    runtimes.push_back(elapsed.count());
+    start = std::chrono::high_resolution_clock::now();
 
     std::vector<std::vector<uint8_t>> finalMessages = SecuredFinalRound::resultComputation();
     if (finalMessages.size() == 0) {
@@ -211,19 +229,22 @@ std::unique_ptr<DCState> SecuredFinalRound::executeTask() {
 
     // Logging
     if (DCNetwork_.logging()) {
-        auto finish = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double> elapsed = finish - start;
+        finished = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed = finished - start;
         double duration = elapsed.count();
 
-        std::vector<uint8_t> log(sizeof(double) + 3);
-        // runtime
-        std::memcpy(log.data(), &duration, sizeof(double));
+        std::vector<uint8_t> log(4 * sizeof(double) + 3);
+        // runtimes
+        std::memcpy(&log[0], &runtimes[0], sizeof(double));
+        std::memcpy(&log[8], &runtimes[1], sizeof(double));
+        std::memcpy(&log[16], &runtimes[2], sizeof(double));
+        std::memcpy(&log[24], &duration, sizeof(double));
         // security level
-        log[sizeof(double)] = (DCNetwork_.securityLevel() == Unsecured) ? 0 : 1;
-        // round 1
-        log[sizeof(double) + 1] = 1;
+        log[4 * sizeof(double)] = (DCNetwork_.securityLevel() == Unsecured) ? 0 : 1;
+        // round 2
+        log[4 * sizeof(double) + 1] = 2;
         //sending
-        log[sizeof(double) + 2] = (slotIndex_ > -1) ? 1 : 0;
+        log[4 * sizeof(double) + 2] = (slotIndex_ > -1) ? 1 : 0;
 
         OutgoingMessage logMessage(CENTRAL, LoggingMessage, DCNetwork_.nodeID(), std::move(log));
         DCNetwork_.outbox().push(std::move(logMessage));

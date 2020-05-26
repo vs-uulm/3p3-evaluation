@@ -18,6 +18,7 @@ UnsecuredFinalRound::UnsecuredFinalRound(DCNetwork &DCNet, int slotIndex, std::v
 UnsecuredFinalRound::~UnsecuredFinalRound() {}
 
 std::unique_ptr<DCState> UnsecuredFinalRound::executeTask() {
+    std::vector<double> runtimes;
     auto start = std::chrono::high_resolution_clock::now();
     size_t numSlots = slots_.size();
 
@@ -56,10 +57,27 @@ std::unique_ptr<DCState> UnsecuredFinalRound::executeTask() {
         S.push_back(shares[slot][nodeIndex_]);
     }
 
+    // logging
+    auto finish = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = finish - start;
+    runtimes.push_back(elapsed.count());
+    start = std::chrono::high_resolution_clock::now();
 
     UnsecuredFinalRound::sharingPartOne(shares);
 
+    // logging
+    finish = std::chrono::high_resolution_clock::now();
+    elapsed = finish - start;
+    runtimes.push_back(elapsed.count());
+    start = std::chrono::high_resolution_clock::now();
+
     UnsecuredFinalRound::sharingPartTwo();
+
+    // logging
+    finish = std::chrono::high_resolution_clock::now();
+    elapsed = finish - start;
+    runtimes.push_back(elapsed.count());
+    start = std::chrono::high_resolution_clock::now();
 
     UnsecuredFinalRound::resultComputation();
 
@@ -69,15 +87,18 @@ std::unique_ptr<DCState> UnsecuredFinalRound::executeTask() {
         std::chrono::duration<double> elapsed = finish - start;
         double duration = elapsed.count();
 
-        std::vector<uint8_t> log(sizeof(double) + 3);
-        // runtime
-        std::memcpy(log.data(), &duration, sizeof(double));
+        std::vector<uint8_t> log(4 * sizeof(double) + 3);
+        // runtimes
+        std::memcpy(&log[0], &runtimes[0], sizeof(double));
+        std::memcpy(&log[8], &runtimes[1], sizeof(double));
+        std::memcpy(&log[16], &runtimes[2], sizeof(double));
+        std::memcpy(&log[24], &duration, sizeof(double));
         // security level
-        log[sizeof(double)] = (DCNetwork_.securityLevel() == Unsecured) ? 0 : 1;
+        log[4 * sizeof(double)] = (DCNetwork_.securityLevel() == Unsecured) ? 0 : 1;
         // round 1
-        log[sizeof(double) + 1] = 1;
+        log[4 * sizeof(double) + 1] = 2;
         //sending
-        log[sizeof(double) + 2] = (slotIndex_ > -1) ? 1 : 0;
+        log[4 * sizeof(double) + 2] = (slotIndex_ > -1) ? 1 : 0;
 
         OutgoingMessage logMessage(CENTRAL, LoggingMessage, DCNetwork_.nodeID(), std::move(log));
         DCNetwork_.outbox().push(std::move(logMessage));
