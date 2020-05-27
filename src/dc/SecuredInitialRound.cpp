@@ -225,7 +225,7 @@ std::unique_ptr<DCState> SecuredInitialRound::executeTask() {
                                                   std::move(commitments_));
 
     // Logging
-    if (DCNetwork_.logging()) {
+    if (DCNetwork_.logging() && (slots.size() != 0)) {
         auto finish = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> elapsed = finish - start;
         double duration = elapsed.count();

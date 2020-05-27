@@ -9,4 +9,4 @@ WORKDIR /opt/threePP
 COPY --from=three-phase-protocol-implementation_build-container /home/threePP/dockerAuthority .
 COPY --from=three-phase-protocol-implementation_build-container /home/threePP/cert /opt/cert
 
-CMD ["/bin/sh", "-c", "./dockerAuthority 6"]
+CMD ["/bin/sh", "-c", "./dockerAuthority 12"]

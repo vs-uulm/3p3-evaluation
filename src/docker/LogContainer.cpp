@@ -96,10 +96,14 @@ int main(int argc, char** argv) {
     std::ofstream logFile;
     logFile.open (ss.str());
 
-    logFile << "Round,Security,";
-    for(uint32_t i=0; i < INSTANCES; i++) {
-        logFile << "Node " << i << ",Preparation,SharingI,SharingII,Result,Total";
-        if(i < INSTANCES-1)
+    logFile << "Security,";
+    for(uint32_t i=0; i < 2*INSTANCES; i++) {
+        if(i == 0)
+            logFile << "Round1,";
+        if(i == INSTANCES)
+            logFile << "Round2,";
+        logFile << "Node " << i % INSTANCES << ",Preparation,SharingI,SharingII,Result,Total";
+        if(i < 2*INSTANCES-1)
             logFile << ",";
         else
             logFile << std::endl;
@@ -123,11 +127,10 @@ int main(int argc, char** argv) {
         nodeRuntimes.push_back(*reinterpret_cast<double *>(&receivedMessage.body()[24]));
         runtimes[receivedMessage.senderID()].second = nodeRuntimes;
 
-        if((((i+1) % INSTANCES) == 0) && (i > 0)) {
-            // set the round
-            logFile << (int) receivedMessage.body()[33] << ",";
+        if((((i+1) % INSTANCES) == 0)) {
             // set the security level
-            logFile << ((receivedMessage.body()[32] == 0) ? "unsecured" : "secured") << ",";
+            if(((i+1) % (2*INSTANCES)) != 0)
+                logFile << ((receivedMessage.body()[32] == 0) ? "unsecured" : "secured") << ",,";
             // set runtimes and send flag
             for(uint32_t j = 0; j < INSTANCES; j++) {
                 if(runtimes[j].first)
@@ -144,7 +147,10 @@ int main(int argc, char** argv) {
                 if(j < INSTANCES-1)
                     logFile << ",";
                 else
-                    logFile << std::endl;
+                    if(receivedMessage.body()[33] == 1)
+                        logFile << ",,";
+                    else
+                        logFile << std::endl;
             }
         }
     }
