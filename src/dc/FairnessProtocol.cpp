@@ -21,13 +21,28 @@ FairnessProtocol::FairnessProtocol(DCNetwork &DCNet, size_t numSlices, size_t sl
 FairnessProtocol::~FairnessProtocol() {}
 
 std::unique_ptr<DCState> FairnessProtocol::executeTask() {
-    FairnessProtocol::distributeCommitments();
-    int result = FairnessProtocol::coinFlip();
+    std::vector<double> runtimes;
+    auto start = std::chrono::high_resolution_clock::now();
 
+    FairnessProtocol::distributeCommitments();
+
+    // logging
+    auto finish = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = finish - start;
+    runtimes.push_back(elapsed.count());
+    start = std::chrono::high_resolution_clock::now();
+
+    int result = FairnessProtocol::coinFlip();
     if (result < 0) {
         // TODO clean up the inbox
         return std::make_unique<InitState>(DCNetwork_);
     }
+
+    // logging
+    finish = std::chrono::high_resolution_clock::now();
+    elapsed = finish - start;
+    runtimes.push_back(elapsed.count());
+    start = std::chrono::high_resolution_clock::now();
 
     if(outcome_ == OpenCommitments)
         result = FairnessProtocol::openCommitments();
@@ -39,10 +54,12 @@ std::unique_ptr<DCState> FairnessProtocol::executeTask() {
         return std::make_unique<InitState>(DCNetwork_);
     }
 
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        std::cout << "Proof of fairness finished" << std::endl;
-    }
+    // logging
+    finish = std::chrono::high_resolution_clock::now();
+    elapsed = finish - start;
+    runtimes.push_back(elapsed.count());
+    start = std::chrono::high_resolution_clock::now();
+
     std::this_thread::sleep_for(std::chrono::seconds(60));
     return std::make_unique<ReadyState>(DCNetwork_);
 }

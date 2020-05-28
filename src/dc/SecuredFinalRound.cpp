@@ -246,7 +246,7 @@ std::unique_ptr<DCState> SecuredFinalRound::executeTask() {
         //sending
         log[4 * sizeof(double) + 2] = (slotIndex_ > -1) ? 1 : 0;
 
-        OutgoingMessage logMessage(CENTRAL, LoggingMessage, DCNetwork_.nodeID(), std::move(log));
+        OutgoingMessage logMessage(CENTRAL, DCLoggingMessage, DCNetwork_.nodeID(), std::move(log));
         DCNetwork_.outbox().push(std::move(logMessage));
     }
 

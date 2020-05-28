@@ -114,7 +114,7 @@ int main(int argc, char** argv) {
     // collect log data
     for(uint32_t i = 0; i < 2 * iterations * INSTANCES; i++) {
         auto receivedMessage = inbox.pop();
-        if(receivedMessage.msgType() != LoggingMessage) {
+        if(receivedMessage.msgType() != DCLoggingMessage) {
             std::cout << "Unknown message type received: " << receivedMessage.msgType() << std::endl;
             continue;
         }

@@ -35,7 +35,7 @@ std::unique_ptr<DCState> BlameProtocol::executeTask() {
 
     std::vector<CryptoPP::Integer> messageSlices;
 
-    int newSlotIndex;
+    int newSlotIndex = -1;
     if (slotIndex_ > 0) {
         newSlotIndex = PRNG.GenerateWord32(0, 2*k_);
 
@@ -155,7 +155,7 @@ std::unique_ptr<DCState> BlameProtocol::executeTask() {
             CRC32_.Update(&finalMessageVector[slot][4], 40);
             if(!CRC32_.Verify(finalMessageVector[slot].data())) {
                 invalidCRC = true;
-            } else if(newSlotIndex != slot) {
+            } else if(newSlotIndex != static_cast<int>(slot)) {
                 CryptoPP::Integer r(&finalMessageVector[slot][12], 32);
 
                 // Decode the member

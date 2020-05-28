@@ -50,7 +50,7 @@ std::unique_ptr<DCState> UnsecuredFinalRound::executeTask() {
             PRNG.GenerateBlock(shares[slot][share].data(), 4 + slots_[slot]);
 
             // XOR The value to the final share
-            for (uint32_t p = 0; p < 4 + slots_[slot]; p++)
+            for (uint32_t p = 0; p < 4 + static_cast<uint32_t>(slots_[slot]); p++)
                 shares[slot][k_ - 1][p] ^= shares[slot][share][p];
         }
 
@@ -100,7 +100,7 @@ std::unique_ptr<DCState> UnsecuredFinalRound::executeTask() {
         //sending
         log[4 * sizeof(double) + 2] = (slotIndex_ > -1) ? 1 : 0;
 
-        OutgoingMessage logMessage(CENTRAL, LoggingMessage, DCNetwork_.nodeID(), std::move(log));
+        OutgoingMessage logMessage(CENTRAL, DCLoggingMessage, DCNetwork_.nodeID(), std::move(log));
         DCNetwork_.outbox().push(std::move(logMessage));
     }
 
@@ -173,7 +173,7 @@ void UnsecuredFinalRound::sharingPartTwo() {
         if (sharingMessage.msgType() == RoundTwoSharingOne) {
 
             size_t slot = (sharingMessage.body()[0] << 8) | sharingMessage.body()[1];
-            for (uint32_t p = 0; p < 4 + slots_[slot]; p++)
+            for (uint32_t p = 0; p < 4 + static_cast<uint32_t>(slots_[slot]); p++)
                 S[slot][p] ^= sharingMessage.body()[p+2];
 
             remainingShares--;
@@ -212,7 +212,7 @@ void UnsecuredFinalRound::resultComputation() {
 
             size_t slot = (sharingBroadcast.body()[0]) | sharingBroadcast.body()[1];
 
-            for (uint32_t p = 0; p < 4 + slots_[slot]; p++)
+            for (uint32_t p = 0; p < 4 + static_cast<uint32_t>(slots_[slot]); p++)
                 S[slot][p] ^= sharingBroadcast.body()[p+2];
 
             remainingShares--;
