@@ -2,6 +2,7 @@
 #include <thread>
 #include <list>
 #include <iostream>
+#include <fstream>
 #include <cryptopp/oids.h>
 
 #include "../network/P2PConnection.h"
@@ -32,8 +33,8 @@ void instance(int ID) {
     ip::address_v4 ip_address(ip::address_v4::from_string("127.0.0.1"));
 
     // TODO
-    //NetworkManager networkManager(io_context_, port_, inboxThreePP);
-    UnsecuredNetworkManager networkManager(io_context_, port_, inboxThreePP);
+    NetworkManager networkManager(io_context_, port_, inboxThreePP);
+    //UnsecuredNetworkManager networkManager(io_context_, port_, inboxThreePP);
     // Run the io_context which handles the network manager
     std::thread networkThread1([&io_context_]() {
         io_context_.run();
@@ -190,8 +191,8 @@ void nodeAuthority() {
     uint16_t port = 7777;
 
     // TODO
-    // NetworkManager networkManager(io_context_, port, inbox);
-    UnsecuredNetworkManager networkManager(io_context_, port, inbox);
+    NetworkManager networkManager(io_context_, port, inbox);
+    //UnsecuredNetworkManager networkManager(io_context_, port, inbox);
     // Run the io_context which handles the network manager
     std::thread networkThread([&io_context_]() {
         io_context_.run();
@@ -242,6 +243,118 @@ void nodeAuthority() {
         OutgoingMessage nodeInfoMessage(node.second.first, NodeInfoMessage, 0, nodeInfo);
         networkManager.sendMessage(nodeInfoMessage);
     }
+    // create the log file
+    time_t now = time(0);
+    tm* timeStamp = localtime(&now);
+    std::string months[12] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+    std::stringstream fileName1;
+    fileName1 << "/home/ubuntu/Log_";
+    fileName1 << months[timeStamp->tm_mon];
+    fileName1 << timeStamp->tm_mday << "__";
+    fileName1 << timeStamp->tm_hour << "_";
+    fileName1 << timeStamp->tm_min << "_";
+    fileName1 << "Round1.csv";
+
+    std::stringstream fileName2;
+    fileName2 << "/home/ubuntu/Log_";
+    fileName2 << months[timeStamp->tm_mon];
+    fileName2 << timeStamp->tm_mday << "__";
+    fileName2 << timeStamp->tm_hour << "_";
+    fileName2 << timeStamp->tm_min << "_";
+    fileName2 << "Round2.csv";
+
+    std::ofstream logFile1;
+    logFile1.open (fileName1.str());
+
+    logFile1 << "Security,Threads,";
+    for(uint32_t i=0; i < INSTANCES; i++) {
+        logFile1 << "Node" << i % INSTANCES << ",Preparation,SharingI,SharingII,Result,Total";
+        if(i < INSTANCES-1)
+            logFile1 << ",";
+        else
+            logFile1 << std::endl;
+    }
+
+    std::ofstream logFile2;
+    logFile2.open (fileName2.str());
+
+    logFile2 << "Security,Threads,";
+    for(uint32_t i=0; i < INSTANCES; i++) {
+        logFile2 << "Node" << i % INSTANCES << ",Preparation,SharingI,SharingII,Result,Total";
+        if(i < INSTANCES-1)
+            logFile2 << ",";
+        else
+            logFile2 << std::endl;
+    }
+
+    std::vector<std::pair<bool, std::vector<double>>> runtimes(INSTANCES);
+    uint32_t iterations = 100;
+    // collect log data
+    for(uint32_t i = 0; i < 2 * iterations * INSTANCES; i++) {
+        auto receivedMessage = inbox.pop();
+        if(receivedMessage.msgType() != DCLoggingMessage) {
+            std::cout << "Unknown message type received: " << receivedMessage.msgType() << std::endl;
+            continue;
+        }
+
+        runtimes[receivedMessage.senderID()].first = receivedMessage.body()[34];
+        std::vector<double> nodeRuntimes;
+        nodeRuntimes.push_back(*reinterpret_cast<double *>(&receivedMessage.body()[0]));
+        nodeRuntimes.push_back(*reinterpret_cast<double *>(&receivedMessage.body()[8]));
+        nodeRuntimes.push_back(*reinterpret_cast<double *>(&receivedMessage.body()[16]));
+        nodeRuntimes.push_back(*reinterpret_cast<double *>(&receivedMessage.body()[24]));
+        runtimes[receivedMessage.senderID()].second = nodeRuntimes;
+
+        if(((i+1) % (2*INSTANCES)) != 0) {
+            // set the security level for Round2
+            logFile2 << ((receivedMessage.body()[32] == 0) ? "unsecured" : "secured") << ",";
+            // set the number of threads for Round2
+            logFile2 << receivedMessage.body()[35] << ",";
+            // set runtimes and send flag
+            for(uint32_t j = 0; j < INSTANCES; j++) {
+                if(runtimes[j].first)
+                    logFile2 << "sending,";
+                else
+                    logFile2 << ",";
+
+                double total = 0;
+                for(double runtime : runtimes[j].second) {
+                    total += runtime;
+                    logFile2 << runtime << ",";
+                }
+                logFile2 << total;
+                if(j < INSTANCES-1)
+                    logFile2 << ",";
+                else
+                    logFile2 << std::endl;
+            }
+        } else if((((i+1) % INSTANCES) == 0)) {
+            // set the security level for Round1
+            logFile1 << ((receivedMessage.body()[32] == 0) ? "unsecured" : "secured") << ",";
+            // set the number of threads for Round1
+            logFile1 << receivedMessage.body()[35] << ",";
+            // set runtimes and send flag
+            for(uint32_t j = 0; j < INSTANCES; j++) {
+                if(runtimes[j].first)
+                    logFile1 << "sending,";
+                else
+                    logFile1 << ",";
+
+                double total = 0;
+                for(double runtime : runtimes[j].second) {
+                    total += runtime;
+                    logFile1 << runtime << ",";
+                }
+                logFile1 << total;
+                if(j < INSTANCES-1)
+                    logFile1 << ",";
+                else
+                    logFile1 << std::endl;
+            }
+        }
+    }
+    logFile1.close();
+    logFile2.close();
 
     networkThread.join();
 }

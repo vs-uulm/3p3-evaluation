@@ -26,6 +26,8 @@ public:
 
     void start_accept();
 
+    void terminate();
+
 private:
     void accept_handler(const boost::system::error_code& e, std::shared_ptr<P2PConnection> connection);
 

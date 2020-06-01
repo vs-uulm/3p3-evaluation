@@ -79,8 +79,11 @@ void UnsecuredP2PConnection::send_msg(NetworkMessage msg) {
 
     boost::system::error_code error;
     boost::asio::write(socket_, combined, error);
-    if(error)
-        std::cerr << "Error: could not send message" << std::endl;
+    if(error) {
+        // Retry sending 5 milliseconds later
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        send_msg(std::move(msg));
+    }
 }
 
 bool UnsecuredP2PConnection::is_open() {

@@ -77,7 +77,6 @@ int UnsecuredNetworkManager::sendMessage(OutgoingMessage msg) {
             return -1;
         connections_[msg.receiverID()]->send_msg(std::move(msg));
     }
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
     return 0;
 }
 

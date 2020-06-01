@@ -87,7 +87,7 @@ std::unique_ptr<DCState> UnsecuredFinalRound::executeTask() {
         std::chrono::duration<double> elapsed = finish - start;
         double duration = elapsed.count();
 
-        std::vector<uint8_t> log(4 * sizeof(double) + 3);
+        std::vector<uint8_t> log(4 * sizeof(double) + 4);
         // runtimes
         std::memcpy(&log[0], &runtimes[0], sizeof(double));
         std::memcpy(&log[8], &runtimes[1], sizeof(double));
@@ -99,6 +99,8 @@ std::unique_ptr<DCState> UnsecuredFinalRound::executeTask() {
         log[4 * sizeof(double) + 1] = 2;
         //sending
         log[4 * sizeof(double) + 2] = (slotIndex_ > -1) ? 1 : 0;
+        //numThreads
+        log[4 * sizeof(double) + 3] = DCNetwork_.numThreads();
 
         OutgoingMessage logMessage(CENTRAL, DCLoggingMessage, DCNetwork_.nodeID(), std::move(log));
         DCNetwork_.outbox().push(std::move(logMessage));

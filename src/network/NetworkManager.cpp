@@ -96,3 +96,9 @@ int NetworkManager::sendMessage(OutgoingMessage msg) {
 std::vector<uint32_t>& NetworkManager::neighbors() {
     return neighbors_;
 }
+
+void NetworkManager::terminate() {
+    for(auto& connection : connections_)
+        connection.second->disconnect();
+    centralInstance_->disconnect();
+}
