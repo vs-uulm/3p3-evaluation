@@ -28,8 +28,8 @@ void NetworkManager::accept_handler(const boost::system::error_code& e, std::sha
         std::cerr << "Accept Error:" << e.message() << std::endl;
     } else {
         connection->async_handshake();
-        connections_.insert(std::pair(connection->connectionID(), connection));
-        neighbors_.push_back(connection->connectionID());
+        storeConnection(connection);
+        storeNeighbor(connection->connectionID());
         start_accept();
     }
 }
@@ -41,8 +41,8 @@ int NetworkManager::addNeighbor(const Node &node) {
 
     for(int retryCount = 5; retryCount > 0; retryCount--) {
         if (connection->connect(node.ip_address(), node.port()) == 0) {
-            connections_.insert(std::pair(connectionID, connection));
-            neighbors_.push_back(connectionID);
+            storeConnection(connection);
+            storeNeighbor(connectionID);
             return connectionID;
         }
         std::cout << "ConnectionID" << connectionID << std::endl;
@@ -95,6 +95,16 @@ int NetworkManager::sendMessage(OutgoingMessage msg) {
 
 std::vector<uint32_t>& NetworkManager::neighbors() {
     return neighbors_;
+}
+
+void NetworkManager::storeNeighbor(uint32_t connectionID) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    neighbors_.push_back(connectionID);
+}
+
+void NetworkManager::storeConnection(std::shared_ptr<P2PConnection> connection) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    connections_.insert(std::pair(connection->connectionID(), connection));
 }
 
 void NetworkManager::terminate() {

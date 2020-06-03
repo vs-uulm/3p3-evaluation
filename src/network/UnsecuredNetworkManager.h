@@ -30,6 +30,10 @@ private:
 
     uint32_t getConnectionID();
 
+    void storeNeighbor(uint32_t connectionID);
+
+    void storeConnection(std::shared_ptr<UnsecuredP2PConnection> connection);
+
     std::mutex mutex_;
 
     io_context& io_context_;

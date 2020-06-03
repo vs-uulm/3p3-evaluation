@@ -15,7 +15,7 @@
 
 std::mutex cout_mutex;
 
-const uint32_t INSTANCES = 6;
+const uint32_t INSTANCES = 12;
 
 void instance(int ID) {
     CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> curve;
@@ -146,7 +146,7 @@ void instance(int ID) {
     });
     // start the DCNetwork
     DCMember self(nodeID_, SELF, publicKey);
-    DCNetwork DCNet(self, INSTANCES, Secured, privateKey, 2, nodes, inboxDC, outboxThreePP, true);
+    DCNetwork DCNet(self, INSTANCES, Unsecured, privateKey, 1, nodes, inboxDC, outboxThreePP, true);
 
     // submit messages to the DCNetwork
     std::thread DCThread([&]() {

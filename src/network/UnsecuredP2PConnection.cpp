@@ -23,7 +23,6 @@ int UnsecuredP2PConnection::connect(ip::address_v4 ip_address, uint16_t port) {
 }
 
 void UnsecuredP2PConnection::disconnect() {
-    //std::cout << "Closing connection" << std::endl;
     if (socket_.is_open()) {
         boost::system::error_code ec;
         try {

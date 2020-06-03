@@ -22,8 +22,8 @@ void UnsecuredNetworkManager::accept_handler(const boost::system::error_code& e,
         std::cerr << "Accept Error:" << e.message() << std::endl;
     } else {
         connection->read();
-        connections_.insert(std::pair(connection->connectionID(), connection));
-        neighbors_.push_back(connection->connectionID());
+        storeConnection(connection);
+        storeNeighbor(connection->connectionID());
         start_accept();
     }
 }
@@ -36,8 +36,8 @@ int UnsecuredNetworkManager::addNeighbor(const Node &node) {
     for(int retryCount = 3; retryCount > 0; retryCount--) {
         if (connection->connect(node.ip_address(), node.port()) == 0) {
 
-            connections_.insert(std::pair(connectionID, connection));
-            neighbors_.push_back(connectionID);
+            storeConnection(connection);
+            storeNeighbor(connectionID);
             return connectionID;
         }
         std::cout << "ConnectionID" << connectionID << std::endl;
@@ -89,6 +89,16 @@ uint32_t UnsecuredNetworkManager::getConnectionID() {
 
 std::vector<uint32_t>& UnsecuredNetworkManager::neighbors() {
     return neighbors_;
+}
+
+void UnsecuredNetworkManager::storeNeighbor(uint32_t connectionID) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    neighbors_.push_back(connectionID);
+}
+
+void UnsecuredNetworkManager::storeConnection(std::shared_ptr<UnsecuredP2PConnection> connection) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    connections_.insert(std::pair(connection->connectionID(), connection));
 }
 
 void UnsecuredNetworkManager::terminate() {
