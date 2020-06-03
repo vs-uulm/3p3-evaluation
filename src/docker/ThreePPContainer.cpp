@@ -145,6 +145,9 @@ int main(int argc, char **argv) {
 
     std::vector<uint32_t> neighbors = networkManager.neighbors();
 
+    // wait until all nodes have received the information
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
     // start the message handler in a separate thread
     MessageHandler messageHandler(nodeID_, neighbors, inboxThreePP, inboxDC, outboxThreePP, outboxFinal);
     std::thread messageHandlerThread([&]() {

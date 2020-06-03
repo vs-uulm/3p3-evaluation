@@ -33,7 +33,7 @@ void instance(int ID) {
     ip::address_v4 ip_address(ip::address_v4::from_string("127.0.0.1"));
 
     // TODO
-    NetworkManager networkManager(io_context_, port_, inboxThreePP);
+    UnsecuredNetworkManager networkManager(io_context_, port_, inboxThreePP);
     //UnsecuredNetworkManager networkManager(io_context_, port_, inboxThreePP);
     // Run the io_context which handles the network manager
     std::thread networkThread1([&io_context_]() {
@@ -191,7 +191,7 @@ void nodeAuthority() {
     uint16_t port = 7777;
 
     // TODO
-    NetworkManager networkManager(io_context_, port, inbox);
+    UnsecuredNetworkManager networkManager(io_context_, port, inbox);
     //UnsecuredNetworkManager networkManager(io_context_, port, inbox);
     // Run the io_context which handles the network manager
     std::thread networkThread([&io_context_]() {

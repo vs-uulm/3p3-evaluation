@@ -381,7 +381,7 @@ void SecuredFinalRound::sharingPartOne(std::vector<std::vector<std::vector<Crypt
             remainingCommitments--;
         } else {
             DCNetwork_.inbox().push(commitBroadcast);
-            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
     }
 
@@ -444,7 +444,7 @@ int SecuredFinalRound::sharingPartTwo() {
             remainingShares--;
         } else {
             DCNetwork_.inbox().push(sharingMessage);
-            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
     }
 
@@ -529,7 +529,7 @@ std::vector<std::vector<uint8_t>> SecuredFinalRound::resultComputation() {
             return std::vector<std::vector<uint8_t>>();
         } else {
             DCNetwork_.inbox().push(rsBroadcast);
-            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
     }
 
