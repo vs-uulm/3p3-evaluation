@@ -31,10 +31,6 @@ private:
 
     void handleBlameMessage(ReceivedMessage& blameMessage);
 
-    void printSlots(std::vector<std::vector<uint8_t>>& slots);
-
-    inline CryptoPP::ECPPoint commit(CryptoPP::Integer& r, CryptoPP::Integer& s);
-
     DCNetwork& DCNetwork_;
 
     // DCNetwork size
@@ -53,9 +49,6 @@ private:
 
     // sum of all random blinding coefficients
     std::vector<std::vector<CryptoPP::Integer>> R;
-
-    // sum of all commitments
-    std::vector<std::vector<CryptoPP::ECPPoint>> C;
 
     CryptoPP::CRC32 CRC32_;
 

@@ -20,8 +20,6 @@ SecuredInitialRound::SecuredInitialRound(DCNetwork &DCNet)
 
     // determine the index of the own nodeID in the ordered member list
     nodeIndex_ = std::distance(DCNetwork_.members().begin(), DCNetwork_.members().find(DCNetwork_.nodeID()));
-
-    //std::cout << "Initial Round" << std::endl;
 }
 
 SecuredInitialRound::~SecuredInitialRound() {}
@@ -206,23 +204,10 @@ std::unique_ptr<DCState> SecuredInitialRound::executeTask() {
 
             receivedSeeds.push_back(std::move(seed));
 
-
             // store the size of the slot along with the seed
             slots.push_back(slotSize);
         }
     }
-
-    if (finalSlotIndex > -1) {
-        std::cout << "Node " << DCNetwork_.nodeID() << ": sending in slot " << std::dec << finalSlotIndex << std::endl
-                  << std::endl;
-    }
-
-    // TODO undo
-    // coin flip test
-    bool coinFlipTest = false;
-    if (coinFlipTest)
-        return std::make_unique<FairnessProtocol>(DCNetwork_, numSlices, slotIndex, std::move(rValues_),
-                                                  std::move(commitments_));
 
     // Logging
     if (DCNetwork_.logging() && (slots.size() != 0)) {
@@ -249,6 +234,11 @@ std::unique_ptr<DCState> SecuredInitialRound::executeTask() {
         DCNetwork_.outbox().push(std::move(logMessage));
     }
 
+    if (finalSlotIndex > -1) {
+        std::cout << "Node " << DCNetwork_.nodeID() << ": sending in slot " << std::dec << finalSlotIndex << std::endl
+                  << std::endl;
+    }
+
     // if no member wants to send a message, return to the Ready state
     if (slots.size() == 0) {
         std::cout << "No sender in this round" << std::endl;
@@ -265,7 +255,6 @@ void SecuredInitialRound::sharingPartOne(std::vector<std::vector<std::vector<Cry
     size_t numSlices = std::ceil((8 + 33 * k_) / 31.0);
 
     rValues_.resize(2 * k_);
-    C.resize(2 * k_);
     R.resize(2 * k_);
 
     size_t encodedPointSize = curve_.GetCurve().EncodedPointSize(true);
@@ -284,19 +273,15 @@ void SecuredInitialRound::sharingPartOne(std::vector<std::vector<std::vector<Cry
             for (uint32_t slot = first; slot < last; slot++) {
                 rValues_[slot].resize(k_);
                 R[slot].reserve(numSlices);
-                C[slot].resize(numSlices);
 
-                encodedCommitmentMatrix[slot].resize(2 + k_ * numSlices * encodedPointSize);
+                encodedCommitmentMatrix[slot].resize(k_ * numSlices * encodedPointSize);
                 commitmentCube[slot].resize(k_);
 
-                uint32_t offset = 2;
+                uint32_t offset = 0;
                 for (uint32_t share = 0; share < k_; share++) {
                     rValues_[slot][share].reserve(numSlices);
                     commitmentCube[slot][share].reserve(numSlices);
 
-                    // encode the current slot in the first two bytes
-                    encodedCommitmentMatrix[slot][0] = (slot & 0xFF00) >> 8;
-                    encodedCommitmentMatrix[slot][1] = (slot & 0x00FF);
                     for (uint32_t slice = 0; slice < numSlices; slice++, offset += encodedPointSize) {
                         // generate the random value r for this slice of the share
                         CryptoPP::Integer r(PRNG, CryptoPP::Integer::One(), threadCurve.GetMaxExponent());
@@ -313,9 +298,6 @@ void SecuredInitialRound::sharingPartOne(std::vector<std::vector<std::vector<Cry
                         threadCurve.GetCurve().EncodePoint(&encodedCommitmentMatrix[slot][offset],
                                                            commitmentCube[slot][share][slice],
                                                            true);
-
-                        // Add the commitment to the sum C
-                        C[slot][slice] = threadCurve.GetCurve().Add(C[slot][slice], commitmentCube[slot][share][slice]);
                     }
                 }
             }
@@ -327,7 +309,7 @@ void SecuredInitialRound::sharingPartOne(std::vector<std::vector<std::vector<Cry
 
 
 
-// broadcast the commitments for this slot
+    // broadcast the commitments for this slot
     auto position = DCNetwork_.members().find(DCNetwork_.nodeID());
     for (uint32_t member = 0; member < k_ - 1; member++) {
         position++;
@@ -367,22 +349,18 @@ void SecuredInitialRound::sharingPartOne(std::vector<std::vector<std::vector<Cry
         auto commitBroadcast = DCNetwork_.inbox().pop();
         if (commitBroadcast.msgType() == RoundOneCommitments) {
 
-            // decode the slot and the share
-            uint32_t slot = (commitBroadcast.body()[0] << 8) | (commitBroadcast.body()[1]);
-
             std::vector<std::vector<CryptoPP::ECPPoint>> commitmentMatrix;
             commitmentMatrix.resize(2 * k_);
             for (auto &share : commitmentMatrix)
                 share.reserve(numSlices);
 
-            uint32_t offset = 2;
+            uint32_t offset = 0;
             for (uint32_t share = 0; share < k_; share++) {
                 for (uint32_t slice = 0; slice < numSlices; slice++, offset += encodedPointSize) {
                     CryptoPP::ECPPoint commitment;
                     curve_.GetCurve().DecodePoint(commitment, &commitBroadcast.body()[offset],
                                                   encodedPointSize);
 
-                    C[slot][slice] = curve_.GetCurve().Add(C[slot][slice], commitment);
                     commitmentMatrix[share].push_back(std::move(commitment));
                 }
             }
@@ -422,12 +400,12 @@ void SecuredInitialRound::sharingPartOne(std::vector<std::vector<std::vector<Cry
 int SecuredInitialRound::sharingPartTwo() {
     size_t numSlices = std::ceil((8 + 33 * k_) / 31.0);
     // collect the shares from the other k-1 members and validate them using the broadcasted commitments
-    std::list<std::thread> threads_;
+    std::list<std::future<int>> futures_;
     std::mutex threadMutex;
     uint32_t remainingShares = 2 * k_ * (k_ - 1);
 
     for (uint32_t t = 0; t < DCNetwork_.numThreads(); t++) {
-        std::thread commitThread([&]() {
+        std::future<int> future = std::async(std::launch::async, [&]() {
             CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> threadCurve;
             threadCurve.Initialize(CryptoPP::ASN1::secp256k1());
 
@@ -479,12 +457,15 @@ int SecuredInitialRound::sharingPartTwo() {
                     remainingShares++;
                 }
             }
+            return 0;
         });
-        threads_.push_back(std::move(commitThread));
+        futures_.push_back(std::move(future));
     }
 
-    for (auto &t : threads_)
-        t.join();
+    // check if an invalid commitment has been detected
+    for(auto& f : futures_)
+        if(f.get() < 0)
+            return -1;
 
     // construct the sharing broadcast which includes the added shares
     for (uint32_t slot = 0; slot < 2 * k_; slot++) {
@@ -517,64 +498,75 @@ int SecuredInitialRound::sharingPartTwo() {
 std::vector<std::vector<uint8_t>> SecuredInitialRound::resultComputation() {
     size_t numSlices = std::ceil((8 + 33 * k_) / 31.0);
     // collect the added shares from the other k-1 members and validate them by adding the corresponding commitments
+    std::list<std::future<int>> futures_;
+    std::mutex threadMutex;
     uint32_t remainingShares = 2 * k_ * (k_ - 1);
-    while (remainingShares > 0) {
-        auto rsBroadcast = DCNetwork_.inbox().pop();
+    for (uint32_t t = 0; t < DCNetwork_.numThreads(); t++) {
+        std::future<int> future = std::async(std::launch::async, [&]() {
+            CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> threadCurve;
+            threadCurve.Initialize(CryptoPP::ASN1::secp256k1());
 
-        if (rsBroadcast.msgType() == RoundOneSharingTwo) {
-            uint32_t memberIndex = std::distance(DCNetwork_.members().begin(),
-                                                 DCNetwork_.members().find(rsBroadcast.senderID()));
-
-
-            uint32_t slot = (rsBroadcast.body()[0] << 8) | rsBroadcast.body()[1];
-            for (uint32_t slice = 0, offset = 2; slice < numSlices; slice++, offset += 64) {
-                // extract and decode the random values and the slice of the share
-                CryptoPP::Integer R_(&rsBroadcast.body()[offset], 32);
-                CryptoPP::Integer S_(&rsBroadcast.body()[offset + 32], 32);
-                // validate r and s
-                CryptoPP::ECPPoint addedCommitments;
-                for (auto &c : commitments_)
-                    addedCommitments = curve_.GetCurve().Add(addedCommitments,
-                                                             c.second[slot][memberIndex][slice]);
-
-                CryptoPP::ECPPoint commitment = commit(R_, S_);
-
-                if ((commitment.x != addedCommitments.x) || (commitment.y != addedCommitments.y)) {
-                    // broadcast a blame message which contains the invalid share along with the corresponding r values
-                    std::cout << "Invalid commitment detected" << std::endl;
-                    SecuredInitialRound::injectBlameMessage(rsBroadcast.senderID(), slot, slice, R_, S_);
-                    return std::vector<std::vector<uint8_t>>();
+            for (;;) {
+                {
+                    std::lock_guard<std::mutex> lock(threadMutex);
+                    if (remainingShares > 0)
+                        remainingShares--;
+                    else
+                        return 0;
                 }
-                R[slot][slice] += R_;
-                S[slot][slice] += S_;
+
+                auto rsBroadcast = DCNetwork_.inbox().pop();
+
+                if (rsBroadcast.msgType() == RoundOneSharingTwo) {
+                    uint32_t memberIndex = std::distance(DCNetwork_.members().begin(),
+                                                         DCNetwork_.members().find(rsBroadcast.senderID()));
+
+                    uint32_t slot = (rsBroadcast.body()[0] << 8) | rsBroadcast.body()[1];
+                    for (uint32_t slice = 0, offset = 2; slice < numSlices; slice++, offset += 64) {
+                        // extract and decode the random values and the slice of the share
+                        CryptoPP::Integer R_(&rsBroadcast.body()[offset], 32);
+                        CryptoPP::Integer S_(&rsBroadcast.body()[offset + 32], 32);
+                        // validate r and s
+                        CryptoPP::ECPPoint addedCommitments;
+                        for (auto &c : commitments_)
+                            addedCommitments = threadCurve.GetCurve().Add(addedCommitments,
+                                                                     c.second[slot][memberIndex][slice]);
+
+                        CryptoPP::ECPPoint rG = threadCurve.GetCurve().Multiply(R_, G);
+                        CryptoPP::ECPPoint sH = threadCurve.GetCurve().Multiply(S_, H);
+                        CryptoPP::ECPPoint commitment = threadCurve.GetCurve().Add(rG, sH);
+
+                        if ((commitment.x != addedCommitments.x) || (commitment.y != addedCommitments.y)) {
+                            // broadcast a blame message which contains the invalid share along with the corresponding r values
+                            std::cout << "Invalid commitment detected" << std::endl;
+                            SecuredInitialRound::injectBlameMessage(rsBroadcast.senderID(), slot, slice, R_, S_);
+                            return -1;
+                        }
+
+                        std::lock_guard<std::mutex> lock(threadMutex);
+                        R[slot][slice] += R_;
+                        S[slot][slice] += S_;
+                    }
+
+                } else if (rsBroadcast.msgType() == BlameMessage) {
+                    SecuredInitialRound::handleBlameMessage(rsBroadcast);
+                    std::cout << "Blame message received" << std::endl;
+                    return -1;
+                } else {
+                    DCNetwork_.inbox().push(rsBroadcast);
+                    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+                    std::lock_guard<std::mutex> lock(threadMutex);
+                    remainingShares++;
+                }
             }
+        });
+        futures_.push_back(std::move(future));
+    }
 
-            remainingShares--;
-        } else if (rsBroadcast.msgType() == BlameMessage) {
-            SecuredInitialRound::handleBlameMessage(rsBroadcast);
-            std::cout << "Blame message received" << std::endl;
-
+    // check if an invalid commitment has been detected in one of the threads
+    for (auto& f : futures_)
+        if(f.get() < 0)
             return std::vector<std::vector<uint8_t>>();
-        } else {
-            DCNetwork_.inbox().push(rsBroadcast);
-            std::this_thread::sleep_for(std::chrono::milliseconds(5));
-        }
-    }
-
-    // validate the final commitments
-    for (uint32_t slot = 0; slot < 2 * k_; slot++) {
-        for (uint32_t slice = 0; slice < numSlices; slice++) {
-            R[slot][slice] = R[slot][slice].Modulo(curve_.GetGroupOrder());
-            S[slot][slice] = S[slot][slice].Modulo(curve_.GetGroupOrder());
-
-            CryptoPP::ECPPoint commitment = commit(R[slot][slice], S[slot][slice]);
-
-            if ((C[slot][slice].x != commitment.x) || (C[slot][slice].y != commitment.y)) {
-                std::cout << "Final commitment invalid" << std::endl;
-                return std::vector<std::vector<uint8_t>>();
-            }
-        }
-    }
 
     // reconstruct the original message
     std::vector<std::vector<uint8_t>> finalMessageSlots;
@@ -590,6 +582,7 @@ std::vector<std::vector<uint8_t>> SecuredInitialRound::resultComputation() {
             for (uint32_t slot = first; slot <last; slot++) {
                 finalMessageSlots[slot].resize(8 + 33 * k_);
                 for (uint32_t slice = 0; slice < numSlices; slice++) {
+                    S[slot][slice] = S[slot][slice].Modulo(curve_.GetGroupOrder());
                     size_t sliceSize = (((8 + 33 * k_) - 31 * slice > 31) ? 31 : (8 + 33 * k_) - 31 * slice);
                     S[slot][slice].Encode(&finalMessageSlots[slot][31 * slice], sliceSize);
                 }
@@ -653,7 +646,9 @@ void SecuredInitialRound::handleBlameMessage(ReceivedMessage &blameMessage) {
     CryptoPP::Integer s(&body[44], 32);
 
     // validate that the slice is actually corrupt
-    CryptoPP::ECPPoint commitment = commit(r, s);
+    CryptoPP::ECPPoint rG = curve_.GetCurve().Multiply(r, G);
+    CryptoPP::ECPPoint sH = curve_.GetCurve().Multiply(s, H);
+    CryptoPP::ECPPoint commitment = curve_.GetCurve().Add(rG, sH);
 
     uint32_t memberIndex = std::distance(DCNetwork_.members().begin(),
                                          DCNetwork_.members().find(suspectID));
@@ -668,35 +663,6 @@ void SecuredInitialRound::handleBlameMessage(ReceivedMessage &blameMessage) {
         // if the two commitments match, the sender is removed
         DCNetwork_.members().erase(blameMessage.senderID());
     }
-}
-
-inline CryptoPP::ECPPoint SecuredInitialRound::commit(CryptoPP::Integer &r, CryptoPP::Integer &s) {
-    CryptoPP::ECPPoint rG = curve_.GetCurve().Multiply(r, G);
-    CryptoPP::ECPPoint sH = curve_.GetCurve().Multiply(s, H);
-    CryptoPP::ECPPoint commitment = curve_.GetCurve().Add(rG, sH);
-    return commitment;
-}
-
-// helper function to print the slots in the message vector
-void SecuredInitialRound::printSlots(std::vector<std::vector<uint8_t>> &slots) {
-    std::lock_guard<std::mutex> lock(mutex_);
-
-    std::cout << std::dec << "Node: " << DCNetwork_.nodeID() << std::endl;
-    std::cout << "| ";
-    for (uint32_t slot = 0; slot < 2 * k_; slot++) {
-        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) slots[slot][0];
-        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) slots[slot][1];
-        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) slots[slot][2];
-        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) slots[slot][3];
-        std::cout << " ";
-        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) slots[slot][4];
-        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) slots[slot][5];
-        std::cout << " ";
-        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) slots[slot][6];
-        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) slots[slot][7];
-        std::cout << " | ";
-    }
-    std::cout << std::endl << std::endl;
 }
 
 

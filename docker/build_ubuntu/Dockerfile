@@ -19,4 +19,4 @@ ADD ./src ./src
 ADD ./cert ./cert
 COPY ./CMakeLists.txt ./
 
-RUN cmake . &&  make dockerInstance && make dockerAuthority
+RUN cmake . &&  make dockerInstance -j 6 && make dockerAuthority -j 6
