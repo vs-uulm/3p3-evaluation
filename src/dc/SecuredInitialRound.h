@@ -10,8 +10,6 @@
 #include "DCState.h"
 #include "../datastruct/ReceivedMessage.h"
 
-extern std::mutex mutex_;
-
 class SecuredInitialRound : public DCState {
 public:
     SecuredInitialRound(DCNetwork& DCNet);

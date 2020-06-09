@@ -26,6 +26,7 @@ void UnsecuredP2PConnection::disconnect() {
     if (socket_.is_open()) {
         boost::system::error_code ec;
         try {
+            socket_.shutdown(boost::asio::socket_base::shutdown_both);
             socket_.close(ec);
         } catch(std::exception& e) {
             std::cerr << "Could not properly shut down the connection" << std::endl;

@@ -107,7 +107,6 @@ std::unique_ptr<DCState> UnsecuredFinalRound::executeTask() {
     }
 
     {
-        std::lock_guard<std::mutex> lock(mutex_);
         std::cout << "Node: " << std::dec << DCNetwork_.nodeID() << std::endl;
         for (auto &slot : S) {
             std::string msgHash = utils::sha256(slot);

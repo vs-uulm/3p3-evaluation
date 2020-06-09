@@ -28,8 +28,6 @@ private:
 
     std::vector<std::vector<uint8_t>> resultComputation();
 
-    inline CryptoPP::ECPPoint commit(CryptoPP::Integer &r, CryptoPP::Integer &s);
-
     void injectBlameMessage(uint32_t suspectID, uint32_t slot, uint32_t slice, CryptoPP::Integer& r, CryptoPP::Integer& s);
 
     void handleBlameMessage(ReceivedMessage& blameMessage);
@@ -62,9 +60,6 @@ private:
 
     // sum of all random blinding coefficients
     std::vector<std::vector<CryptoPP::Integer>> R;
-
-    // sum of all commitments
-    std::vector<std::vector<CryptoPP::ECPPoint>> C;
 
     CryptoPP::AutoSeededRandomPool PRNG;
 

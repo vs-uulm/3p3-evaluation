@@ -347,10 +347,7 @@ void FairnessProtocol::distributeCommitments() {
 }
 
 int FairnessProtocol::openCommitments() {
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        std::cout << "Opening commitments" << std::endl;
-    }
+    std::cout << "Opening commitments" << std::endl;
 
     // create pairs (slot, r')
     std::vector<std::vector<uint8_t>> encodedRhoMatrix;
@@ -416,10 +413,8 @@ int FairnessProtocol::openCommitments() {
 }
 
 int FairnessProtocol::proofKnowledge() {
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        std::cout << "Proving knowledge" << std::endl;
-    }
+    std::cout << "Proving knowledge" << std::endl;
+
     size_t encodedPointSize = curve_.GetCurve().EncodedPointSize(true);
 
     // generate sigmas
@@ -685,7 +680,6 @@ int FairnessProtocol::proofKnowledge() {
 
                 // now validate that (z*r')H + sigmaH = wH
                 if (((wG.x != zr_GsigmaG.x) || (wG.y != zr_GsigmaG.y))) {
-                    std::lock_guard<std::mutex> lock(mutex_);
                     std::cout << "Invalid proof" << std::endl;
                     return -1;
                 }

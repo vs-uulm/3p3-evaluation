@@ -1,7 +1,6 @@
 #include <iostream>
 #include <thread>
 #include <cryptopp/oids.h>
-#include <iomanip>
 #include <numeric>
 #include "SecuredInitialRound.h"
 #include "DCNetwork.h"
@@ -11,8 +10,6 @@
 
 #include "FairnessProtocol.h"
 #include "../utils/Utils.h"
-
-std::mutex mutex_;
 
 SecuredInitialRound::SecuredInitialRound(DCNetwork &DCNet)
         : DCNetwork_(DCNet), k_(DCNetwork_.k()) {
@@ -260,17 +257,27 @@ void SecuredInitialRound::sharingPartOne(std::vector<std::vector<std::vector<Cry
     size_t encodedPointSize = curve_.GetCurve().EncodedPointSize(true);
     std::vector<std::vector<std::vector<CryptoPP::ECPPoint>>> commitmentCube(2 * k_);
 
+    std::mutex threadMutex;
     std::list<std::thread> threads_;
+    uint32_t currentSlot = 0;
     for (uint32_t t = 0; t < DCNetwork_.numThreads(); t++) {
-        uint32_t first = 2 * k_ / static_cast<double>(DCNetwork_.numThreads()) * t;
-        uint32_t last = 2 * k_ / static_cast<double>(DCNetwork_.numThreads()) * (t + 1);
-
-        std::thread commitThread([&, first, last]() {
+        std::thread commitThread([&]() {
             CryptoPP::OFB_Mode<CryptoPP::AES>::Encryption DRNG;
             CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> threadCurve;
             threadCurve.Initialize(CryptoPP::ASN1::secp256k1());
 
-            for (uint32_t slot = first; slot < last; slot++) {
+            for(;;) {
+                uint32_t slot;
+                {
+                    std::lock_guard<std::mutex> lock(threadMutex);
+                    if(currentSlot < 2*k_) {
+                        slot = currentSlot;
+                        currentSlot++;
+                    } else {
+                        break;
+                    }
+
+                }
                 uint8_t key[16];
                 uint8_t iv[16];
                 PRNG.GenerateBlock(key, 16);
@@ -332,8 +339,7 @@ void SecuredInitialRound::sharingPartOne(std::vector<std::vector<std::vector<Cry
     commitments_.reserve(k_);
     for (auto member = DCNetwork_.members().begin(); member != DCNetwork_.members().end(); member++) {
         if (member->first != DCNetwork_.nodeID()) {
-            std::vector<std::vector<std::vector<CryptoPP::ECPPoint>>> commitmentCube;
-            commitmentCube.resize(2 * k_);
+            std::vector<std::vector<std::vector<CryptoPP::ECPPoint>>> commitmentCube(2*k_);
 
             commitments_.insert(std::pair(member->second.nodeID(), std::move(commitmentCube)));
         }
@@ -345,7 +351,6 @@ void SecuredInitialRound::sharingPartOne(std::vector<std::vector<std::vector<Cry
     commitments_.insert(std::pair(DCNetwork_.nodeID(), std::move(commitmentCube)));
 
     threads_.clear();
-    std::mutex threadMutex;
     uint32_t remainingCommitments = 2 * k_ * (k_ - 1);
 
     for (uint32_t t = 0; t < DCNetwork_.numThreads(); t++) {
@@ -380,7 +385,6 @@ void SecuredInitialRound::sharingPartOne(std::vector<std::vector<std::vector<Cry
                             commitmentMatrix[share].push_back(std::move(commitment));
                         }
                     }
-                    std::lock_guard<std::mutex> lock(threadMutex);
                     commitments_[commitBroadcast.senderID()][slot] = std::move(commitmentMatrix);
                 } else {
                     DCNetwork_.inbox().push(commitBroadcast);
@@ -398,13 +402,21 @@ void SecuredInitialRound::sharingPartOne(std::vector<std::vector<std::vector<Cry
         t.join();
 
     threads_.clear();
+
+    currentSlot = 0;
     for (uint32_t t = 0; t < DCNetwork_.numThreads(); t++) {
-        uint32_t first = 2 * k_ / static_cast<double>(DCNetwork_.numThreads()) * t;
-        uint32_t last = 2 * k_ / static_cast<double>(DCNetwork_.numThreads()) * (t + 1);
-
-        std::thread sharingThread([&, first, last]() {
-            for (uint32_t slot = first; slot < last; slot++) {
-
+        std::thread sharingThread([&]() {
+            for(;;) {
+                uint32_t slot;
+                {
+                    std::lock_guard<std::mutex> lock(threadMutex);
+                    if(currentSlot < 2*k_) {
+                        slot = currentSlot;
+                        currentSlot++;
+                    } else {
+                        break;
+                    }
+                }
                 auto position = DCNetwork_.members().find(DCNetwork_.nodeID());
                 for (uint32_t member = 0; member < k_ - 1; member++) {
                     position++;
@@ -438,7 +450,7 @@ int SecuredInitialRound::sharingPartTwo() {
     // collect the shares from the other k-1 members and validate them using the broadcasted commitments
     std::list<std::future<int>> futures_;
     std::mutex threadMutex;
-    uint32_t remainingShares = 2 * k_ * (k_ - 1);
+    uint32_t remainingShares = 2 * k_ * (k_-1);
 
     for (uint32_t t = 0; t < DCNetwork_.numThreads(); t++) {
         std::future<int> future = std::async(std::launch::async, [&]() {
@@ -454,7 +466,6 @@ int SecuredInitialRound::sharingPartTwo() {
                         break;
                 }
                 auto sharingMessage = DCNetwork_.inbox().pop();
-
                 if (sharingMessage.msgType() == RoundOneSharingOne) {
 
                     uint32_t slot = (sharingMessage.body()[0] << 8) | sharingMessage.body()[1];
@@ -481,7 +492,6 @@ int SecuredInitialRound::sharingPartTwo() {
                             return -1;
                         }
 
-                        std::lock_guard<std::mutex> lock(threadMutex);
                         R[slot][slice] += r;
                         S[slot][slice] += s;
                     }
@@ -503,16 +513,25 @@ int SecuredInitialRound::sharingPartTwo() {
         if (f.get() < 0)
             return -1;
 
+    uint32_t currentSlot = 0;
     std::list<std::thread> threads_;
     for (uint32_t t = 0; t < DCNetwork_.numThreads(); t++) {
-        uint32_t first = 2 * k_ / static_cast<double>(DCNetwork_.numThreads()) * t;
-        uint32_t last = 2 * k_ / static_cast<double>(DCNetwork_.numThreads()) * (t + 1);
 
-        std::thread sharingThread([&, first, last]() {
+        std::thread sharingThread([&]() {
             CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> threadCurve;
             threadCurve.Initialize(CryptoPP::ASN1::secp256k1());
 
-            for (uint32_t slot = first; slot < last; slot++) {
+            for (;;) {
+                uint32_t slot;
+                {
+                    std::lock_guard<std::mutex> lock(threadMutex);
+                    if(currentSlot < 2*k_) {
+                        slot = currentSlot;
+                        currentSlot++;
+                    } else {
+                        break;
+                    }
+                }
                 std::vector<uint8_t> broadcastSlot(2 + 64 * numSlices);
                 broadcastSlot[0] = (slot & 0xFF00) >> 8;
                 broadcastSlot[1] = (slot & 0x00FF);
@@ -594,7 +613,6 @@ std::vector<std::vector<uint8_t>> SecuredInitialRound::resultComputation() {
                             return -1;
                         }
 
-                        std::lock_guard<std::mutex> lock(threadMutex);
                         R[slot][slice] += R_;
                         S[slot][slice] += S_;
                     }
@@ -623,14 +641,21 @@ std::vector<std::vector<uint8_t>> SecuredInitialRound::resultComputation() {
     std::vector<std::vector<uint8_t>> finalMessageSlots;
     finalMessageSlots.resize(2 * k_);
 
+    uint32_t currentSlot = 0;
     std::list<std::thread> threads_;
-
     for (uint32_t t = 0; t < DCNetwork_.numThreads(); t++) {
-        uint32_t first = 2 * k_ / static_cast<double>(DCNetwork_.numThreads()) * t;
-        uint32_t last = 2 * k_ / static_cast<double>(DCNetwork_.numThreads()) * (t + 1);
-
-        std::thread computeThread([&, first, last]() {
-            for (uint32_t slot = first; slot < last; slot++) {
+        std::thread computeThread([&]() {
+            uint32_t slot;
+            for (;;) {
+                {
+                    std::lock_guard<std::mutex> lock(threadMutex);
+                    if(currentSlot < 2*k_) {
+                        slot = currentSlot;
+                        currentSlot++;
+                    } else {
+                        break;
+                    }
+                }
                 finalMessageSlots[slot].resize(8 + 33 * k_);
                 for (uint32_t slice = 0; slice < numSlices; slice++) {
                     S[slot][slice] = S[slot][slice].Modulo(curve_.GetGroupOrder());

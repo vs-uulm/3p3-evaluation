@@ -154,9 +154,9 @@ void instance(int ID) {
     });
 
     // submit messages to the DCNetwork
-    for(uint32_t i = 0; i < 5; i++) {
+    for(uint32_t i = 0; i < 100; i++) {
         if(nodeID_ < 2) {
-            uint16_t length = PRNG.GenerateWord32(128, 128);
+            uint16_t length = PRNG.GenerateWord32(128, 512);
             std::vector<uint8_t> message(length);
             PRNG.GenerateBlock(message.data(), length);
             DCNet.submitMessage(message);
@@ -164,7 +164,7 @@ void instance(int ID) {
     }
 
     // Terminate after all messages have been received
-    while(outboxFinal.size() < 10) {
+    while(outboxFinal.size() < 200) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
     exit(0);

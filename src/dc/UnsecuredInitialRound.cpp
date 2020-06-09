@@ -236,25 +236,3 @@ void UnsecuredInitialRound::resultComputation() {
         }
     }
 }
-
-// used for debugging purposes
-void UnsecuredInitialRound::printSlots(std::vector<uint8_t> &slots) {
-    std::lock_guard<std::mutex> lock(mutex_);
-
-    std::cout << std::dec << "Node: " << DCNetwork_.nodeID() << std::endl;
-    std::cout << "| ";
-    for (uint32_t slot = 0; slot < 2 * k_; slot++) {
-        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) slots[slot * 8];
-        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) slots[slot * 8 + 1];
-        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) slots[slot * 8 + 2];
-        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) slots[slot * 8 + 3];
-        std::cout << " ";
-        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) slots[slot * 8 + 4];
-        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) slots[slot * 8 + 5];
-        std::cout << " ";
-        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) slots[slot * 8 + 6];
-        std::cout << std::hex << std::setw(2) << std::setfill('0') << (int) slots[slot * 8 + 7];
-        std::cout << " | ";
-    }
-    std::cout << std::endl << std::endl;
-}
