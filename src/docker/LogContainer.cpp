@@ -39,7 +39,7 @@ int main(int argc, char** argv) {
     for(uint32_t nodeID = 0; nodeID < INSTANCES; nodeID++) {
         auto receivedMessage = inbox.pop();
         if(receivedMessage.msgType() != RegisterMessage) {
-            std::cout << "Unknown message type received: " << receivedMessage.msgType() << std::endl;
+            std::cout << "Unknown message type received: " << (int) receivedMessage.msgType() << std::endl;
             continue;
         }
 
@@ -127,74 +127,118 @@ int main(int argc, char** argv) {
             logFile2 << std::endl;
     }
 
+    std::stringstream fileName3;
+    fileName3 << "/home/threePP/Log_";
+    fileName3 << months[timeStamp->tm_mon];
+    fileName3 << timeStamp->tm_mday << "__";
+    fileName3 << timeStamp->tm_hour << "_";
+    fileName3 << timeStamp->tm_min << "_";
+    fileName3 << timeStamp->tm_sec << "_";
+    fileName3 << "ProofOfFairness.csv";
+
+    std::ofstream logFile3;
+    logFile3.open (fileName3.str());
+
+    logFile3 << "Outcome";
+    for(uint32_t i=0; i < INSTANCES; i++) {
+        logFile3 << "Node" << i % INSTANCES << "Commitments,CoinFlip,Proof,Total";
+        if(i < INSTANCES-1)
+            logFile3 << ",";
+        else
+            logFile3 << std::endl;
+    }
+
     std::vector<std::pair<bool, std::vector<double>>> runtimes(INSTANCES);
     uint32_t iterations = 100;
     // collect log data
     for(uint32_t i = 0; i < 2 * iterations * INSTANCES; i++) {
         auto receivedMessage = inbox.pop();
-        if(receivedMessage.msgType() != DCLoggingMessage) {
-            std::cout << "Unknown message type received: " << receivedMessage.msgType() << std::endl;
-            continue;
-        }
+        if(receivedMessage.msgType() == DCLoggingMessage) {
+            runtimes[receivedMessage.senderID()].first = receivedMessage.body()[34];
+            std::vector<double> nodeRuntimes;
+            nodeRuntimes.push_back(*reinterpret_cast<double *>(&receivedMessage.body()[0]));
+            nodeRuntimes.push_back(*reinterpret_cast<double *>(&receivedMessage.body()[8]));
+            nodeRuntimes.push_back(*reinterpret_cast<double *>(&receivedMessage.body()[16]));
+            nodeRuntimes.push_back(*reinterpret_cast<double *>(&receivedMessage.body()[24]));
+            runtimes[receivedMessage.senderID()].second = nodeRuntimes;
 
-        runtimes[receivedMessage.senderID()].first = receivedMessage.body()[34];
-        std::vector<double> nodeRuntimes;
-        nodeRuntimes.push_back(*reinterpret_cast<double *>(&receivedMessage.body()[0]));
-        nodeRuntimes.push_back(*reinterpret_cast<double *>(&receivedMessage.body()[8]));
-        nodeRuntimes.push_back(*reinterpret_cast<double *>(&receivedMessage.body()[16]));
-        nodeRuntimes.push_back(*reinterpret_cast<double *>(&receivedMessage.body()[24]));
-        runtimes[receivedMessage.senderID()].second = nodeRuntimes;
+            if (((i + 1) % (2 * INSTANCES)) == 0) {
+                // set the security level for Round2
+                logFile2 << ((receivedMessage.body()[32] == 0) ? "unsecured" : "secured") << ",";
+                // set the number of threads for Round2
+                logFile2 << (int) receivedMessage.body()[35] << ",";
+                // set runtimes and send flag
+                for (uint32_t j = 0; j < INSTANCES; j++) {
+                    if (runtimes[j].first)
+                        logFile2 << "sending,";
+                    else
+                        logFile2 << ",";
 
-        if(((i+1) % (2*INSTANCES)) == 0) {
-            // set the security level for Round2
-            logFile2 << ((receivedMessage.body()[32] == 0) ? "unsecured" : "secured") << ",";
-            // set the number of threads for Round2
-            logFile2 << (int) receivedMessage.body()[35] << ",";
-            // set runtimes and send flag
-            for(uint32_t j = 0; j < INSTANCES; j++) {
-                if(runtimes[j].first)
-                    logFile2 << "sending,";
-                else
-                    logFile2 << ",";
-
-                double total = 0;
-                for(double runtime : runtimes[j].second) {
-                    total += runtime;
-                    logFile2 << runtime << ",";
+                    double total = 0;
+                    for (double runtime : runtimes[j].second) {
+                        total += runtime;
+                        logFile2 << runtime << ",";
+                    }
+                    logFile2 << total;
+                    if (j < INSTANCES - 1)
+                        logFile2 << ",";
+                    else
+                        logFile2 << std::endl;
                 }
-                logFile2 << total;
-                if(j < INSTANCES-1)
-                    logFile2 << ",";
-                else
-                    logFile2 << std::endl;
+            } else if ((((i + 1) % INSTANCES) == 0)) {
+                // set the security level for Round1
+                logFile1 << ((receivedMessage.body()[32] == 0) ? "unsecured" : "secured") << ",";
+                // set the number of threads for Round1
+                logFile1 << (int) receivedMessage.body()[35] << ",";
+                // set runtimes and send flag
+                for (uint32_t j = 0; j < INSTANCES; j++) {
+                    if (runtimes[j].first)
+                        logFile1 << "sending,";
+                    else
+                        logFile1 << ",";
+
+                    double total = 0;
+                    for (double runtime : runtimes[j].second) {
+                        total += runtime;
+                        logFile1 << runtime << ",";
+                    }
+                    logFile1 << total;
+                    if (j < INSTANCES - 1)
+                        logFile1 << ",";
+                    else
+                        logFile1 << std::endl;
+                }
             }
-        } else if((((i+1) % INSTANCES) == 0)) {
-            // set the security level for Round1
-            logFile1 << ((receivedMessage.body()[32] == 0) ? "unsecured" : "secured") << ",";
-            // set the number of threads for Round1
-            logFile1 << (int) receivedMessage.body()[35] << ",";
-            // set runtimes and send flag
-            for(uint32_t j = 0; j < INSTANCES; j++) {
-                if(runtimes[j].first)
-                    logFile1 << "sending,";
-                else
-                    logFile1 << ",";
+        } else if(receivedMessage.msgType() == DCLoggingMessage) {
+            std::vector<double> nodeRuntimes;
+            nodeRuntimes.push_back(*reinterpret_cast<double *>(&receivedMessage.body()[0]));
+            nodeRuntimes.push_back(*reinterpret_cast<double *>(&receivedMessage.body()[8]));
+            nodeRuntimes.push_back(*reinterpret_cast<double *>(&receivedMessage.body()[16]));
+            nodeRuntimes.push_back(*reinterpret_cast<double *>(&receivedMessage.body()[24]));
+            runtimes[receivedMessage.senderID()].second = nodeRuntimes;
 
-                double total = 0;
-                for(double runtime : runtimes[j].second) {
-                    total += runtime;
-                    logFile1 << runtime << ",";
+            if ((((i + 1) % INSTANCES) == 0)) {
+                // set the security level for Round1
+                logFile3 << ((receivedMessage.body()[32] == 0) ? "OpenCommitments" : "ProofOfKnowledge") << ",";
+                // set runtimes and send flag
+                for (uint32_t j = 0; j < INSTANCES; j++) {
+                    double total = 0;
+                    for (double runtime : runtimes[j].second) {
+                        total += runtime;
+                        logFile3 << runtime << ",";
+                    }
+                    logFile3 << total;
+                    if (j < INSTANCES - 1)
+                        logFile3 << ",";
+                    else
+                        logFile3 << std::endl;
                 }
-                logFile1 << total;
-                if(j < INSTANCES-1)
-                    logFile1 << ",";
-                else
-                    logFile1 << std::endl;
             }
         }
     }
     logFile1.close();
     logFile2.close();
+    logFile3.close();
     std::this_thread::sleep_for(std::chrono::seconds(1));
     exit(0);
 

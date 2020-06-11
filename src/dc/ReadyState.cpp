@@ -59,14 +59,13 @@ std::unique_ptr<DCState> ReadyState::executeTask() {
         // wait for the round start message
         auto receivedMessage = DCNetwork_.inbox().pop();
         while(receivedMessage.msgType() != StartDCRound) {
-            //std::cout << "Ready State: inappropriate message received: " << (int) receivedMessage.msgType() << std::endl;
             std::this_thread::sleep_for(std::chrono::milliseconds(5));
             DCNetwork_.inbox().push(receivedMessage);
             receivedMessage = DCNetwork_.inbox().pop();
         }
     }
     // perform a state transition
-    if(DCNetwork_.securityLevel() == Secured)
+    if(DCNetwork_.securityLevel() == Secured || DCNetwork_.securityLevel() == ProofOfFairness)
         return std::make_unique<SecuredInitialRound>(DCNetwork_);
     else
         return std::make_unique<UnsecuredInitialRound>(DCNetwork_);

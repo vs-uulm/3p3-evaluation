@@ -6,4 +6,4 @@ WORKDIR /opt/threePP
 COPY --from=three-phase-protocol-implementation_build-container /home/threePP/dockerInstance .
 COPY --from=three-phase-protocol-implementation_build-container /home/threePP/cert /opt/cert
 
-CMD ["/bin/sh", "-c", "./dockerInstance 1 1 2 512"]
+CMD ["/bin/sh", "-c", "./dockerInstance 3 1 2 512"]

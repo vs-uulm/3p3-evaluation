@@ -25,7 +25,7 @@ ip::address getIP() {
 }
 
 int main(int argc, char **argv) {
-    if ((argc != 5) || (atoi(argv[1]) < 0) || (atoi(argv[1]) > 2)) {
+    if ((argc != 5) || (atoi(argv[1]) < 0) || (atoi(argv[1]) > 3)) {
         std::cout << "usage: ./dockerInstance SecurityLevel numThreads numSenders messageLength" << std::endl;
         std::cout << "SecurityLevel" << std::endl;
         std::cout << "0: unsecured" << std::endl;

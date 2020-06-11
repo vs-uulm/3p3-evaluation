@@ -60,8 +60,30 @@ std::unique_ptr<DCState> FairnessProtocol::executeTask() {
     runtimes.push_back(elapsed.count());
     start = std::chrono::high_resolution_clock::now();
 
-    std::this_thread::sleep_for(std::chrono::seconds(60));
-    return std::make_unique<ReadyState>(DCNetwork_);
+    // Logging
+    if (DCNetwork_.logging()) {
+        auto finish = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed = finish - start;
+        double duration = elapsed.count();
+
+        std::vector<uint8_t> log(4 * sizeof(double) + 2);
+        // runtimes
+        std::memcpy(&log[0], &runtimes[0], sizeof(double));
+        std::memcpy(&log[8], &runtimes[1], sizeof(double));
+        std::memcpy(&log[16], &runtimes[2], sizeof(double));
+        std::memcpy(&log[24], &duration, sizeof(double));
+        // Outcome
+        log[4 * sizeof(double)] = (outcome_ == OpenCommitments) ? 0 : 1;
+
+        OutgoingMessage logMessage(CENTRAL, FairnessLoggingMessage, DCNetwork_.nodeID(), std::move(log));
+        DCNetwork_.outbox().push(std::move(logMessage));
+    }
+
+
+    //if(DCNetwork_.securityLevel() == Secured)
+        return std::make_unique<ReadyState>(DCNetwork_);
+    //else
+        //return std::make_unique<FairnessProtocol>(DCNetwork_, numSlices_, slotIndex_, rValues_, commitments_);
 }
 
 int FairnessProtocol::coinFlip() {
@@ -272,7 +294,7 @@ void FairnessProtocol::distributeCommitments() {
                 rho_[slot][slice] += rValues_[slot][share][slice];
             }
 
-            CryptoPP::ECPPoint r_G = curve_.GetCurve().ScalarMultiply(G, r_[slot][slice]);
+            CryptoPP::ECPPoint r_G = curve_.GetCurve().Multiply(r_[slot][slice], G);
             sumC_[slot][slice] = curve_.GetCurve().Add(sumC_[slot][slice], r_G);
             rho_[slot][slice] = rho_[slot][slice].Modulo(curve_.GetGroupOrder());
         }
@@ -431,7 +453,7 @@ int FairnessProtocol::proofKnowledge() {
 
         for (uint32_t slice = 0; slice < numSlices_; slice++) {
             CryptoPP::Integer sigma(PRNG, CryptoPP::Integer::One(), curve_.GetMaxExponent());
-            CryptoPP::ECPPoint blindedSigma = curve_.GetCurve().ScalarMultiply(G, sigma);
+            CryptoPP::ECPPoint blindedSigma = curve_.GetCurve().Multiply(sigma, G);
             sigmaVector.push_back(std::move(sigma));
             blindedSigmaVector.push_back(std::move(blindedSigma));
         }
@@ -660,7 +682,7 @@ int FairnessProtocol::proofKnowledge() {
 
             for (uint32_t slice = 0, offset = 2; slice < numSlices_; slice++, offset += 32) {
                 CryptoPP::Integer w(&wBroadcast.body()[offset], 32);
-                CryptoPP::ECPPoint wG = curve_.GetCurve().ScalarMultiply(G, w);
+                CryptoPP::ECPPoint wG = curve_.GetCurve().Multiply(w, G);
 
                 // Add all the original commitments at this slice and the permutatet slot
                 CryptoPP::ECPPoint sumC;
@@ -672,8 +694,7 @@ int FairnessProtocol::proofKnowledge() {
                 CryptoPP::ECPPoint r_G = curve_.GetCurve().Add(
                         newCommitments_[wBroadcast.senderID()][slotMapping[wBroadcast.senderID()][slot]][slice],
                         curve_.GetCurve().Inverse(sumC));
-                CryptoPP::ECPPoint zr_G = curve_.GetCurve().ScalarMultiply(r_G,
-                                                                           zMatrix[slot][slice]);
+                CryptoPP::ECPPoint zr_G = curve_.GetCurve().Multiply(zMatrix[slot][slice], r_G);
 
                 CryptoPP::ECPPoint zr_GsigmaG = curve_.GetCurve().Add(zr_G,
                                                                       sigmaStorage[wBroadcast.senderID()][slot][slice]);
@@ -696,8 +717,8 @@ int FairnessProtocol::proofKnowledge() {
 
 
 inline CryptoPP::ECPPoint FairnessProtocol::commit(CryptoPP::Integer &r, CryptoPP::Integer &s) {
-    CryptoPP::ECPPoint rG = curve_.GetCurve().ScalarMultiply(G, r);
-    CryptoPP::ECPPoint sH = curve_.GetCurve().ScalarMultiply(H, s);
+    CryptoPP::ECPPoint rG = curve_.GetCurve().Multiply(r, G);
+    CryptoPP::ECPPoint sH = curve_.GetCurve().Multiply(s, H);
     CryptoPP::ECPPoint commitment = curve_.GetCurve().Add(rG, sH);
     return commitment;
 }

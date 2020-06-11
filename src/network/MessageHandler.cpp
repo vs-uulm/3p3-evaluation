@@ -103,7 +103,7 @@ void MessageHandler::run() {
                 break;
             }
             default:
-                std::cout << "Unknown message type received: " << receivedMessage.msgType() << std::endl;
+                std::cout << "Unknown message type received: " << (int) receivedMessage.msgType() << std::endl;
         }
     }
 }

@@ -207,7 +207,7 @@ std::unique_ptr<DCState> SecuredInitialRound::executeTask() {
     }
 
     // Logging
-    if (DCNetwork_.logging() && (slots.size() != 0)) {
+    if (DCNetwork_.logging() && (slots.size() != 0) && (DCNetwork_.securityLevel() != ProofOfFairness)) {
         auto finish = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> elapsed = finish - start;
         double duration = elapsed.count();
@@ -234,6 +234,14 @@ std::unique_ptr<DCState> SecuredInitialRound::executeTask() {
     if (finalSlotIndex > -1) {
         std::cout << "Node " << DCNetwork_.nodeID() << ": sending in slot " << std::dec << finalSlotIndex << std::endl
                   << std::endl;
+    }
+
+    // for benchmarks only
+    if(DCNetwork_.securityLevel() == ProofOfFairness) {
+        // TODO check
+        return std::make_unique<FairnessProtocol>(DCNetwork_, numSlices, slotIndex, std::move(rValues_),
+                                                 std::move(commitments_));
+
     }
 
     // if no member wants to send a message, return to the Ready state

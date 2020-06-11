@@ -45,7 +45,8 @@ enum MessageType {
     FloodAndPrune,
 
     // Evaluation
-    DCLoggingMessage
+    DCLoggingMessage,
+    FairnessLoggingMessage
 };
 
 #endif //THREEPP_MESSAGETYPE_H

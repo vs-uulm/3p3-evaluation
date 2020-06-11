@@ -23,7 +23,8 @@ const CryptoPP::ECPPoint H(CryptoPP::Integer("a3cf0a4b6e1d9146c73e9a82e4bfdc37ee
 enum SecurityLevel {
     Unsecured,
     Secured,
-    Adaptive
+    Adaptive,
+    ProofOfFairness
 };
 
 class DCNetwork {
