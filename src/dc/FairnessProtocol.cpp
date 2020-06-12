@@ -1,10 +1,13 @@
 #include <numeric>
 #include <cryptopp/oids.h>
+#include <iomanip>
 #include "FairnessProtocol.h"
 #include "ReadyState.h"
 #include "../datastruct/MessageType.h"
 #include "SecuredInitialRound.h"
 #include "InitState.h"
+
+std::mutex cout_mutex1;
 
 FairnessProtocol::FairnessProtocol(DCNetwork &DCNet, size_t numSlices, size_t slotIndex,
                                  std::vector<std::vector<std::vector<CryptoPP::Integer>>> rValues,
@@ -44,6 +47,8 @@ std::unique_ptr<DCState> FairnessProtocol::executeTask() {
     runtimes.push_back(elapsed.count());
     start = std::chrono::high_resolution_clock::now();
 
+    // TODO undo
+    outcome_ = ProofOfKnowledge;
     if(outcome_ == OpenCommitments)
         result = FairnessProtocol::openCommitments();
     else
@@ -80,10 +85,10 @@ std::unique_ptr<DCState> FairnessProtocol::executeTask() {
     }
 
 
-    //if(DCNetwork_.securityLevel() == Secured)
+    if(DCNetwork_.securityLevel() == Secured)
         return std::make_unique<ReadyState>(DCNetwork_);
-    //else
-        //return std::make_unique<FairnessProtocol>(DCNetwork_, numSlices_, slotIndex_, rValues_, commitments_);
+    else
+        return std::make_unique<FairnessProtocol>(DCNetwork_, numSlices_, slotIndex_, rValues_, commitments_);
 }
 
 int FairnessProtocol::coinFlip() {
@@ -402,7 +407,6 @@ int FairnessProtocol::openCommitments() {
         }
     }
 
-    // TODO make this more robust against misbehaving members
     int remainingValidations = (k_ - 1) * (2 * k_ - 1);
     // collect messages until all members are validated
     while (remainingValidations > 0) {
@@ -478,7 +482,6 @@ int FairnessProtocol::proofKnowledge() {
         encodedSigmas.push_back(std::move(sigmaVector));
     }
 
-    // TODO combine this with encoding process
     auto position = DCNetwork_.members().find(DCNetwork_.nodeID());
     for (uint32_t member = 0; member < k_ - 1; member++) {
         position++;
@@ -538,27 +541,25 @@ int FairnessProtocol::proofKnowledge() {
     }
 
     // generate z values
-    std::vector<std::vector<CryptoPP::Integer>> zMatrix;
-    zMatrix.reserve(2 * k_);
-
+    std::vector<std::vector<CryptoPP::Integer>> zMatrix(2*k_);
     for (uint32_t slot = 0; slot < 2 * k_; slot++) {
-        std::vector<CryptoPP::Integer> zVector;
-        zVector.reserve(numSlices_);
+        zMatrix[slot].resize(numSlices_);
 
         for (uint32_t slice = 0; slice < numSlices_; slice++) {
             CryptoPP::Integer z(PRNG, CryptoPP::Integer::One(), curve_.GetMaxExponent());
-            zVector.push_back(std::move(z));
+            zMatrix[slot][slice] = std::move(z);
         }
-        zMatrix.push_back(std::move(zVector));
     }
 
     std::vector<std::vector<uint8_t>> zEncoded;
     zEncoded.reserve(2 * k_);
 
     for (uint32_t slot = 0; slot < 2 * k_; slot++) {
-        std::vector<uint8_t> zVector(numSlices_ * 32);
+        std::vector<uint8_t> zVector(2 + numSlices_ * 32);
 
-        for (uint32_t slice = 0, offset = 0; slice < numSlices_; slice++, offset += 32)
+        zVector[0] = (slot & 0xFF00) > 8;
+        zVector[1] = (slot & 0x00FF);
+        for (uint32_t slice = 0, offset = 2; slice < numSlices_; slice++, offset += 32)
             zMatrix[slot][slice].Encode(&zVector[offset], 32);
 
         zEncoded.push_back(std::move(zVector));
@@ -582,8 +583,7 @@ int FairnessProtocol::proofKnowledge() {
     zStorage.reserve(k_);
 
     for (auto member = DCNetwork_.members().begin(); member != DCNetwork_.members().end(); member++) {
-        std::vector<std::vector<CryptoPP::Integer>> zMatrix;
-        zMatrix.reserve(2 * k_);
+        std::vector<std::vector<CryptoPP::Integer>> zMatrix(2*k_);
         zStorage.insert(std::pair(member->second.nodeID(), std::move(zMatrix)));
     }
 
@@ -596,12 +596,14 @@ int FairnessProtocol::proofKnowledge() {
             std::vector<CryptoPP::Integer> zVector;
             zVector.reserve(numSlices_);
 
-            for (uint32_t slice = 0, offset = 0; slice < numSlices_; slice++, offset += 32) {
+            uint32_t slot = (zBroadcast.body()[0] << 8) | zBroadcast.body()[1];
+
+            for (uint32_t slice = 0, offset = 2; slice < numSlices_; slice++, offset += 32) {
                 CryptoPP::Integer z(&zBroadcast.body()[offset], 32);
                 zVector.push_back(std::move(z));
             }
 
-            zStorage[zBroadcast.senderID()].push_back(std::move(zVector));
+            zStorage[zBroadcast.senderID()][slot] = std::move(zVector);
 
             remainingMessages--;
         } else {
@@ -623,8 +625,7 @@ int FairnessProtocol::proofKnowledge() {
                 wVector.reserve(numSlices_);
 
                 for (uint32_t slice = 0; slice < numSlices_; slice++) {
-                    CryptoPP::Integer w =
-                            r_[slot][slice] * zStorage[member->first][slot][slice] + sigmaMatrix[slot][slice];
+                    CryptoPP::Integer w = r_[slot][slice] * zStorage[member->first][slot][slice] + sigmaMatrix[slot][slice];
                     w = w.Modulo(curve_.GetGroupOrder());
                     wVector.push_back(std::move(w));
                 }
@@ -671,7 +672,6 @@ int FairnessProtocol::proofKnowledge() {
     }
 
     // collect the w values
-    // TODO make this more robust
     uint32_t remainingValidations = 2 * k_ * (k_ - 1);
     while (remainingValidations > 0) {
         auto wBroadcast = DCNetwork_.inbox().pop();
@@ -684,7 +684,7 @@ int FairnessProtocol::proofKnowledge() {
                 CryptoPP::Integer w(&wBroadcast.body()[offset], 32);
                 CryptoPP::ECPPoint wG = curve_.GetCurve().Multiply(w, G);
 
-                // Add all the original commitments at this slice and the permutatet slot
+                // Add all the original commitments at this slice and the permutated slot
                 CryptoPP::ECPPoint sumC;
                 for (uint32_t share = 0; share < k_; share++) {
                     sumC = curve_.GetCurve().Add(sumC, commitments_[wBroadcast.senderID()][slot][share][slice]);
@@ -701,7 +701,7 @@ int FairnessProtocol::proofKnowledge() {
 
                 // now validate that (z*r')H + sigmaH = wH
                 if (((wG.x != zr_GsigmaG.x) || (wG.y != zr_GsigmaG.y))) {
-                    std::cout << "Invalid proof" << std::endl;
+                    std::cout << "Invalid Commitment detected" << std::endl;
                     return -1;
                 }
             }
