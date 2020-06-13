@@ -130,7 +130,7 @@ void instance(int ID) {
     std::vector<uint32_t> &neighbors = networkManager.neighbors();
 
     // start the message handler in a separate thread
-    MessageHandler messageHandler(nodeID_, neighbors, inboxThreePP, inboxDC, outboxThreePP, outboxFinal);
+    MessageHandler messageHandler(nodeID_, neighbors, inboxThreePP, inboxDC, outboxThreePP, outboxFinal, 150);
     std::thread messageHandlerThread([&]() {
         messageHandler.run();
     });
@@ -147,7 +147,7 @@ void instance(int ID) {
     });
     // start the DCNetwork
     DCMember self(nodeID_, SELF, publicKey);
-    DCNetwork DCNet(self, INSTANCES, ProofOfFairness, privateKey, 2, nodes, inboxDC, outboxThreePP, true);
+    DCNetwork DCNet(self, INSTANCES, Secured, privateKey, 2, nodes, inboxDC, outboxThreePP, true);
 
     // submit messages to the DCNetwork
     std::thread DCThread([&]() {

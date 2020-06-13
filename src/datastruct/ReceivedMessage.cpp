@@ -19,3 +19,11 @@ uint8_t ReceivedMessage::msgType() {
 uint32_t ReceivedMessage::connectionID() {
     return connectionID_;
 }
+
+void ReceivedMessage::timestamp(Timestamp timestamp) {
+    timestamp_ = timestamp;
+}
+
+Timestamp ReceivedMessage::timestamp() {
+    return timestamp_;
+}

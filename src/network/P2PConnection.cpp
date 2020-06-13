@@ -92,6 +92,7 @@ void P2PConnection::read_body(const boost::system::error_code& e, std::shared_pt
                                             boost::asio::placeholders::error,
                                             received_msg));
     } else {
+        received_msg->timestamp(std::chrono::system_clock::now());
         inbox_.push(std::move(*received_msg));
         read();
     }

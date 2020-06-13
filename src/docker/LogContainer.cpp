@@ -139,9 +139,9 @@ int main(int argc, char** argv) {
     std::ofstream logFile3;
     logFile3.open (fileName3.str());
 
-    logFile3 << "Outcome";
+    logFile3 << "Outcome,";
     for(uint32_t i=0; i < INSTANCES; i++) {
-        logFile3 << "Node" << i % INSTANCES << "Commitments,CoinFlip,Proof,Total";
+        logFile3 << "Node" << i % INSTANCES << ",Commitments,CoinFlip,Proof,Total";
         if(i < INSTANCES-1)
             logFile3 << ",";
         else
@@ -209,7 +209,7 @@ int main(int argc, char** argv) {
                         logFile1 << std::endl;
                 }
             }
-        } else if(receivedMessage.msgType() == DCLoggingMessage) {
+        } else if(receivedMessage.msgType() == FairnessLoggingMessage) {
             std::vector<double> nodeRuntimes;
             nodeRuntimes.push_back(*reinterpret_cast<double *>(&receivedMessage.body()[0]));
             nodeRuntimes.push_back(*reinterpret_cast<double *>(&receivedMessage.body()[8]));

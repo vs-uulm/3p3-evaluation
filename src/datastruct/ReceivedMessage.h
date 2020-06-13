@@ -2,6 +2,9 @@
 #define THREEPP_RECEIVEDMESSAGE_H
 
 #include "NetworkMessage.h"
+#include <chrono>
+
+typedef std::chrono::system_clock::time_point Timestamp;
 
 class ReceivedMessage : public NetworkMessage {
 public:
@@ -17,9 +20,13 @@ public:
 
     uint32_t connectionID();
 
+    void timestamp(Timestamp timestamp);
+
+    Timestamp timestamp();
 private:
     uint32_t connectionID_;
 
+    Timestamp timestamp_;
 };
 
 

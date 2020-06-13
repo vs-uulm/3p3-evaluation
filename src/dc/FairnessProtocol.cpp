@@ -47,8 +47,6 @@ std::unique_ptr<DCState> FairnessProtocol::executeTask() {
     runtimes.push_back(elapsed.count());
     start = std::chrono::high_resolution_clock::now();
 
-    // TODO undo
-    outcome_ = ProofOfKnowledge;
     if(outcome_ == OpenCommitments)
         result = FairnessProtocol::openCommitments();
     else

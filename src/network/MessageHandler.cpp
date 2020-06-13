@@ -7,13 +7,20 @@
 
 MessageHandler::MessageHandler(uint32_t nodeID, std::vector<uint32_t>& neighbors,
                                MessageQueue<ReceivedMessage>& inboxThreePP, MessageQueue<ReceivedMessage>& inboxDCNet,
-                               MessageQueue<OutgoingMessage>& outboxThreePP, MessageQueue<std::vector<uint8_t>>& outboxFinal)
+                               MessageQueue<OutgoingMessage>& outboxThreePP, MessageQueue<std::vector<uint8_t>>& outboxFinal,
+                               uint32_t propagationDelay, uint32_t msgBufferSize)
         : inboxThreePP_(inboxThreePP), inboxDCNet_(inboxDCNet), outboxThreePP_(outboxThreePP), outboxFinal_(outboxFinal),
-          msgBuffer(16), nodeID_(nodeID), neighbors_(neighbors) {}
+          msgBuffer(msgBufferSize), nodeID_(nodeID), neighbors_(neighbors), propagationDelay_(propagationDelay) {}
 
 void MessageHandler::run() {
     for (;;) {
         auto receivedMessage = inboxThreePP_.pop();
+
+        // simulate a network propagation delay
+        std::chrono::duration<double> timeDifference = std::chrono::system_clock::now() - receivedMessage.timestamp();
+        std::chrono::milliseconds delay = std::chrono::milliseconds(propagationDelay_) - std::chrono::duration_cast<std::chrono::milliseconds>(timeDifference);
+        if(delay.count() > 0)
+            std::this_thread::sleep_for(std::chrono::milliseconds(delay.count()));
 
         switch (receivedMessage.msgType()) {
             case HelloMessage: {

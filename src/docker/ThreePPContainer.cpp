@@ -25,8 +25,8 @@ ip::address getIP() {
 }
 
 int main(int argc, char **argv) {
-    if ((argc != 5) || (atoi(argv[1]) < 0) || (atoi(argv[1]) > 3)) {
-        std::cout << "usage: ./dockerInstance SecurityLevel numThreads numSenders messageLength" << std::endl;
+    if ((argc != 6) || (atoi(argv[1]) < 0) || (atoi(argv[1]) > 3)) {
+        std::cout << "usage: ./dockerInstance SecurityLevel numThreads numSenders messageLength propagationDelay" << std::endl;
         std::cout << "SecurityLevel" << std::endl;
         std::cout << "0: unsecured" << std::endl;
         std::cout << "1: secured" << std::endl;
@@ -38,6 +38,7 @@ int main(int argc, char **argv) {
     uint32_t numThreads = atoi(argv[2]);
     uint32_t numSenders = atoi(argv[3]);
     uint32_t messageLength = atoi(argv[4]);
+    uint32_t propagationDelay = atoi(argv[5]);
 
     // wait for cleaner logging
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
@@ -149,7 +150,7 @@ int main(int argc, char **argv) {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     // start the message handler in a separate thread
-    MessageHandler messageHandler(nodeID_, neighbors, inboxThreePP, inboxDC, outboxThreePP, outboxFinal);
+    MessageHandler messageHandler(nodeID_, neighbors, inboxThreePP, inboxDC, outboxThreePP, outboxFinal, propagationDelay);
     std::thread messageHandlerThread([&]() {
         messageHandler.run();
     });

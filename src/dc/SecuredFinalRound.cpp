@@ -10,6 +10,8 @@
 #include "../utils/Utils.h"
 #include "BlameProtocol.h"
 
+std::mutex loggingMutex;
+
 SecuredFinalRound::SecuredFinalRound(DCNetwork &DCNet, int slotIndex, std::vector<uint16_t> slots,
                                      std::vector<CryptoPP::Integer> seedPrivateKeys,
                                      std::vector<std::array<uint8_t, 32>> receivedSeeds)
@@ -259,6 +261,7 @@ std::unique_ptr<DCState> SecuredFinalRound::executeTask() {
 
     // print the reconstructed message slots
     {
+        std::lock_guard<std::mutex> lock(loggingMutex);
         std::cout << "Node " << std::dec << DCNetwork_.nodeID() << " received messages:" << std::endl;
         for (auto &slot : finalMessages) {
             std::string msgHash = utils::sha256(slot);
@@ -335,6 +338,7 @@ void SecuredFinalRound::sharingPartOne(std::vector<std::vector<std::vector<Crypt
                                                            true);
                     }
                 }
+                std::lock_guard<std::mutex> lock(threadMutex);
                 commitmentCube[slot] = std::move(commitmentMatrix);
 
                 auto position = DCNetwork_.members().find(DCNetwork_.nodeID());
@@ -406,6 +410,7 @@ void SecuredFinalRound::sharingPartOne(std::vector<std::vector<std::vector<Crypt
                         }
                         commitmentMatrix.push_back(std::move(commitmentVector));
                     }
+                    std::lock_guard<std::mutex> lock(threadMutex);
                     commitments_[commitBroadcast.senderID()][slot] = std::move(commitmentMatrix);
                 } else {
                     DCNetwork_.inbox().push(commitBroadcast);
@@ -514,6 +519,7 @@ int SecuredFinalRound::sharingPartTwo() {
                             remainingShares = 0;
                             return -1;
                         }
+                        std::lock_guard<std::mutex> lock(threadMutex);
                         R[slot][slice] += r;
                         S[slot][slice] += s;
                     }
@@ -639,7 +645,7 @@ std::vector<std::vector<uint8_t>> SecuredFinalRound::resultComputation() {
                             remainingShares = 0;
                             return -1;
                         }
-
+                        std::lock_guard<std::mutex> lock(threadMutex);
                         R[slot][slice] += R_;
                         S[slot][slice] += S_;
                     }

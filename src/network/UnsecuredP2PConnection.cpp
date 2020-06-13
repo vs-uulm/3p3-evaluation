@@ -67,6 +67,7 @@ void UnsecuredP2PConnection::read_body(const boost::system::error_code& e, std::
             std::cerr << std::hex << std::setw(2) << std::setfill('0') << (int) c << " ";
         std::cerr << std::endl;
     }
+    received_msg->timestamp(std::chrono::system_clock::now());
     inbox_.push(std::move(*received_msg));
     read();
 

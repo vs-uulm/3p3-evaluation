@@ -393,6 +393,7 @@ void SecuredInitialRound::sharingPartOne(std::vector<std::vector<std::vector<Cry
                             commitmentMatrix[share].push_back(std::move(commitment));
                         }
                     }
+                    std::lock_guard<std::mutex> lock(threadMutex);
                     commitments_[commitBroadcast.senderID()][slot] = std::move(commitmentMatrix);
                 } else {
                     DCNetwork_.inbox().push(commitBroadcast);
@@ -500,6 +501,7 @@ int SecuredInitialRound::sharingPartTwo() {
                             return -1;
                         }
 
+                        std::lock_guard<std::mutex> lock(threadMutex);
                         R[slot][slice] += r;
                         S[slot][slice] += s;
                     }
@@ -621,6 +623,7 @@ std::vector<std::vector<uint8_t>> SecuredInitialRound::resultComputation() {
                             return -1;
                         }
 
+                        std::lock_guard<std::mutex> lock(threadMutex);
                         R[slot][slice] += R_;
                         S[slot][slice] += S_;
                     }
