@@ -219,8 +219,8 @@ int main(int argc, char** argv) {
 
             if ((((i + 1) % INSTANCES) == 0)) {
                 // set the security level for Round1
-                logFile3 << ((receivedMessage.body()[32] == 0) ? "OpenCommitments" : "ProofOfKnowledge") << ",";
-                // set runtimes and send flag
+                logFile3 << ((receivedMessage.body()[32] == 0) ? "OpenCommitments" : "ProofOfKnowledge") << ",,";
+                // set runtimes
                 for (uint32_t j = 0; j < INSTANCES; j++) {
                     double total = 0;
                     for (double runtime : runtimes[j].second) {

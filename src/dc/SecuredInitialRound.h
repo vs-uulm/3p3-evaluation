@@ -31,8 +31,6 @@ private:
 
     DCNetwork& DCNetwork_;
 
-    bool delayedVerification;
-
     // DCNetwork size
     uint32_t k_;
 
@@ -60,6 +58,8 @@ private:
     CryptoPP::AutoSeededRandomPool PRNG;
 
     CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> curve_;
+
+    bool delayedVerification;
 };
 
 

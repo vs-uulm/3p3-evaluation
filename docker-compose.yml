@@ -11,11 +11,11 @@ services:
   build-container:
     build:
       context: .
-      dockerfile: ./docker/build_ubuntu/Dockerfile
+      dockerfile: ./docker/build/Dockerfile
   central-container:
     build:
       context: .
-      dockerfile: ./docker/central_ubuntu/Dockerfile
+      dockerfile: ./docker/central/Dockerfile
     volumes: ['./evaluation:/home/threePP']
     networks:
       p2p-network:
@@ -23,6 +23,6 @@ services:
   three-pp-container:
     build:
       context: .
-      dockerfile: ./docker/threePP_ubuntu/Dockerfile
+      dockerfile: ./docker/threePP/Dockerfile
     networks:
       p2p-network:

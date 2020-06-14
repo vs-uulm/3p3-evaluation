@@ -75,7 +75,7 @@ int NetworkManager::sendMessage(OutgoingMessage msg) {
                 if(connection.second->is_open())
                     connection.second->send_msg(msg);
     } else if(msg.receiverID() == SELF) {
-        ReceivedMessage receivedMessage(SELF, msg.header()[0], SELF, msg.body());
+        ReceivedMessage receivedMessage(SELF, std::chrono::system_clock::now(),msg.header()[0], SELF, msg.body());
         inbox_.push(std::move(receivedMessage));
     } else if(msg.receiverID() == CENTRAL) {
         if (!centralInstance_->is_open())

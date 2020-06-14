@@ -9,8 +9,8 @@ void ReceivedMessage::resizeBody() {
     body_.resize(body_size);
 }
 
-ReceivedMessage::ReceivedMessage(uint32_t connectionID, uint8_t msgType, uint32_t senderID, std::vector<uint8_t> body)
-: NetworkMessage(msgType, senderID, std::move(body)), connectionID_(connectionID) {}
+ReceivedMessage::ReceivedMessage(uint32_t connectionID, Timestamp timestamp, uint8_t msgType, uint32_t senderID, std::vector<uint8_t> body)
+: NetworkMessage(msgType, senderID, std::move(body)), connectionID_(connectionID), timestamp_(timestamp) {}
 
 uint8_t ReceivedMessage::msgType() {
     return header_[0];

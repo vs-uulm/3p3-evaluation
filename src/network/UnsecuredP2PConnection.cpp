@@ -1,9 +1,7 @@
 #include "UnsecuredP2PConnection.h"
 
 #include <iostream>
-
 #include <boost/bind.hpp>
-#include <iomanip>
 
 UnsecuredP2PConnection::UnsecuredP2PConnection(uint32_t connectionID, io_context& io_context_, MessageQueue<ReceivedMessage>& inbox)
         : is_open_(true), connectionID_(connectionID), socket_(io_context_), inbox_(inbox) {}
@@ -37,40 +35,32 @@ void UnsecuredP2PConnection::disconnect() {
 
 void UnsecuredP2PConnection::read() {
     auto received_msg = std::make_shared<ReceivedMessage>(connectionID_);
+    // read the message header
     boost::asio::async_read(socket_,
                             boost::asio::buffer(received_msg->header()),
-                            boost::bind(&UnsecuredP2PConnection::read_header,
-                                        this,
-                                        boost::asio::placeholders::error,
-                                        received_msg));
-}
-
-void UnsecuredP2PConnection::read_header(const boost::system::error_code& e, std::shared_ptr<ReceivedMessage> received_msg) {
-    if(e) {
-        std::cerr << "Could not read the message header from connection: " << connectionID_ << std::endl;
-        std::cerr << "Error: " << e.message() << std::endl;
-    } else {
-        received_msg->resizeBody();
-        boost::asio::async_read(socket_,
-                                boost::asio::buffer(received_msg->body()),
-                                boost::bind(&UnsecuredP2PConnection::read_body,
-                                            this,
-                                            boost::asio::placeholders::error,
-                                            received_msg));
-    }
-}
-
-void UnsecuredP2PConnection::read_body(const boost::system::error_code& e, std::shared_ptr<ReceivedMessage> received_msg) {
-    if(e) {
-        std::cerr << "Could not read the message body from connection: " << connectionID_ << std::endl;
-        for (uint8_t c : received_msg->header())
-            std::cerr << std::hex << std::setw(2) << std::setfill('0') << (int) c << " ";
-        std::cerr << std::endl;
-    }
-    received_msg->timestamp(std::chrono::system_clock::now());
-    inbox_.push(std::move(*received_msg));
-    read();
-
+                            [this, received_msg](const boost::system::error_code& error, size_t) {
+        if(!error) {
+            received_msg->resizeBody();
+            // read the
+            boost::asio::async_read(socket_,
+                                    boost::asio::buffer(received_msg->body()),
+                                    [this, received_msg](const boost::system::error_code& error, size_t) {
+                if(!error) {
+                    received_msg->timestamp(std::chrono::system_clock::now());
+                    inbox_.push(std::move(*received_msg));
+                    read();
+                } else if(error == boost::asio::error::eof || error == boost::asio::error::operation_aborted) {
+                    return;
+                } else {
+                    std::cerr << "Error: " << error.message() << std::endl;
+                }
+            });
+        } else if(error == boost::asio::error::eof || error == boost::asio::error::operation_aborted) {
+            return;
+        } else {
+            std::cerr << "Error: " << error.message() << std::endl;
+        }
+    });
 }
 
 void UnsecuredP2PConnection::send_msg(NetworkMessage msg) {
