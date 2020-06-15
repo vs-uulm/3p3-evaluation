@@ -57,26 +57,19 @@ std::unique_ptr<DCState> FairnessProtocol::executeTask() {
         return std::make_unique<InitState>(DCNetwork_);
     }
 
-    // logging
-    finish = std::chrono::high_resolution_clock::now();
-    elapsed = finish - start;
-    runtimes.push_back(elapsed.count());
-    start = std::chrono::high_resolution_clock::now();
-
     // Logging
     if (DCNetwork_.logging()) {
         auto finish = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> elapsed = finish - start;
         double duration = elapsed.count();
 
-        std::vector<uint8_t> log(4 * sizeof(double) + 2);
+        std::vector<uint8_t> log(3 * sizeof(double) + 1);
         // runtimes
         std::memcpy(&log[0], &runtimes[0], sizeof(double));
         std::memcpy(&log[8], &runtimes[1], sizeof(double));
-        std::memcpy(&log[16], &runtimes[2], sizeof(double));
-        std::memcpy(&log[24], &duration, sizeof(double));
+        std::memcpy(&log[16], &duration, sizeof(double));
         // Outcome
-        log[4 * sizeof(double)] = (outcome_ == OpenCommitments) ? 0 : 1;
+        log[3 * sizeof(double)] = (outcome_ == OpenCommitments) ? 0 : 1;
 
         OutgoingMessage logMessage(CENTRAL, FairnessLoggingMessage, DCNetwork_.nodeID(), std::move(log));
         DCNetwork_.outbox().push(std::move(logMessage));

@@ -92,6 +92,7 @@ int main(int argc, char** argv) {
     fileName1 << timeStamp->tm_hour << "_";
     fileName1 << timeStamp->tm_min << "_";
     fileName1 << timeStamp->tm_sec << "_";
+    fileName1 << INSTANCES << "Nodes_";
     fileName1 << "Round1" << ".csv";
 
     std::stringstream fileName2;
@@ -101,7 +102,18 @@ int main(int argc, char** argv) {
     fileName2 << timeStamp->tm_hour << "_";
     fileName2 << timeStamp->tm_min << "_";
     fileName2 << timeStamp->tm_sec << "_";
+    fileName2 << INSTANCES << "Nodes_";
     fileName2 << "Round2.csv";
+
+    std::stringstream fileName3;
+    fileName3 << "/home/threePP/Log_";
+    fileName3 << months[timeStamp->tm_mon];
+    fileName3 << timeStamp->tm_mday << "__";
+    fileName3 << timeStamp->tm_hour << "_";
+    fileName3 << timeStamp->tm_min << "_";
+    fileName3 << timeStamp->tm_sec << "_";
+    fileName3 << INSTANCES << "Nodes_";
+    fileName3 << "ProofOfFairness.csv";
 
     std::ofstream logFile1;
     logFile1.open (fileName1.str());
@@ -126,15 +138,6 @@ int main(int argc, char** argv) {
         else
             logFile2 << std::endl;
     }
-
-    std::stringstream fileName3;
-    fileName3 << "/home/threePP/Log_";
-    fileName3 << months[timeStamp->tm_mon];
-    fileName3 << timeStamp->tm_mday << "__";
-    fileName3 << timeStamp->tm_hour << "_";
-    fileName3 << timeStamp->tm_min << "_";
-    fileName3 << timeStamp->tm_sec << "_";
-    fileName3 << "ProofOfFairness.csv";
 
     std::ofstream logFile3;
     logFile3.open (fileName3.str());
@@ -214,14 +217,14 @@ int main(int argc, char** argv) {
             nodeRuntimes.push_back(*reinterpret_cast<double *>(&receivedMessage.body()[0]));
             nodeRuntimes.push_back(*reinterpret_cast<double *>(&receivedMessage.body()[8]));
             nodeRuntimes.push_back(*reinterpret_cast<double *>(&receivedMessage.body()[16]));
-            nodeRuntimes.push_back(*reinterpret_cast<double *>(&receivedMessage.body()[24]));
             runtimes[receivedMessage.senderID()].second = nodeRuntimes;
 
             if ((((i + 1) % INSTANCES) == 0)) {
-                // set the security level for Round1
-                logFile3 << ((receivedMessage.body()[32] == 0) ? "OpenCommitments" : "ProofOfKnowledge") << ",,";
+                // set the outcome of the coin flip
+                logFile3 << ((receivedMessage.body()[24] == 0) ? "OpenCommitments" : "ProofOfKnowledge") << ",";
                 // set runtimes
                 for (uint32_t j = 0; j < INSTANCES; j++) {
+                    logFile3 << ",";
                     double total = 0;
                     for (double runtime : runtimes[j].second) {
                         total += runtime;
