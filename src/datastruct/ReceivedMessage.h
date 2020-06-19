@@ -12,15 +12,13 @@ public:
     
     ReceivedMessage(uint32_t connectionID);
 
-    ReceivedMessage(uint32_t connectionID, Timestamp timestamp, uint8_t msgType, uint32_t senderID, std::vector<uint8_t> body);
+    ReceivedMessage(uint32_t connectionID, uint8_t msgType, uint32_t senderID, std::vector<uint8_t> body);
 
     void resizeBody();
 
     uint8_t msgType();
 
     uint32_t connectionID();
-
-    void timestamp(Timestamp timestamp);
 
     Timestamp timestamp();
 private:

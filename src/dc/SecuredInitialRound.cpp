@@ -154,7 +154,7 @@ std::unique_ptr<DCState> SecuredInitialRound::executeTask() {
     // collect and validate the final shares
     std::vector<std::vector<uint8_t>> finalMessageVector = SecuredInitialRound::resultComputation();
     // Check if the protocol's execution has been interrupted by a blame message
-    if (finalMessageVector.size() == 0) {
+    if(finalMessageVector.size() == 0) {
         // a blame message indicates that a member may have been excluded from the group
         // therefore a transition to the init state is performed,
         // which will execute a group membership protocol
@@ -164,17 +164,15 @@ std::unique_ptr<DCState> SecuredInitialRound::executeTask() {
         return std::make_unique<InitState>(DCNetwork_);
     }
 
-    // prepare round two
+    // prepare the final round
     std::vector<uint16_t> slots;
     std::vector<std::array<uint8_t, 32>> receivedSeeds;
 
     // determine the non-empty slots in the message vector
     // and calculate the index of the own slot if present
     int finalSlotIndex = -1;
+    uint32_t invalidCRCs = 0;
     for (uint32_t slot = 0; slot < 2 * k_; slot++) {
-        if (static_cast<uint32_t>(slotIndex) == slot)
-            finalSlotIndex = slots.size();
-
         uint16_t slotSize = (finalMessageVector[slot][6] << 8) | finalMessageVector[slot][7];
         if (slotSize > 0) {
             // verify the CRC
@@ -182,27 +180,35 @@ std::unique_ptr<DCState> SecuredInitialRound::executeTask() {
 
             bool valid = CRC32_.Verify(finalMessageVector[slot].data());
 
-            if (!valid) {
-                std::cout << "Invalid CRC detected." << std::endl;
-                std::cout << "Restarting Round One." << std::endl;
-                return std::make_unique<SecuredInitialRound>(DCNetwork_);
+            if(!valid) {
+                invalidCRCs++;
+            } else {
+                if (static_cast<uint32_t>(slotIndex) == slot)
+                    finalSlotIndex = slots.size();
+
+                //decrypt and extract the own seed for the each slot
+                CryptoPP::ECPPoint rG;
+                curve_.GetCurve().DecodePoint(rG, &finalMessageVector[slot][8 + 33 * nodeIndex_], 33);
+
+                // Perform an ephemeral ECDH KE with the given public key
+                CryptoPP::Integer sharedSecret = curve_.GetCurve().ScalarMultiply(rG, DCNetwork_.privateKey()).x;
+
+                std::array<uint8_t, 32> seed;
+                sharedSecret.Encode(seed.data(), 32);
+
+                receivedSeeds.push_back(std::move(seed));
+
+                // store the size of the slot along with the seed
+                slots.push_back(slotSize);
             }
-
-            //decrypt and extract the own seed for the each slot
-            CryptoPP::ECPPoint rG;
-            curve_.GetCurve().DecodePoint(rG, &finalMessageVector[slot][8 + 33 * nodeIndex_], 33);
-
-            // Perform an ephemeral ECDH KE with the given public key
-            CryptoPP::Integer sharedSecret = curve_.GetCurve().ScalarMultiply(rG, DCNetwork_.privateKey()).x;
-
-            std::array<uint8_t, 32> seed;
-            sharedSecret.Encode(seed.data(), 32);
-
-            receivedSeeds.push_back(std::move(seed));
-
-            // store the size of the slot along with the seed
-            slots.push_back(slotSize);
         }
+    }
+
+    if(invalidCRCs > k_) {
+        std::cout << "More than k invalid CRCs detected." << std::endl;
+        std::cout << "Switching to Proof of Fairness Protocol" << std::endl;
+        return std::make_unique<FairnessProtocol>(DCNetwork_, numSlices_, slotIndex, std::move(rValues_),
+                                                  std::move(commitments_));
     }
 
     // Logging
@@ -230,18 +236,13 @@ std::unique_ptr<DCState> SecuredInitialRound::executeTask() {
         DCNetwork_.outbox().push(std::move(logMessage));
     }
 
-    if (finalSlotIndex > -1) {
-        std::cout << "Node " << DCNetwork_.nodeID() << ": sending in slot " << std::dec << finalSlotIndex << std::endl
-                  << std::endl;
-    }
+    if (finalSlotIndex > -1)
+        std::cout << "Node " << DCNetwork_.nodeID() << ": sending in slot " << std::dec << finalSlotIndex << std::endl;
 
     // for benchmarks only
-    if(DCNetwork_.securityLevel() == ProofOfFairness) {
-        // TODO check
+    if(DCNetwork_.securityLevel() == ProofOfFairness)
         return std::make_unique<FairnessProtocol>(DCNetwork_, numSlices_, slotIndex, std::move(rValues_),
                                                  std::move(commitments_));
-
-    }
 
     // if no member wants to send a message, return to the Ready state
     if (slots.size() == 0) {

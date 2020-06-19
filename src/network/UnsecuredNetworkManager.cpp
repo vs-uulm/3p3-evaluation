@@ -59,23 +59,23 @@ int UnsecuredNetworkManager::sendMessage(OutgoingMessage msg) {
     if(msg.receiverID() == BROADCAST) {
         for (auto& connection : connections_) {
             if (connection.second->is_open()) {
-                connection.second->send_msg(std::move(msg));
+                connection.second->send(std::move(msg));
             }
         }
     } else if(msg.receiverID() == SELF) {
-        ReceivedMessage receivedMessage(SELF, std::chrono::system_clock::now(), msg.header()[0], SELF, msg.body());
+        ReceivedMessage receivedMessage(SELF, msg.header()[0], SELF, msg.body());
         inbox_.push(std::move(receivedMessage));
     } else if(msg.receiverID() == CENTRAL) {
         if (!centralInstance_->is_open())
             return -1;
-        centralInstance_->send_msg(std::move(msg));
+        centralInstance_->send(std::move(msg));
     } else {
         if(connections_.count(msg.receiverID()) < 1) {
             return -1;
         }
         if (!connections_[msg.receiverID()]->is_open())
             return -1;
-        connections_[msg.receiverID()]->send_msg(std::move(msg));
+        connections_[msg.receiverID()]->send(std::move(msg));
     }
     return 0;
 }

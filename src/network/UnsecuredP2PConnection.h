@@ -23,6 +23,10 @@ public:
 
     void send_msg(NetworkMessage msg);
 
+    void send(NetworkMessage msg);
+
+    void async_send(bool handler);
+
     bool is_open();
 
     tcp::socket& socket();
@@ -32,17 +36,19 @@ public:
     void read();
 
 private:
-    void read_header(const boost::system::error_code &e, std::shared_ptr <ReceivedMessage> msg);
-
-    void read_body(const boost::system::error_code &e, std::shared_ptr <ReceivedMessage> msg);
-
     bool is_open_;
+
+    bool sending_;
+
+    std::mutex mutex_;
 
     uint32_t connectionID_;
 
     tcp::socket socket_;
 
-    MessageQueue <ReceivedMessage>& inbox_;
+    MessageQueue<ReceivedMessage>& inbox_;
+
+    MessageQueue<NetworkMessage> outbox_;
 };
 
 

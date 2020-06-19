@@ -15,7 +15,7 @@
 
 std::mutex cout_mutex;
 
-const uint32_t INSTANCES = 6;
+const uint32_t INSTANCES = 12;
 
 void instance(int ID) {
     CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> curve;
@@ -33,12 +33,11 @@ void instance(int ID) {
     ip::address_v4 ip_address(ip::address_v4::from_string("127.0.0.1"));
 
     // TODO
+    //NetworkManager networkManager(io_context_, port_, inboxThreePP);
     UnsecuredNetworkManager networkManager(io_context_, port_, inboxThreePP);
-    //UnsecuredNetworkManager networkManager(io_context_, port_, inboxThreePP);
     // Run the io_context which handles the network manager
     std::thread networkThread1([&io_context_]() {
         io_context_.run();
-        std::cout << "IO Context finished" << std::endl;
     });
 
     // connect to the central node authority
@@ -130,7 +129,7 @@ void instance(int ID) {
     std::vector<uint32_t> &neighbors = networkManager.neighbors();
 
     // start the message handler in a separate thread
-    MessageHandler messageHandler(nodeID_, neighbors, inboxThreePP, inboxDC, outboxThreePP, outboxFinal, 150);
+    MessageHandler messageHandler(nodeID_, neighbors, inboxThreePP, inboxDC, outboxThreePP, outboxFinal, 100);
     std::thread messageHandlerThread([&]() {
         messageHandler.run();
     });
@@ -147,7 +146,7 @@ void instance(int ID) {
     });
     // start the DCNetwork
     DCMember self(nodeID_, SELF, publicKey);
-    DCNetwork DCNet(self, INSTANCES, Secured, privateKey, 2, nodes, inboxDC, outboxThreePP, true);
+    DCNetwork DCNet(self, INSTANCES, Unsecured, privateKey, 1, nodes, inboxDC, outboxThreePP, true);
 
     // submit messages to the DCNetwork
     std::thread DCThread([&]() {
@@ -190,8 +189,8 @@ void nodeAuthority() {
     uint16_t port = 7777;
 
     // TODO
+    //NetworkManager networkManager(io_context_, port, inbox);
     UnsecuredNetworkManager networkManager(io_context_, port, inbox);
-    //UnsecuredNetworkManager networkManager(io_context_, port, inbox);
     // Run the io_context which handles the network manager
     std::thread networkThread([&io_context_]() {
         io_context_.run();

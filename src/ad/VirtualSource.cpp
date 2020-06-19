@@ -71,7 +71,7 @@ void VirtualSource::executeTask() {
 
     // if the maximum depth has been reached, the flood and prune protocol is initiated
     if(s >= AdaptiveDiffusion::maxDepth) {
-        ReceivedMessage floodMessage(SELF, std::chrono::system_clock::now(), FloodAndPrune, nodeID_, std::move(message_));
+        ReceivedMessage floodMessage(SELF, FloodAndPrune, nodeID_, std::move(message_));
         inboxThreePP_.push(std::move(floodMessage));
     } else {
         // otherwise: sleep until the maximum number of steps has been reached
@@ -79,7 +79,7 @@ void VirtualSource::executeTask() {
         size_t maxTime = AdaptiveDiffusion::RTT * AdaptiveDiffusion::maxRemainingSteps(s);
         std::this_thread::sleep_for(std::chrono::milliseconds(maxTime));
 
-        ReceivedMessage floodMessage(SELF, std::chrono::system_clock::now(), FloodAndPrune, nodeID_, std::move(message_));
+        ReceivedMessage floodMessage(SELF, FloodAndPrune, nodeID_, std::move(message_));
         inboxThreePP_.push(std::move(floodMessage));
     }
 }

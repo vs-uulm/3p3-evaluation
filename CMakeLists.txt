@@ -127,13 +127,28 @@ target_link_libraries(
 add_executable(
         networkTest
         src/test/networkTest.cpp
+        src/network/Node.cpp
+        src/network/P2PConnection.cpp
+        src/datastruct/OutgoingMessage.cpp
+        src/network/NetworkManager.cpp
+        src/datastruct/MessageBuffer.cpp
+        src/network/MessageHandler.cpp
+        src/datastruct/ReceivedMessage.cpp
+        src/datastruct/MessageType.h
+        src/datastruct/NetworkMessage.cpp
+        src/network/UnsecuredP2PConnection.cpp
         src/network/UnsecuredNetworkManager.cpp
+        src/utils/Utils.cpp
+        src/ad/VirtualSource.cpp
+        src/ad/AdaptiveDiffusion.cpp
 )
 
 target_link_libraries(
         networkTest
         -L/usr/local/lib
         -pthread
+        -lssl
+        -lcrypto
         -lcryptopp
 )
 

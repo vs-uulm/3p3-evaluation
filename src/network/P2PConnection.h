@@ -27,7 +27,9 @@ public:
 
     void async_handshake();
 
-    void send_msg(NetworkMessage msg);
+    void send(NetworkMessage msg);
+
+    void async_send(bool handler);
 
     bool is_open();
 
@@ -40,17 +42,19 @@ private:
 
     void read();
 
-    void read_header(const boost::system::error_code& e, std::shared_ptr<ReceivedMessage> msg);
-
-    void read_body(const boost::system::error_code& e, std::shared_ptr<ReceivedMessage> msg);
+    std::mutex mutex_;
 
     bool is_open_;
+
+    bool sending_;
 
     uint32_t connectionID_;
 
     ssl_socket ssl_socket_;
 
     MessageQueue<ReceivedMessage>& inbox_;
+
+    MessageQueue<NetworkMessage> outbox_;
 };
 
 

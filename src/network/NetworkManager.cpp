@@ -36,7 +36,6 @@ void NetworkManager::accept_handler(const boost::system::error_code& e, std::sha
 
 int NetworkManager::addNeighbor(const Node &node) {
     uint32_t connectionID = getConnectionID();
-
     auto connection = std::make_shared<P2PConnection>(connectionID, io_context_, ssl_context_, inbox_);
 
     for(int retryCount = 5; retryCount > 0; retryCount--) {
@@ -73,14 +72,14 @@ int NetworkManager::sendMessage(OutgoingMessage msg) {
         for(auto& connection : connections_)
             if(connection.second->connectionID() != msg.receivedFrom())
                 if(connection.second->is_open())
-                    connection.second->send_msg(msg);
+                    connection.second->send(msg);
     } else if(msg.receiverID() == SELF) {
-        ReceivedMessage receivedMessage(SELF, std::chrono::system_clock::now(),msg.header()[0], SELF, msg.body());
+        ReceivedMessage receivedMessage(SELF, msg.header()[0], SELF, msg.body());
         inbox_.push(std::move(receivedMessage));
     } else if(msg.receiverID() == CENTRAL) {
         if (!centralInstance_->is_open())
             return -1;
-        centralInstance_->send_msg(msg);
+        centralInstance_->send(msg);
     } else {
         if(connections_.count(msg.receiverID()) < 1) {
             std::cout << msg.receiverID() << std::endl;
@@ -88,7 +87,7 @@ int NetworkManager::sendMessage(OutgoingMessage msg) {
         }
         if(!connections_[msg.receiverID()]->is_open())
             return -1;
-        connections_[msg.receiverID()]->send_msg(msg);
+        connections_[msg.receiverID()]->send(msg);
     }
     return 0;
 }

@@ -1,22 +1,14 @@
 #include <iostream>
 #include <boost/asio/io_service.hpp>
 #include <boost/asio.hpp>
-//#include "../network/NetworkManager.h"
+#include "../datastruct/ReceivedMessage.h"
+#include "../network/NetworkManager.h"
+#include "../network/UnsecuredNetworkManager.h"
 
 int main() {
     using namespace boost::asio;
     using ip::tcp;
-    //using boost::asio::ip::udp;
-    boost::asio::io_service io_service;
-    tcp::socket socket(io_service);
 
-    ip::address ip_address;
-    socket.connect(tcp::endpoint(ip::address::from_string("8.8.8.8"), 443));
-    ip_address = socket.local_endpoint().address();
-    socket.close();
-    std::cout << ip_address.to_string() << std::endl;
-
-    /*
     MessageQueue<ReceivedMessage> inbox1;
     MessageQueue<ReceivedMessage> inbox2;
 
@@ -45,19 +37,19 @@ int main() {
     Node node(0, 8888, ip_address);
     int receiverID = networkManager2.addNeighbor(node);
 
-    size_t msgSize = std::pow(2,10);
+    size_t msgSize = std::pow(2,16);
     std::cout << std::dec << msgSize << std::endl;
 
-    for(uint32_t i = 0; i < 20000; i++) {
+    for(uint32_t i = 0; i < 10000; i++) {
         std::vector<uint8_t> testData(msgSize);
-        OutgoingMessage testMessage(receiverID, 0, 0, std::move(testData));
+        std::fill(testData.begin(), testData.end(), i);
+        OutgoingMessage testMessage(receiverID, 0x20, 0xAAFF, std::move(testData));
         networkManager2.sendMessage(std::move(testMessage));
-        //std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    std::cout << "Received " << std::dec << inbox1.size() << std::endl;
+    while(inbox1.size() < 10000)
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::cout << "Finished" << std::endl;
 
     // End
     networkThread1.join();
@@ -65,5 +57,4 @@ int main() {
     networkThread2.join();
     std::cout << " Thread 2 finished" << std::endl;
     return 0;
-     */
 }

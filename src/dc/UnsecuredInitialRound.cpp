@@ -4,16 +4,12 @@
 #include "DCNetwork.h"
 #include "InitState.h"
 #include "SecuredInitialRound.h"
-#include "ReadyState.h"
 #include "../datastruct/MessageType.h"
 #include "UnsecuredFinalRound.h"
-#include "../utils/Utils.h"
 
 
 UnsecuredInitialRound::UnsecuredInitialRound(DCNetwork &DCNet) : DCNetwork_(DCNet), k_(DCNetwork_.k()) {
     nodeIndex_ = std::distance(DCNetwork_.members().begin(), DCNetwork_.members().find(DCNetwork_.nodeID()));
-
-    //std::cout << "Initial Round" << std::endl;
 }
 
 UnsecuredInitialRound::~UnsecuredInitialRound() {}
@@ -109,10 +105,8 @@ std::unique_ptr<DCState> UnsecuredInitialRound::executeTask() {
     // determine the non-empty slots in the message vector
     // and calculate the index of the own slot if present
     int finalSlotIndex = -1;
+    uint32_t invalidCRCs = 0;
     for (uint32_t slot = 0; slot < 2 * k_; slot++) {
-        if (static_cast<uint32_t>(slotIndex) == slot)
-            finalSlotIndex = slots.size();
-
         uint16_t slotSize = (S[slot * 8 + 6] << 8) | S[slot * 8 + 7];
         if (slotSize > 0) {
             // verify the CRC
@@ -121,14 +115,20 @@ std::unique_ptr<DCState> UnsecuredInitialRound::executeTask() {
             bool valid = CRC32_.Verify(&S[slot * 8]);
 
             if (!valid) {
-                std::cout << "Invalid CRC detected." << std::endl;
-                std::cout << "Restarting Round One." << std::endl;
-                return std::make_unique<UnsecuredInitialRound>(DCNetwork_);
+                invalidCRCs++;
+            } else {
+                if(static_cast<uint32_t>(slotIndex) == slot)
+                    finalSlotIndex = slots.size();
             }
-
-            // store the size of the slot along with the seed
+            // store the size of the slot
             slots.push_back(slotSize);
         }
+    }
+
+    if(invalidCRCs > k_) {
+        std::cout << "More than k invalid CRCs detected." << std::endl;
+        std::cout << "Switching to Proof of Fairness Protocol" << std::endl;
+        return std::make_unique<SecuredInitialRound>(DCNetwork_);
     }
 
     // Logging
