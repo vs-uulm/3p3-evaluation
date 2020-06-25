@@ -70,9 +70,8 @@ uint32_t NetworkManager::getConnectionID() {
 int NetworkManager::sendMessage(OutgoingMessage msg) {
     if(msg.receiverID() == BROADCAST) {
         for(auto& connection : connections_)
-            if(connection.second->connectionID() != msg.receivedFrom())
-                if(connection.second->is_open())
-                    connection.second->send(msg);
+            if(connection.second->is_open())
+                connection.second->send(msg);
     } else if(msg.receiverID() == SELF) {
         ReceivedMessage receivedMessage(SELF, msg.header()[0], SELF, msg.body());
         inbox_.push(std::move(receivedMessage));

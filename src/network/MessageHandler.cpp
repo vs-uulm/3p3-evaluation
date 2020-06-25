@@ -15,7 +15,6 @@ MessageHandler::MessageHandler(uint32_t nodeID, std::vector<uint32_t>& neighbors
 void MessageHandler::run() {
     for (;;) {
         auto receivedMessage = inboxThreePP_.pop();
-
         // simulate a network propagation delay
         std::chrono::duration<double> timeDifference = std::chrono::system_clock::now() - receivedMessage.timestamp();
         std::chrono::milliseconds delay = std::chrono::milliseconds(propagationDelay_)
@@ -62,15 +61,14 @@ void MessageHandler::run() {
                 if(!msgBuffer.contains(receivedMessage)) {
                     msgBuffer.insert(receivedMessage);
                     outboxFinal_.push(receivedMessage.body());
-                } else if(receivedMessage.senderID() > 1) {
-                    uint32_t TTL = receivedMessage.senderID()-1;
+                } else if(receivedMessage.senderID() == msgBuffer.getSenderID(receivedMessage)) {
                     std::set<uint32_t> neighborsSubset;
                     while(neighborsSubset.size() <  std::min(AdaptiveDiffusion::Eta, neighbors_.size())) {
                         uint32_t neighbor = PRNG.GenerateWord32(0, neighbors_.size()-1);
                         neighborsSubset.insert(neighbors_[neighbor]);
                     }
                     for(uint32_t neighbor : neighbors_) {
-                        OutgoingMessage adForward(neighbor, AdaptiveDiffusionMessage, TTL, receivedMessage.body());
+                        OutgoingMessage adForward(neighbor, AdaptiveDiffusionMessage, nodeID_, receivedMessage.body());
                         outboxThreePP_.push(std::move(adForward));
                     }
                 }
@@ -86,29 +84,32 @@ void MessageHandler::run() {
                 break;
             }
             case FloodAndPrune: {
+                //std::cout << "Received Flood and Prune Message" << std::endl;
                 if(!msgBuffer.contains(receivedMessage)) {
                     // Add the message to the message buffer
                     msgBuffer.insert(receivedMessage);
 
                     // flood the message
-                    OutgoingMessage floodMessage(BROADCAST, FloodAndPrune, nodeID_, receivedMessage.connectionID(),
+                    OutgoingMessage floodMessage(BROADCAST, FloodAndPrune, nodeID_,
                                                  receivedMessage.body());
                     outboxThreePP_.push(std::move(floodMessage));
 
                     // pass the received message to the upper layer
-                    if(receivedMessage.senderID() != SELF)
+                    //if(receivedMessage.senderID() != SELF)
                         outboxFinal_.push(std::move(receivedMessage.body()));
                 } else if(msgBuffer.getType(receivedMessage) != FloodAndPrune) {
                     // only updates the message type
                     msgBuffer.insert(receivedMessage);
 
                     // flood the message
-                    OutgoingMessage floodMessage(BROADCAST, FloodAndPrune, nodeID_, receivedMessage.connectionID(),
+                    OutgoingMessage floodMessage(BROADCAST, FloodAndPrune, nodeID_,
                                                  receivedMessage.body());
                     outboxThreePP_.push(std::move(floodMessage));
                 }
                 break;
             }
+            case TerminateMessage:
+                return;
             default:
                 std::cout << "Unknown message type received: " << (int) receivedMessage.msgType() << std::endl;
         }

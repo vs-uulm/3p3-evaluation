@@ -7,17 +7,19 @@
 #include <cryptopp/drbg.h>
 #include <cryptopp/modes.h>
 #include <iostream>
+#include <fstream>
 #include <iomanip>
 #include <set>
 #include <thread>
 #include <string>
 #include <sstream>
+#include <boost/tokenizer.hpp>
 
 const CryptoPP::ECPPoint G(CryptoPP::Integer("362dc3caf8a0e8afd06f454a6da0cdce6e539bc3f15e79a15af8aa842d7e3ec2h"),
-                            CryptoPP::Integer("b9f8addb295b0fd4d7c49a686eac7b34a9a11ed2d6d243ad065282dc13bce575h"));
+                           CryptoPP::Integer("b9f8addb295b0fd4d7c49a686eac7b34a9a11ed2d6d243ad065282dc13bce575h"));
 
 const CryptoPP::ECPPoint H(CryptoPP::Integer("a3cf0a4b6e1d9146c73e9a82e4bfdc37ee1587bc2bf3b0c19cb159ae362e38beh"),
-                            CryptoPP::Integer("db4369fabd3d770dd4c19d81ac69a1749963d69c687d7c4e12d186548b94cb2ah"));
+                           CryptoPP::Integer("db4369fabd3d770dd4c19d81ac69a1749963d69c687d7c4e12d186548b94cb2ah"));
 
 std::mutex mut;
 
@@ -31,6 +33,33 @@ int main() {
     CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> ec_group;
     ec_group.Initialize(CryptoPP::ASN1::secp256k1());
 
+    std::string data("RandomGraph.csv");
+
+    std::ifstream in(data.c_str());
+    if (!in.is_open()) {
+        std::cerr << "Error: could not open file" << std::endl;
+        return 1;
+    }
+
+    //std::vector<std::string> vec;
+    std::vector<std::vector<uint32_t>> graph;
+    graph.reserve(100);
+
+    std::string line;
+    for(uint32_t i = 0; i < 100; i++) {
+        if(!getline(in, line))
+            break;
+
+        boost::tokenizer<boost::escaped_list_separator<char>> tokenizer(line);
+        std::vector<uint32_t> neighbors;
+        for(auto it = tokenizer.begin(); it != tokenizer.end(); it++) {
+            if(it != tokenizer.begin())
+                neighbors.push_back(std::atoi((*it).c_str()));
+        }
+        graph.push_back(neighbors);
+    }
+    std::cout << "Finished" << std::endl;
+    /*
     for(;;) {
         CryptoPP::Integer d(PRNG, CryptoPP::Integer::One(), ec_group.GetMaxExponent());
         CryptoPP::Integer r(PRNG, CryptoPP::Integer::One(), ec_group.GetMaxExponent());
@@ -103,6 +132,6 @@ int main() {
         if ((CC_.x != r_G.x) || (CC_.y != r_G.y))
             break;
     }
-
+    */
     return 0;
 }

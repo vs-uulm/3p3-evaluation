@@ -46,7 +46,10 @@ enum MessageType {
 
     // Evaluation
     DCLoggingMessage,
-    FairnessLoggingMessage
+    FairnessLoggingMessage,
+
+    // Control Mesage
+    TerminateMessage
 };
 
 #endif //THREEPP_MESSAGETYPE_H

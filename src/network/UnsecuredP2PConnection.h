@@ -21,7 +21,7 @@ public:
 
     void disconnect();
 
-    void send_msg(NetworkMessage msg);
+    //void send_msg(NetworkMessage msg);
 
     void send(NetworkMessage msg);
 

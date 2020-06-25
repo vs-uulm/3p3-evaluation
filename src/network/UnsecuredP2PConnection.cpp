@@ -1,4 +1,5 @@
 #include "UnsecuredP2PConnection.h"
+#include "../datastruct/MessageType.h"
 
 #include <iostream>
 #include <boost/bind.hpp>
@@ -26,10 +27,10 @@ void UnsecuredP2PConnection::disconnect() {
     if (socket_.is_open()) {
         boost::system::error_code ec;
         try {
-            socket_.shutdown(boost::asio::socket_base::shutdown_both);
             socket_.close(ec);
         } catch (std::exception &e) {
             std::cerr << "Could not properly shut down the connection" << std::endl;
+            std::cerr << e.what() << std::endl;
         }
         is_open_ = false;
     }
@@ -49,6 +50,7 @@ void UnsecuredP2PConnection::read() {
                                                             [this, received_msg](const boost::system::error_code &error,
                                                                                  size_t) {
                                                                 if (!error) {
+                                                                    received_msg->timestamp(std::chrono::system_clock::now());
                                                                     inbox_.push(std::move(*received_msg));
                                                                     read();
                                                                 } else if (error == boost::asio::error::eof

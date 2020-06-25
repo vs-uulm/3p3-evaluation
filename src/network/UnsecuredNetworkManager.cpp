@@ -59,7 +59,7 @@ int UnsecuredNetworkManager::sendMessage(OutgoingMessage msg) {
     if(msg.receiverID() == BROADCAST) {
         for (auto& connection : connections_) {
             if (connection.second->is_open()) {
-                connection.second->send(std::move(msg));
+                connection.second->send(msg);
             }
         }
     } else if(msg.receiverID() == SELF) {
@@ -104,5 +104,6 @@ void UnsecuredNetworkManager::storeConnection(std::shared_ptr<UnsecuredP2PConnec
 void UnsecuredNetworkManager::terminate() {
     for(auto& connection : connections_)
         connection.second->disconnect();
-    centralInstance_->disconnect();
+    if(centralInstance_)
+        centralInstance_->disconnect();
 }

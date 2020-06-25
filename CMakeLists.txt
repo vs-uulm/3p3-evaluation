@@ -154,7 +154,7 @@ target_link_libraries(
 
 add_executable(
         floodAndPrune
-        src/test/FloodAndPruneTest.cpp
+        src/evaluation/FloodAndPruneMonitoring.cpp
         src/network/Node.cpp
         src/network/P2PConnection.cpp
         src/datastruct/OutgoingMessage.cpp
@@ -168,6 +168,8 @@ add_executable(
         src/ad/AdaptiveDiffusion.cpp
         src/network/UnsecuredP2PConnection.cpp
         src/network/UnsecuredNetworkManager.cpp
+        src/ad/VirtualSource.cpp
+        src/ad/AdaptiveDiffusion.cpp
 )
 
 target_link_libraries(
@@ -181,7 +183,7 @@ target_link_libraries(
 
 add_executable(
         adaptiveDiffusion
-        src/test/AdaptiveDiffusionTest.cpp
+        src/evaluation/AdaptiveDiffusionMonitoring.cpp
         src/network/Node.cpp
         src/network/P2PConnection.cpp
         src/datastruct/OutgoingMessage.cpp

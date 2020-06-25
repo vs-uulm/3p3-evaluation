@@ -88,30 +88,30 @@ int main(int argc, char** argv) {
     std::stringstream fileName1;
     fileName1 << "/home/threePP/Log_";
     fileName1 << months[timeStamp->tm_mon];
-    fileName1 << timeStamp->tm_mday << "__";
-    fileName1 << timeStamp->tm_hour << "_";
-    fileName1 << timeStamp->tm_min << "_";
-    fileName1 << timeStamp->tm_sec << "_";
+    fileName1 << std::setw(2) << std::setfill('0') << timeStamp->tm_mday << "__";
+    fileName1 << std::setw(2) << std::setfill('0') << timeStamp->tm_hour << "_";
+    fileName1 << std::setw(2) << std::setfill('0') << timeStamp->tm_min << "_";
+    fileName1 << std::setw(2) << std::setfill('0') << timeStamp->tm_sec << "_";
     fileName1 << INSTANCES << "Nodes_";
     fileName1 << "Round1" << ".csv";
 
     std::stringstream fileName2;
     fileName2 << "/home/threePP/Log_";
     fileName2 << months[timeStamp->tm_mon];
-    fileName2 << timeStamp->tm_mday << "__";
-    fileName2 << timeStamp->tm_hour << "_";
-    fileName2 << timeStamp->tm_min << "_";
-    fileName2 << timeStamp->tm_sec << "_";
+    fileName2 << std::setw(2) << std::setfill('0') << timeStamp->tm_mday << "__";
+    fileName2 << std::setw(2) << std::setfill('0') << timeStamp->tm_hour << "_";
+    fileName2 << std::setw(2) << std::setfill('0') << timeStamp->tm_min << "_";
+    fileName2 << std::setw(2) << std::setfill('0') << timeStamp->tm_sec << "_";
     fileName2 << INSTANCES << "Nodes_";
     fileName2 << "Round2.csv";
 
     std::stringstream fileName3;
     fileName3 << "/home/threePP/Log_";
     fileName3 << months[timeStamp->tm_mon];
-    fileName3 << timeStamp->tm_mday << "__";
-    fileName3 << timeStamp->tm_hour << "_";
-    fileName3 << timeStamp->tm_min << "_";
-    fileName3 << timeStamp->tm_sec << "_";
+    fileName3 << std::setw(2) << std::setfill('0') << timeStamp->tm_mday << "__";
+    fileName3 << std::setw(2) << std::setfill('0') << timeStamp->tm_hour << "_";
+    fileName3 << std::setw(2) << std::setfill('0') << timeStamp->tm_min << "_";
+    fileName3 << std::setw(2) << std::setfill('0') << timeStamp->tm_sec << "_";
     fileName3 << INSTANCES << "Nodes_";
     fileName3 << "ProofOfFairness.csv";
 

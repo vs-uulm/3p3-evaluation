@@ -27,8 +27,6 @@ private:
 
     uint16_t h;
 
-    uint32_t numForwards;
-
     uint32_t nodeID_;
 
     std::vector<uint8_t> message_;

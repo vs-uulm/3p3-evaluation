@@ -16,6 +16,8 @@ class NetworkMessage {
 public:
     NetworkMessage();
 
+    NetworkMessage(uint8_t msgType);
+
     NetworkMessage(uint8_t msgType, uint32_t senderID);
 
     NetworkMessage(uint8_t msgType, uint32_t senderID, std::vector<uint8_t> body);

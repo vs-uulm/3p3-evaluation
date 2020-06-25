@@ -3,6 +3,10 @@
 
 NetworkMessage::NetworkMessage() : header_{0} {}
 
+NetworkMessage::NetworkMessage(uint8_t msgType) : header_{0} {
+    header_[0] = msgType;
+}
+
 NetworkMessage::NetworkMessage(uint8_t msgType, uint32_t senderID) : header_{0} {
     header_[0] = msgType;
 

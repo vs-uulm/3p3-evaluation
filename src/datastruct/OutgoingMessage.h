@@ -11,17 +11,12 @@ public:
 
     OutgoingMessage(uint32_t receiverID, uint8_t msg_type, uint32_t senderID, std::vector<uint8_t> body);
 
-    // forwarded BROADCAST message
-    OutgoingMessage(uint32_t receiverID, uint8_t msg_type, uint32_t senderID, uint32_t receivedFrom, std::vector<uint8_t> body);
-
     uint32_t receiverID();
 
-    uint32_t receivedFrom();
+    uint8_t msgType();
 
 private:
     uint32_t receiverID_;
-
-    uint32_t receivedFrom_;
 };
 
 

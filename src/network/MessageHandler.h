@@ -13,7 +13,7 @@ public:
     MessageHandler(uint32_t nodeID, std::vector<uint32_t>& neighbors,
             MessageQueue<ReceivedMessage>& inboxThreePP, MessageQueue<ReceivedMessage>& inboxDCNet,
             MessageQueue<OutgoingMessage>& outboxThreePP, MessageQueue<std::vector<uint8_t>>& outboxFinal,
-            uint32_t propagationDelay = 150, uint32_t msgBufferSize = 128);
+            uint32_t propagationDelay = 100, uint32_t msgBufferSize = 128);
 
     void run();
 

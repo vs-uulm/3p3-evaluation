@@ -19,6 +19,8 @@ public:
 
     uint8_t getType(ReceivedMessage& msg);
 
+    uint32_t getSenderID(ReceivedMessage& msg);
+
     ReceivedMessage getMessage(std::string& msgHash);
 
 private:

@@ -73,6 +73,7 @@ void P2PConnection::read() {
                                                             [this, received_msg](const boost::system::error_code &error,
                                                                         size_t) {
                                                                 if (!error) {
+                                                                    received_msg->timestamp(std::chrono::system_clock::now());
                                                                     inbox_.push(std::move(*received_msg));
                                                                     read();
                                                                 } else if (error == boost::asio::error::eof || error == boost::asio::error::operation_aborted) {

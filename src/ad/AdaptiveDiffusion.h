@@ -14,6 +14,7 @@ namespace AdaptiveDiffusion {
 
     size_t maxRemainingSteps(uint16_t s);
 
+    extern bool floodAndPrune;
     extern size_t Eta;
     extern size_t maxDepth;
     extern size_t RTT;

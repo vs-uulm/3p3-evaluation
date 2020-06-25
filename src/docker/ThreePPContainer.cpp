@@ -187,7 +187,7 @@ int main(int argc, char **argv) {
     }
 
     // Terminate after all messages have been received
-    while(outboxFinal.size() < 2 * iterations) {
+    while(outboxFinal.size() < numSenders * iterations) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
     std::this_thread::sleep_for(std::chrono::seconds(1));

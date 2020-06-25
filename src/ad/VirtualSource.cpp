@@ -10,7 +10,7 @@
 
 VirtualSource::VirtualSource(uint32_t nodeID, std::vector<uint32_t>& neighbors,
         MessageQueue<OutgoingMessage>& outboxThreePP, MessageQueue<ReceivedMessage>& inboxThreePP, std::vector<uint8_t> message)
-: s(0), h(0), numForwards(0), nodeID_(nodeID), message_(message), outboxThreePP_(outboxThreePP), inboxThreePP_(inboxThreePP),
+: s(0), h(0), nodeID_(nodeID), message_(message), outboxThreePP_(outboxThreePP), inboxThreePP_(inboxThreePP),
   randomEngine_(std::random_device()()), uniformDistribution_(0, 1) {
     // select a random subset of neighbors
     while(neighbors_.size() < std::min(AdaptiveDiffusion::Eta, neighbors.size())) {
@@ -22,7 +22,7 @@ VirtualSource::VirtualSource(uint32_t nodeID, std::vector<uint32_t>& neighbors,
 VirtualSource::VirtualSource(uint32_t nodeID, std::vector<uint32_t>& neighbors,
         MessageQueue<OutgoingMessage>& outboxThreePP, MessageQueue<ReceivedMessage>& inboxThreePP, std::vector<uint8_t> message,
         ReceivedMessage VSToken)
-: numForwards(0), nodeID_(nodeID), message_(message), outboxThreePP_(outboxThreePP), inboxThreePP_(inboxThreePP),
+: nodeID_(nodeID), message_(message), outboxThreePP_(outboxThreePP), inboxThreePP_(inboxThreePP),
   randomEngine_(std::random_device()()), uniformDistribution_(0, 1) {
 
     // select a random subset of neighbors
@@ -38,11 +38,9 @@ VirtualSource::VirtualSource(uint32_t nodeID, std::vector<uint32_t>& neighbors,
 
 void VirtualSource::spreadMessage() {
     for(uint32_t neighbor : neighbors_) {
-        // use the senderID header field as TTL field
-        OutgoingMessage adForward(neighbor, AdaptiveDiffusionMessage, numForwards+1, message_);
+        OutgoingMessage adForward(neighbor, AdaptiveDiffusionMessage, nodeID_, message_);
         outboxThreePP_.push(std::move(adForward));
     }
-    numForwards++;
 }
 
 void VirtualSource::executeTask() {
@@ -62,7 +60,6 @@ void VirtualSource::executeTask() {
             uint32_t r = PRNG.GenerateWord32(0, neighbors_.size()-1);
             uint32_t v_next = *std::next(neighbors_.begin(), r);
             std::vector<uint8_t> VSToken = AdaptiveDiffusion::generateVSToken(s, h, message_);
-
             OutgoingMessage vsForward(v_next, VirtualSourceToken, nodeID_, std::move(VSToken));
             outboxThreePP_.push(std::move(vsForward));
             break;
@@ -70,16 +67,18 @@ void VirtualSource::executeTask() {
     }
 
     // if the maximum depth has been reached, the flood and prune protocol is initiated
-    if(s >= AdaptiveDiffusion::maxDepth) {
-        ReceivedMessage floodMessage(SELF, FloodAndPrune, nodeID_, std::move(message_));
-        inboxThreePP_.push(std::move(floodMessage));
-    } else {
-        // otherwise: sleep until the maximum number of steps has been reached
-        // and inject the message in the own inbox
-        size_t maxTime = AdaptiveDiffusion::RTT * AdaptiveDiffusion::maxRemainingSteps(s);
-        std::this_thread::sleep_for(std::chrono::milliseconds(maxTime));
+    if(AdaptiveDiffusion::floodAndPrune) {
+        if (s >= AdaptiveDiffusion::maxDepth) {
+            ReceivedMessage floodMessage(SELF, FloodAndPrune, nodeID_, std::move(message_));
+            inboxThreePP_.push(std::move(floodMessage));
+        } else {
+            // otherwise: sleep until the maximum number of steps has been reached
+            // and inject the message in the own inbox
+            size_t maxTime = AdaptiveDiffusion::RTT * AdaptiveDiffusion::maxRemainingSteps(s);
+            std::this_thread::sleep_for(std::chrono::milliseconds(maxTime));
 
-        ReceivedMessage floodMessage(SELF, FloodAndPrune, nodeID_, std::move(message_));
-        inboxThreePP_.push(std::move(floodMessage));
+            ReceivedMessage floodMessage(SELF, FloodAndPrune, nodeID_, std::move(message_));
+            inboxThreePP_.push(std::move(floodMessage));
+        }
     }
 }

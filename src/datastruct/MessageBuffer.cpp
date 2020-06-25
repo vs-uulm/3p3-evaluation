@@ -42,6 +42,16 @@ uint8_t MessageBuffer::getType(ReceivedMessage& msg) {
     return 0xFF;
 }
 
+uint32_t MessageBuffer::getSenderID(ReceivedMessage &msg) {
+    std::string msgHash = utils::sha256(msg.body());
+
+    auto position = indexBuffer_.find(msgHash);
+    if(position != indexBuffer_.end())
+        return position->second.senderID();
+
+    return 0xFFFFFFFB;
+}
+
 ReceivedMessage MessageBuffer::getMessage(std::string& msgHash) {
     return indexBuffer_[msgHash];
 }
