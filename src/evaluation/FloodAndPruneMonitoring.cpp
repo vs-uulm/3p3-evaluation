@@ -1,6 +1,7 @@
 #include <cstdint>
 #include <thread>
 #include <list>
+#include <iomanip>
 #include <iostream>
 #include <fstream>
 #include <cryptopp/oids.h>
@@ -12,10 +13,8 @@
 #include "../dc/DCNetwork.h"
 #include "../datastruct/MessageType.h"
 #include "../utils/Utils.h"
-#include "../ad/VirtualSource.h"
 #include "../network/UnsecuredNetworkManager.h"
 
-std::mutex cout_mutex;
 std::mutex logging_mutex;
 
 const uint32_t INSTANCES = 100;
@@ -26,7 +25,7 @@ std::unordered_map<std::string, std::chrono::system_clock::time_point> startTime
 std::unordered_map<std::string, std::vector<double>> sharedArrivalTimes;
 
 std::vector<std::vector<uint32_t>> getTopology() {
-    std::string file("/home/threePP/three-phase-protocol-implementation/sample_topologies/Graph_100Nodes_8Degree.csv");
+    std::string file("/home/ubuntu/three-phase-protocol-implementation/sample_topologies/Graph_100Nodes_8Degree.csv");
 
     std::ifstream in(file.c_str());
     if (!in.is_open()) {
@@ -123,7 +122,7 @@ void instance(int ID) {
         }
     });
 
-    uint32_t iterations = 50;
+    uint32_t iterations = 5;
     if (nodeID_ == 0) {
         for (uint32_t i = 0; i < iterations; i++) {
             std::thread floodThread([&]() {
@@ -155,12 +154,12 @@ void instance(int ID) {
             floodThread.detach();
             std::cout << std::dec << i+1 << ". message submitted" << std::endl;
             if(i < iterations-1)
-                std::this_thread::sleep_for(std::chrono::seconds(5));
+                std::this_thread::sleep_for(std::chrono::seconds(2));
         }
     }
 
     if(nodeID_ != 0)
-        std::this_thread::sleep_for(std::chrono::seconds(5 * iterations));
+        std::this_thread::sleep_for(std::chrono::seconds(2 * iterations));
 
     for (auto t : arrivalTimes) {
         std::lock_guard<std::mutex> lock(logging_mutex);
@@ -208,7 +207,7 @@ int main() {
     tm* timeStamp = localtime(&now);
     std::string months[12] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
     std::stringstream fileName;
-    fileName << "/home/threePP/evaluation/FAPLog_";
+    fileName << "/home/ubuntu/evaluation/FAPLog_";
     fileName << months[timeStamp->tm_mon];
     fileName << std::setw(2) << std::setfill('0') << timeStamp->tm_mday << "__";
     fileName << std::setw(2) << std::setfill('0') << timeStamp->tm_hour << "_";
@@ -219,21 +218,17 @@ int main() {
     logFile.open(fileName.str());
 
     for (uint32_t i = 0; i < INSTANCES; i++) {
-        logFile << "Node " << i;
-        if (i < INSTANCES - 1)
-            logFile << ",";
-        else
-            logFile << std::endl;
+        logFile << "Node " << i << ",";
     }
+    logFile << ",Max Delay" << std::endl;
 
     for (auto &t : sharedArrivalTimes) {
+        double maxDelay = 0;
         for (uint32_t i = 0; i < INSTANCES; i++) {
-            logFile << t.second[i];
-            if (i < INSTANCES - 1)
-                logFile << ",";
-            else
-                logFile << std::endl;
+            maxDelay = t.second[i] > maxDelay ? t.second[i] : maxDelay;
+            logFile << t.second[i] << ",";
         }
+        logFile << "," << maxDelay << std::endl;
     }
     logFile.close();
 

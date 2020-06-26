@@ -33,17 +33,14 @@ int UnsecuredNetworkManager::addNeighbor(const Node &node) {
 
     auto connection = std::make_shared<UnsecuredP2PConnection>(connectionID, io_context_, inbox_);
 
-    for(int retryCount = 3; retryCount > 0; retryCount--) {
+    for(int retryCount = 5; retryCount > 0; retryCount--) {
         if (connection->connect(node.ip_address(), node.port()) == 0) {
 
             storeConnection(connection);
             storeNeighbor(connectionID);
             return connectionID;
         }
-        std::cout << "ConnectionID" << connectionID << std::endl;
-        std::cout << "IP: " << node.ip_address().to_string() << " , Port: " << node.port() << std::endl;
-        std::cout << "Connection refused: retrying after 500 milliseconds" << std::endl;
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
     return -1;

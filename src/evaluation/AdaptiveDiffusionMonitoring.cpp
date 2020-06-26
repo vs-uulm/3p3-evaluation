@@ -1,6 +1,7 @@
 #include <cstdint>
 #include <thread>
 #include <list>
+#include <iomanip>
 #include <iostream>
 #include <fstream>
 #include <cryptopp/oids.h>
@@ -15,7 +16,6 @@
 #include "../ad/VirtualSource.h"
 #include "../network/UnsecuredNetworkManager.h"
 
-std::mutex cout_mutex;
 std::mutex logging_mutex;
 
 const uint32_t INSTANCES = 100;
@@ -26,7 +26,7 @@ std::unordered_map<std::string, std::chrono::system_clock::time_point> startTime
 std::unordered_map<std::string, std::vector<double>> sharedArrivalTimes;
 
 std::vector<std::vector<uint32_t>> getTopology() {
-    std::string file("/home/threePP/three-phase-protocol-implementation/sample_topologies/Graph_100Nodes_8Degree.csv");
+    std::string file("/home/ubuntu/three-phase-protocol-implementation/sample_topologies/Graph_100Nodes_8Degree.csv");
 
     std::ifstream in(file.c_str());
     if (!in.is_open()) {
@@ -125,7 +125,7 @@ void instance(int ID) {
         }
     });
 
-    uint32_t iterations = 50;
+    uint32_t iterations = 5;
     if (nodeID_ == 0) {
         for (uint32_t i = 0; i < iterations; i++) {
             std::thread virtualSourceThread([&]() {
@@ -214,7 +214,7 @@ int main() {
     tm* timeStamp = localtime(&now);
     std::string months[12] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
     std::stringstream fileName;
-    fileName << "/home/threePP/evaluation/ADLog_";
+    fileName << "/home/ubuntu/evaluation/ADLog_";
     fileName << months[timeStamp->tm_mon];
     fileName << std::setw(2) << std::setfill('0') << timeStamp->tm_mday << "__";
     fileName << std::setw(2) << std::setfill('0') << timeStamp->tm_hour << "_";
@@ -225,21 +225,25 @@ int main() {
     logFile.open(fileName.str());
 
     for (uint32_t i = 0; i < INSTANCES; i++) {
-        logFile << "Node " << i;
-        if (i < INSTANCES - 1)
-            logFile << ",";
-        else
-            logFile << std::endl;
+        logFile << "Node " << i << ",";
     }
+    logFile << ",Max Delay,Coverage" << std::endl;
 
     for (auto &t : sharedArrivalTimes) {
+        uint32_t nodesReached = 0;
+        double maxDelay = 0;
         for (uint32_t i = 0; i < INSTANCES; i++) {
-            logFile << t.second[i];
-            if (i < INSTANCES - 1)
-                logFile << ",";
-            else
-                logFile << std::endl;
+            // check how many nodes have been reached
+            if(t.second[i] > 0)
+                nodesReached++;
+            // calculate the max delay
+            maxDelay = t.second[i] > maxDelay ? t.second[i] : maxDelay;
+
+            logFile << t.second[i] << ",";
         }
+        double coverage = nodesReached / static_cast<double>(INSTANCES);
+        logFile << "," << maxDelay << "," << coverage << std::endl;
+
     }
     logFile.close();
 

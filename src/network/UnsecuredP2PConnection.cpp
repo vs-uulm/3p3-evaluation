@@ -50,11 +50,13 @@ void UnsecuredP2PConnection::read() {
                                                             [this, received_msg](const boost::system::error_code &error,
                                                                                  size_t) {
                                                                 if (!error) {
-                                                                    received_msg->timestamp(std::chrono::system_clock::now());
+                                                                    received_msg->timestamp(
+                                                                            std::chrono::system_clock::now());
                                                                     inbox_.push(std::move(*received_msg));
                                                                     read();
                                                                 } else if (error == boost::asio::error::eof
-                                                                    || error == boost::asio::error::operation_aborted) {
+                                                                           || error ==
+                                                                              boost::asio::error::operation_aborted) {
                                                                     return;
                                                                 } else {
                                                                     std::cerr << "Error: " << error.message()
@@ -67,7 +69,7 @@ void UnsecuredP2PConnection::read() {
                                 } else {
                                     std::cerr << "Error: " << error.message() << std::endl;
                                 }
-    });
+                            });
 }
 
 void UnsecuredP2PConnection::send(NetworkMessage msg) {
@@ -84,7 +86,7 @@ void UnsecuredP2PConnection::async_send(bool handler) {
         if (outbox_.empty()) {
             sending_ = false;
             return;
-        } else if(!sending_) {
+        } else if (!sending_) {
             sending_ = true;
         }
     }
@@ -96,10 +98,14 @@ void UnsecuredP2PConnection::async_send(bool handler) {
     boost::asio::async_write(socket_,
                              combined,
                              [this](const boost::system::error_code &error, size_t) {
-                                 if (error) {
+                                 if (!error) {
+                                     async_send(true);
+                                 } else if (error == boost::asio::error::eof
+                                            || error == boost::asio::error::operation_aborted) {
+                                     return;
+                                 } else {
                                      std::cout << "Write error" << std::endl;
                                  }
-                                 async_send(true);
                              });
 }
 
