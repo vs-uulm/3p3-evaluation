@@ -78,9 +78,7 @@ std::unique_ptr<DCState> UnsecuredFinalRound::executeTask() {
     elapsed = finish - start;
     runtimes.push_back(elapsed.count());
     start = std::chrono::high_resolution_clock::now();
-
     UnsecuredFinalRound::resultComputation();
-
     // Logging
     if (DCNetwork_.logging()) {
         auto finish = std::chrono::high_resolution_clock::now();
@@ -125,6 +123,7 @@ std::unique_ptr<DCState> UnsecuredFinalRound::executeTask() {
         bool valid = CRC32_.Verify(slot.data());
         if(!valid) {
             // Switch to the secured version
+            std::cerr << "Test" << std::endl;
             return std::make_unique<SecuredInitialRound>(DCNetwork_);
         }
     }
@@ -135,8 +134,7 @@ std::unique_ptr<DCState> UnsecuredFinalRound::executeTask() {
         OutgoingMessage finalMessage(SELF, FinalDCMessage, SELF, std::move(message));
         DCNetwork_.outbox().push(std::move(finalMessage));
     }
-
-    std::this_thread::sleep_for(std::chrono::seconds(1));
+    std::this_thread::sleep_for(std::chrono::seconds(DCNetwork_.interval()));
     return std::make_unique<UnsecuredInitialRound>(DCNetwork_);
 }
 

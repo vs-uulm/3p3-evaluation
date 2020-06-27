@@ -12,7 +12,8 @@
 #include "../utils/Utils.h"
 
 SecuredInitialRound::SecuredInitialRound(DCNetwork &DCNet)
-        : DCNetwork_(DCNet), k_(DCNetwork_.k()), numSlices_(std::ceil((8 + 33 * k_) / 31.0)), delayedVerification(true) {
+        : DCNetwork_(DCNet), k_(DCNetwork_.k()), numSlices_(std::ceil((8 + 33 * k_) / 31.0)), slotIndex_(-1),
+        delayedVerification_(true) {
     curve_.Initialize(CryptoPP::ASN1::secp256k1());
 
     // determine the index of the own nodeID in the ordered member list
@@ -38,11 +39,11 @@ std::unique_ptr<DCState> SecuredInitialRound::executeTask() {
     std::vector<CryptoPP::Integer> messageSlices;
 
     std::vector<CryptoPP::Integer> seedPrivateKeys;
-    int slotIndex = -1;
+
     if (l > 0) {
         std::vector<uint8_t> messageSlot(slotSize);
         uint16_t r = PRNG.GenerateWord32(0, USHRT_MAX);
-        slotIndex = PRNG.GenerateWord32(0, 2 * k_ - 1);
+        slotIndex_ = PRNG.GenerateWord32(0, 2 * k_ - 1);
 
         // set the values in Big Endian format
         messageSlot[4] = static_cast<uint8_t>((r & 0xFF00) >> 8);
@@ -84,7 +85,7 @@ std::unique_ptr<DCState> SecuredInitialRound::executeTask() {
         shares[slot][k_ - 1].reserve(numSlices_);
         // initialize the slices of the k-th share with zeroes
         // except the slices of the own message slot
-        if (static_cast<uint32_t>(slotIndex) == slot) {
+        if (static_cast<uint32_t>(slotIndex_) == slot) {
             for (uint32_t slice = 0; slice < numSlices_; slice++)
                 shares[slot][k_ - 1].push_back(messageSlices[slice]);
         } else {
@@ -183,7 +184,7 @@ std::unique_ptr<DCState> SecuredInitialRound::executeTask() {
             if(!valid) {
                 invalidCRCs++;
             } else {
-                if (static_cast<uint32_t>(slotIndex) == slot)
+                if (static_cast<uint32_t>(slotIndex_) == slot)
                     finalSlotIndex = slots.size();
 
                 //decrypt and extract the own seed for the each slot
@@ -207,7 +208,7 @@ std::unique_ptr<DCState> SecuredInitialRound::executeTask() {
     if(invalidCRCs > k_) {
         std::cout << "More than k invalid CRCs detected." << std::endl;
         std::cout << "Switching to Proof of Fairness Protocol" << std::endl;
-        return std::make_unique<FairnessProtocol>(DCNetwork_, numSlices_, slotIndex, std::move(rValues_),
+        return std::make_unique<FairnessProtocol>(DCNetwork_, numSlices_, slotIndex_, std::move(rValues_),
                                                   std::move(commitments_));
     }
 
@@ -241,7 +242,7 @@ std::unique_ptr<DCState> SecuredInitialRound::executeTask() {
 
     // for benchmarks only
     if(DCNetwork_.securityLevel() == ProofOfFairness)
-        return std::make_unique<FairnessProtocol>(DCNetwork_, numSlices_, slotIndex, std::move(rValues_),
+        return std::make_unique<FairnessProtocol>(DCNetwork_, numSlices_, slotIndex_, std::move(rValues_),
                                                  std::move(commitments_));
 
     // if no member wants to send a message, return to the Ready state
@@ -268,7 +269,7 @@ void SecuredInitialRound::sharingPartOne(std::vector<std::vector<std::vector<Cry
     uint32_t currentSlot = 0;
     for (uint32_t t = 0; t < DCNetwork_.numThreads(); t++) {
         std::thread commitThread([&]() {
-            CryptoPP::OFB_Mode<CryptoPP::AES>::Encryption DRNG;
+            CryptoPP::AutoSeededRandomPool PRNG;
             CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> threadCurve;
             threadCurve.Initialize(CryptoPP::ASN1::secp256k1());
 
@@ -284,11 +285,6 @@ void SecuredInitialRound::sharingPartOne(std::vector<std::vector<std::vector<Cry
                     }
 
                 }
-                uint8_t key[16];
-                uint8_t iv[16];
-                PRNG.GenerateBlock(key, 16);
-                PRNG.GenerateBlock(iv, 16);
-                DRNG.SetKeyWithIV(key, 16, iv, 16);
 
                 rValues_[slot].resize(k_);
                 R[slot].reserve(numSlices_);
@@ -304,19 +300,25 @@ void SecuredInitialRound::sharingPartOne(std::vector<std::vector<std::vector<Cry
                     commitmentCube[slot][share].reserve(numSlices_);
 
                     for (uint32_t slice = 0; slice < numSlices_; slice++, offset += encodedPointSize) {
-                        // generate the random value r for this slice of the share
-                        CryptoPP::Integer r(DRNG, CryptoPP::Integer::One(), threadCurve.GetMaxExponent());
-                        rValues_[slot][share].push_back(std::move(r));
 
-                        if (share == nodeIndex_)
+                        if(DCNetwork_.preparedCommitments().size() > 0 && (slot != slotIndex_)) {
+                            // use the prepared values
+                            rValues_[slot][share].push_back(DCNetwork_.preparedCommitments()[slot][share][slice].first);
+                            commitmentCube[slot][share].push_back(DCNetwork_.preparedCommitments()[slot][share][slice].second);
+                        } else {
+                            CryptoPP::Integer r(PRNG, CryptoPP::Integer::One(), threadCurve.GetMaxExponent());
+                            rValues_[slot][share].push_back(std::move(r));
+
+                            CryptoPP::ECPPoint rG = threadCurve.GetCurve().Multiply(rValues_[slot][share][slice], G);
+                            CryptoPP::ECPPoint sH = threadCurve.GetCurve().Multiply(shares[slot][share][slice], H);
+                            CryptoPP::ECPPoint commitment = threadCurve.GetCurve().Add(rG, sH);
+
+                            // store the commitment
+                            commitmentCube[slot][share].push_back(std::move(commitment));
+                        }
+                        // add the rValue for the own share to the sum of rValues
+                        if(share == nodeIndex_)
                             R[slot].push_back(rValues_[slot][nodeIndex_][slice]);
-
-                        CryptoPP::ECPPoint rG = threadCurve.GetCurve().Multiply(rValues_[slot][share][slice], G);
-                        CryptoPP::ECPPoint sH = threadCurve.GetCurve().Multiply(shares[slot][share][slice], H);
-                        CryptoPP::ECPPoint commitment = threadCurve.GetCurve().Add(rG, sH);
-
-                        // store the commitment
-                        commitmentCube[slot][share].push_back(std::move(commitment));
 
                         // compress the commitment and store in the given position in the vector
                         threadCurve.GetCurve().EncodePoint(&encodedCommitments[offset],
@@ -453,7 +455,7 @@ void SecuredInitialRound::sharingPartOne(std::vector<std::vector<std::vector<Cry
 }
 
 int SecuredInitialRound::sharingPartTwo() {
-    if(delayedVerification) {
+    if(delayedVerification_) {
         rs_.reserve(k_-1);
         for (auto member = DCNetwork_.members().begin(); member != DCNetwork_.members().end(); member++) {
             if (member->first != DCNetwork_.nodeID()) {
@@ -491,7 +493,7 @@ int SecuredInitialRound::sharingPartTwo() {
                         CryptoPP::Integer r(&sharingMessage.body()[offset], 32);
                         CryptoPP::Integer s(&sharingMessage.body()[offset + 32], 32);
 
-                        if(delayedVerification) {
+                        if(delayedVerification_) {
                             rs_[sharingMessage.senderID()][slot].push_back(std::pair(r,s));
                         } else {
                             // verify that the corresponding commitment is valid
@@ -588,7 +590,7 @@ int SecuredInitialRound::sharingPartTwo() {
 }
 
 std::vector<std::vector<uint8_t>> SecuredInitialRound::resultComputation() {
-    if(delayedVerification) {
+    if(delayedVerification_) {
         RS_.reserve(k_-1);
         for (auto member = DCNetwork_.members().begin(); member != DCNetwork_.members().end(); member++) {
             if (member->first != DCNetwork_.nodeID()) {
@@ -629,7 +631,7 @@ std::vector<std::vector<uint8_t>> SecuredInitialRound::resultComputation() {
                         CryptoPP::Integer R_(&rsBroadcast.body()[offset], 32);
                         CryptoPP::Integer S_(&rsBroadcast.body()[offset + 32], 32);
 
-                        if(delayedVerification) {
+                        if(delayedVerification_) {
                             RS_[rsBroadcast.senderID()][slot].push_back(std::pair(R_,S_));
                         } else {
                             // validate r and s

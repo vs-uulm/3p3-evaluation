@@ -15,6 +15,7 @@
 #include "../utils/Utils.h"
 #include "../ad/VirtualSource.h"
 #include "../network/UnsecuredNetworkManager.h"
+#include "../ad/AdaptiveDiffusion.h"
 
 std::mutex logging_mutex;
 
@@ -214,7 +215,8 @@ int main() {
     tm* timeStamp = localtime(&now);
     std::string months[12] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
     std::stringstream fileName;
-    fileName << "/home/ubuntu/evaluation/ADLog_";
+    fileName << "/home/ubuntu/evaluation/ADLog_" << INSTANCES << "Nodes_";
+    fileName << AdaptiveDiffusion::Eta << "Eta_" << AdaptiveDiffusion::maxDepth << "Depth_";
     fileName << months[timeStamp->tm_mon];
     fileName << std::setw(2) << std::setfill('0') << timeStamp->tm_mday << "__";
     fileName << std::setw(2) << std::setfill('0') << timeStamp->tm_hour << "_";

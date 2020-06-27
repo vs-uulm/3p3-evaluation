@@ -33,7 +33,6 @@ void instance(int ID) {
 
     ip::address_v4 ip_address(ip::address_v4::from_string("127.0.0.1"));
 
-    // TODO
     //NetworkManager networkManager(io_context_, port_, inboxThreePP);
     UnsecuredNetworkManager networkManager(io_context_, port_, inboxThreePP);
     // Run the io_context which handles the network manager
@@ -148,15 +147,14 @@ void instance(int ID) {
 
     // start the DCNetwork
     DCMember self(nodeID_, SELF, publicKey);
-    DCNetwork DCNet(self, INSTANCES, Unsecured, privateKey, 2, nodes, inboxDC, outboxThreePP, true);
+    DCNetwork DCNet(self, INSTANCES, Secured, privateKey, 2, nodes, inboxDC, outboxThreePP, 0, false, true);
 
     uint32_t iterations = 100;
-    uint32_t numSenders = 6;
+    uint32_t numSenders = 2;
     // submit messages to the DCNetwork
     for (uint32_t i = 0; i < iterations; i++) {
         if (nodeID_ < numSenders) {
-            //uint16_t length = PRNG.GenerateWord32(128, 512);
-            uint16_t length = 16384;
+            uint16_t length = PRNG.GenerateWord32(128, 512);
             std::vector<uint8_t> message(length);
             PRNG.GenerateBlock(message.data(), length);
             DCNet.submitMessage(message);
@@ -204,14 +202,9 @@ void nodeAuthority() {
     // accept register messages until the threshold of nodes is reached
     for (uint32_t nodeID = 0; nodeID < INSTANCES; nodeID++) {
         auto receivedMessage = inbox.pop();
-        if (receivedMessage.msgType() != RegisterMessage) {
-            std::cout << "Unknown message type received: " << receivedMessage.msgType() << std::endl;
-            continue;
-        }
-
         // store the encoded information for each node
         registeredNodes.insert(
-                std::pair(nodeID, std::pair(receivedMessage.connectionID(), std::move(receivedMessage.body()))));
+                std::pair(nodeID, std::pair(receivedMessage.connectionID(), receivedMessage.body())));
         std::vector<uint8_t> encodedNodeID(4);
         encodedNodeID[0] = (nodeID & 0xFF000000) >> 24;
         encodedNodeID[1] = (nodeID & 0x00FF0000) >> 16;

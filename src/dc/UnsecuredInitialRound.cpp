@@ -119,9 +119,9 @@ std::unique_ptr<DCState> UnsecuredInitialRound::executeTask() {
             } else {
                 if(static_cast<uint32_t>(slotIndex) == slot)
                     finalSlotIndex = slots.size();
+                // store the size of the slot
+                slots.push_back(slotSize);
             }
-            // store the size of the slot
-            slots.push_back(slotSize);
         }
     }
 

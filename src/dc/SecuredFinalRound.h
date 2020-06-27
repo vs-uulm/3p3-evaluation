@@ -55,6 +55,10 @@ private:
     // received commitments stored along with the corresponding memberID
     std::unordered_map<uint32_t, std::vector<std::vector<std::vector<CryptoPP::ECPPoint>>>> commitments_;
 
+    // share and rvalue storage, required for delayed commitment validation
+    std::unordered_map<uint32_t, std::vector<std::vector<std::pair<CryptoPP::Integer, CryptoPP::Integer>>>> rs_;
+    std::unordered_map<uint32_t, std::vector<std::vector<std::pair<CryptoPP::Integer, CryptoPP::Integer>>>> RS_;
+
     // sum of all shares
     std::vector<std::vector<CryptoPP::Integer>> S;
 
@@ -69,6 +73,8 @@ private:
     CryptoPP::OFB_Mode<CryptoPP::AES>::Encryption DRNG;
 
     CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> curve;
+
+    bool delayedVerification_;
 };
 
 

@@ -31,7 +31,8 @@ class DCNetwork {
 public:
     DCNetwork(DCMember self, size_t k, SecurityLevel securityLevel, CryptoPP::Integer privateKey, uint32_t numThreads,
             std::unordered_map<uint32_t, Node>& neighbors, MessageQueue<ReceivedMessage>& inboxDC,
-            MessageQueue<OutgoingMessage>& outboxThreePP, bool logging);
+            MessageQueue<OutgoingMessage>& outboxThreePP, uint32_t interval = 0, bool logging = false,
+            bool preparedCommitments = false);
 
     std::map<uint32_t, DCMember>& members();
 
@@ -53,25 +54,29 @@ public:
 
     CryptoPP::Integer& privateKey();
 
+    uint32_t interval();
+
     bool logging();
 
     void run();
 
     void submitMessage(std::vector<uint8_t>& msg);
 
+    std::vector<std::vector<std::vector<std::pair<CryptoPP::Integer, CryptoPP::ECPPoint>>>>& preparedCommitments();
+
 private:
+    void prepareCommitments();
+
     uint32_t nodeID_;
 
     size_t k_;
 
-    // security setting of the DC Network
     SecurityLevel securityLevel_;
 
     CryptoPP::Integer privateKey_;
 
     uint32_t numThreads_;
 
-    // Key: nodeID
     std::map<uint32_t, DCMember> members_;
 
     std::unordered_map<uint32_t, Node>& neighbors_;
@@ -85,7 +90,12 @@ private:
     // current state of the DC network
     std::unique_ptr<DCState> state_;
 
+    uint32_t interval_;
+
     bool logging_;
+
+    // currently used only for the evaluation
+    std::vector<std::vector<std::vector<std::pair<CryptoPP::Integer, CryptoPP::ECPPoint>>>> preparedCommitments_;
 };
 
 
