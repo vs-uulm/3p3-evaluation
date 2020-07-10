@@ -19,15 +19,21 @@ std::mutex logging_mutex;
 
 const uint32_t INSTANCES = 100;
 
+std::vector<std::vector<uint32_t>> topology;
+
 std::unordered_map<uint32_t, Node> nodes;
 
 std::unordered_map<std::string, std::chrono::system_clock::time_point> startTimes;
 std::unordered_map<std::string, std::vector<double>> sharedArrivalTimes;
 
-std::vector<std::vector<uint32_t>> getTopology() {
-    std::string file("/home/ubuntu/three-phase-protocol-implementation/sample_topologies/Graph_100Nodes_8Degree.csv");
-
-    std::ifstream in(file.c_str());
+std::vector<std::vector<uint32_t>> getTopology(uint32_t graphIndex) {
+    std::stringstream fileName;
+    fileName << "/home/ubuntu/three-phase-protocol-implementation/sample_topologies/";
+    fileName << INSTANCES;
+    fileName << "Nodes/Graph";
+    fileName << graphIndex;
+    fileName << ".csv";
+    std::ifstream in(fileName.str().c_str());
     if (!in.is_open()) {
         std::cerr << "Error: could not open file" << std::endl;
         exit(1);
@@ -60,8 +66,14 @@ void instance(int ID) {
     MessageQueue<std::vector<uint8_t>> outboxFinal;
 
     io_context io_context_;
-    uint16_t port_ = 5555 + ID;
-    uint32_t nodeID_ = ID;
+
+    uint16_t port_;
+    uint32_t nodeID_;
+    {
+        std::lock_guard<std::mutex> lock(logging_mutex);
+        port_ = nodes[ID].port();
+        nodeID_ = nodes[ID].nodeID();
+    }
 
     UnsecuredNetworkManager networkManager(io_context_, port_, inboxThreePP);
     // Run the io_context which handles the network manager
@@ -69,12 +81,15 @@ void instance(int ID) {
         io_context_.run();
     });
 
-    std::vector<std::vector<uint32_t>> topology = getTopology();
     // Add neighbors
     for (uint32_t nodeID : topology[nodeID_]) {
         if (nodeID > nodeID_) {
-            std::lock_guard<std::mutex> lock(logging_mutex);
-            uint32_t connectionID = networkManager.addNeighbor(nodes[nodeID]);
+            Node neighbour;
+            {
+                std::lock_guard<std::mutex> lock(logging_mutex);
+                neighbour = nodes[nodeID];
+            }
+            uint32_t connectionID = networkManager.addNeighbor(neighbour);
             if (connectionID < 0) {
                 std::cout << "Error: could not add neighbour" << std::endl;
                 continue;
@@ -83,7 +98,9 @@ void instance(int ID) {
     }
 
     // wait until all nodes are connected
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    if(nodeID_ == 0)
+        std::cout << "First Wait" << std::endl;
+    std::this_thread::sleep_for(std::chrono::seconds(5));
 
     std::vector<uint32_t> neighbors = networkManager.neighbors();
 
@@ -122,7 +139,11 @@ void instance(int ID) {
         }
     });
 
-    uint32_t iterations = 5;
+    if(nodeID_ == 0)
+        std::cout << "Second Wait" << std::endl;
+    std::this_thread::sleep_for(std::chrono::seconds(5));
+
+    uint32_t iterations = 1;
     if (nodeID_ == 0) {
         for (uint32_t i = 0; i < iterations; i++) {
             std::thread floodThread([&]() {
@@ -145,8 +166,11 @@ void instance(int ID) {
                     startTimes.insert(std::pair(msgHash, startTime));
                 }
 
-                // trick the message handler
+                // circumvent the message handler
                 outboxFinal.push(message);
+                ReceivedMessage msg(0, FloodAndPrune, SELF, message);
+                msg.timestamp(std::chrono::system_clock::now());
+                inboxThreePP.push(std::move(msg));
 
                 OutgoingMessage broadcast(BROADCAST, FloodAndPrune, nodeID_, message);
                 outboxThreePP.push(std::move(broadcast));
@@ -167,6 +191,7 @@ void instance(int ID) {
         sharedArrivalTimes[t.first][nodeID_] = timeDifference.count();
     }
 
+    std::this_thread::sleep_for(std::chrono::seconds(10));
     // clean up
     networkManager.terminate();
     io_context_.stop();
@@ -185,20 +210,38 @@ void instance(int ID) {
 }
 
 int main() {
-    for(uint32_t i = 0; i < INSTANCES; i++) {
-        Node node(i, 5555 + i, ip::address_v4::from_string("127.0.0.1"));
-        std::lock_guard<std::mutex> lock(logging_mutex);
-        nodes.insert(std::pair(i, node));
-    }
+    for(uint32_t graph = 0; graph < 10; graph++) {
+        uint16_t port = 5555;
+        topology = getTopology(graph);
+        for (uint32_t i = 0; i < INSTANCES; i++) {
+            for (;;) {
+                boost::asio::io_context ioc;
+                boost::asio::ip::tcp::acceptor acceptor_(ioc);
 
-    std::list<std::thread> threads;
-    for (int i = 0; i < INSTANCES; i++) {
-        std::thread t(instance, i);
-        threads.push_back(std::move(t));
-    }
+                boost::system::error_code ec;
+                acceptor_.open(tcp::v4(), ec) || acceptor_.bind({tcp::v4(), port}, ec);
 
-    for (auto it = threads.begin(); it != threads.end(); it++) {
-        it->join();
+                if (!(ec == error::address_in_use)) {
+                    port++;
+                    break;
+                }
+                port++;
+            }
+            Node node(i, port, ip::address_v4::from_string("127.0.0.1"));
+            std::lock_guard<std::mutex> lock(logging_mutex);
+            nodes.insert(std::pair(i, node));
+        }
+
+
+        std::list<std::thread> threads;
+        for (int i = 0; i < INSTANCES; i++) {
+            std::thread t(instance, i);
+            threads.push_back(std::move(t));
+        }
+
+        for (auto it = threads.begin(); it != threads.end(); it++) {
+            it->join();
+        }
     }
 
     // log the runtimes
@@ -207,12 +250,12 @@ int main() {
     tm* timeStamp = localtime(&now);
     std::string months[12] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
     std::stringstream fileName;
-    fileName << "/home/ubuntu/evaluation/FAPLog_";
+    fileName << "/home/ubuntu/evaluation/FAPLog_" << INSTANCES << "Nodes_";
     fileName << months[timeStamp->tm_mon];
     fileName << std::setw(2) << std::setfill('0') << timeStamp->tm_mday << "__";
     fileName << std::setw(2) << std::setfill('0') << timeStamp->tm_hour << "_";
-    fileName << std::setw(2) << std::setfill('0') << timeStamp->tm_sec << "_";
-    fileName << std::setw(2) << std::setfill('0') << timeStamp->tm_min << ".csv";
+    fileName << std::setw(2) << std::setfill('0') << timeStamp->tm_min << "_";
+    fileName << std::setw(2) << std::setfill('0') << timeStamp->tm_sec << ".csv";
 
     std::ofstream logFile;
     logFile.open(fileName.str());
@@ -223,12 +266,20 @@ int main() {
     logFile << ",Max Delay" << std::endl;
 
     for (auto &t : sharedArrivalTimes) {
+        uint32_t nodesReached = 0;
         double maxDelay = 0;
         for (uint32_t i = 0; i < INSTANCES; i++) {
+            // check how many nodes have been reached
+            if (t.second[i] > 0)
+                nodesReached++;
+            // calculate the max delay
             maxDelay = t.second[i] > maxDelay ? t.second[i] : maxDelay;
+
             logFile << t.second[i] << ",";
         }
-        logFile << "," << maxDelay << std::endl;
+        double coverage = nodesReached / static_cast<double>(INSTANCES);
+        logFile << "," << maxDelay << "," << coverage << std::endl;
+
     }
     logFile.close();
 

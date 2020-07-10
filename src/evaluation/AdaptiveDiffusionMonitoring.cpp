@@ -195,7 +195,7 @@ void instance(int ID) {
         sharedArrivalTimes[t.first][nodeID_] = timeDifference.count();
     }
 
-    std::this_thread::sleep_for(std::chrono::seconds(2));
+    std::this_thread::sleep_for(std::chrono::seconds(5));
     // clean up
     networkManager.terminate();
     io_context_.stop();
@@ -214,8 +214,8 @@ void instance(int ID) {
 }
 
 int main() {
-    uint16_t port = 5555;
     for(uint32_t graph = 0; graph < 10; graph++) {
+        uint16_t port = 5555;
         topology = getTopology(graph);
         for (uint32_t i = 0; i < INSTANCES; i++) {
             for(;;) {
@@ -259,8 +259,8 @@ int main() {
     fileName << months[timeStamp->tm_mon];
     fileName << std::setw(2) << std::setfill('0') << timeStamp->tm_mday << "__";
     fileName << std::setw(2) << std::setfill('0') << timeStamp->tm_hour << "_";
-    fileName << std::setw(2) << std::setfill('0') << timeStamp->tm_sec << "_";
-    fileName << std::setw(2) << std::setfill('0') << timeStamp->tm_min << ".csv";
+    fileName << std::setw(2) << std::setfill('0') << timeStamp->tm_min << "_";
+    fileName << std::setw(2) << std::setfill('0') << timeStamp->tm_sec << ".csv";
 
     std::ofstream logFile;
     logFile.open(fileName.str());
