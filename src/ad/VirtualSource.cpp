@@ -9,17 +9,6 @@
 #include "../datastruct/MessageType.h"
 
 VirtualSource::VirtualSource(uint32_t nodeID, std::vector<uint32_t>& neighbors,
-        MessageQueue<OutgoingMessage>& outboxThreePP, MessageQueue<ReceivedMessage>& inboxThreePP, std::vector<uint8_t> message)
-: s(0), h(0), nodeID_(nodeID), message_(message), outboxThreePP_(outboxThreePP), inboxThreePP_(inboxThreePP),
-  randomEngine_(std::random_device()()), uniformDistribution_(0, 1) {
-    // select a random subset of neighbors
-    while(neighbors_.size() < std::min(AdaptiveDiffusion::Eta, neighbors.size())) {
-        uint32_t neighbor = PRNG.GenerateWord32(0, neighbors.size()-1);
-        neighbors_.insert(neighbors[neighbor]);
-    }
-}
-
-VirtualSource::VirtualSource(uint32_t nodeID, std::vector<uint32_t>& neighbors,
         MessageQueue<OutgoingMessage>& outboxThreePP, MessageQueue<ReceivedMessage>& inboxThreePP, std::vector<uint8_t> message,
         ReceivedMessage VSToken)
 : nodeID_(nodeID), message_(message), outboxThreePP_(outboxThreePP), inboxThreePP_(inboxThreePP),
@@ -52,7 +41,7 @@ void VirtualSource::executeTask() {
     h += 1;
     s += 2;
 
-    while(s < AdaptiveDiffusion::maxDepth) {
+    while(s <= AdaptiveDiffusion::maxDepth) {
         s += 1;
         if(AdaptiveDiffusion::p(s,h) <= uniformDistribution_(randomEngine_)) {
             VirtualSource::spreadMessage();

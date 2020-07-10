@@ -13,9 +13,6 @@
 class VirtualSource {
 public:
     VirtualSource(uint32_t nodeID, std::vector<uint32_t>& neighbors, MessageQueue<OutgoingMessage>& outboxThreePP,
-                  MessageQueue<ReceivedMessage>& inboxThreePP, std::vector<uint8_t> message);
-
-    VirtualSource(uint32_t nodeID, std::vector<uint32_t>& neighbors, MessageQueue<OutgoingMessage>& outboxThreePP,
                   MessageQueue<ReceivedMessage>& inboxThreePP, std::vector<uint8_t> message, ReceivedMessage VSToken);
 
     void executeTask();

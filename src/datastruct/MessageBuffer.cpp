@@ -13,21 +13,36 @@ bool MessageBuffer::contains(ReceivedMessage& msg) {
     return false;
 }
 
-int MessageBuffer::insert(ReceivedMessage& msg) {
+// Flood and Prune insert
+int MessageBuffer::insert(ReceivedMessage msg) {
     std::string msgHash = utils::sha256(msg.body());
 
     auto position = indexBuffer_.find(msgHash);
-    if(position != indexBuffer_.end()) {
-        indexBuffer_.erase(position);
-        indexBuffer_.insert(std::pair(msgHash, msg));
-    } else {
+    if(position == indexBuffer_.end()) {
         if (FIFOBuffer_.size() == maxCapacity_) {
             indexBuffer_.erase(FIFOBuffer_.front());
             FIFOBuffer_.pop();
         }
 
         FIFOBuffer_.push(msgHash);
-        indexBuffer_.insert(std::pair(msgHash, msg));
+        indexBuffer_.insert(std::pair(msgHash, std::pair(msg, std::set<uint32_t>())));
+    }
+    return 0;
+}
+
+// Adaptive Diffusion insert
+int MessageBuffer::insert(ReceivedMessage msg, std::set<uint32_t> neighbors) {
+    std::string msgHash = utils::sha256(msg.body());
+
+    auto position = indexBuffer_.find(msgHash);
+    if(position == indexBuffer_.end()) {
+        if (FIFOBuffer_.size() == maxCapacity_) {
+            indexBuffer_.erase(FIFOBuffer_.front());
+            FIFOBuffer_.pop();
+        }
+
+        FIFOBuffer_.push(msgHash);
+        indexBuffer_.insert(std::pair(msgHash, std::pair(msg, neighbors)));
     }
     return 0;
 }
@@ -37,7 +52,7 @@ uint8_t MessageBuffer::getType(ReceivedMessage& msg) {
 
     auto position = indexBuffer_.find(msgHash);
     if(position != indexBuffer_.end())
-        return position->second.msgType();
+        return position->second.first.msgType();
 
     return 0xFF;
 }
@@ -47,11 +62,21 @@ uint32_t MessageBuffer::getSenderID(ReceivedMessage &msg) {
 
     auto position = indexBuffer_.find(msgHash);
     if(position != indexBuffer_.end())
-        return position->second.senderID();
+        return position->second.first.senderID();
 
     return 0xFFFFFFFB;
 }
 
+std::set<uint32_t> & MessageBuffer::getSelectedNeighbors(ReceivedMessage &msg) {
+    std::string msgHash = utils::sha256(msg.body());
+
+    auto position = indexBuffer_.find(msgHash);
+    if(position != indexBuffer_.end())
+        return position->second.second;
+
+    return emptySet_;
+}
+
 ReceivedMessage MessageBuffer::getMessage(std::string& msgHash) {
-    return indexBuffer_[msgHash];
+    return indexBuffer_[msgHash].first;
 }

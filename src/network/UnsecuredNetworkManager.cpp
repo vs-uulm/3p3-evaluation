@@ -1,4 +1,5 @@
 #include "UnsecuredNetworkManager.h"
+#include "../datastruct/MessageType.h"
 #include <boost/bind.hpp>
 #include <iostream>
 
@@ -33,16 +34,14 @@ int UnsecuredNetworkManager::addNeighbor(const Node &node) {
 
     auto connection = std::make_shared<UnsecuredP2PConnection>(connectionID, io_context_, inbox_);
 
-    for(int retryCount = 5; retryCount > 0; retryCount--) {
+    for(int retryCount = 20; retryCount > 0; retryCount--) {
         if (connection->connect(node.ip_address(), node.port()) == 0) {
-
             storeConnection(connection);
             storeNeighbor(connectionID);
             return connectionID;
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
-
     return -1;
 }
 
@@ -68,10 +67,12 @@ int UnsecuredNetworkManager::sendMessage(OutgoingMessage msg) {
         centralInstance_->send(std::move(msg));
     } else {
         if(connections_.count(msg.receiverID()) < 1) {
+            std::cerr << "Connection " << msg.receiverID() << " not available" << std::endl;
             return -1;
         }
-        if (!connections_[msg.receiverID()]->is_open())
+        if (!connections_[msg.receiverID()]->is_open()) {
             return -1;
+        }
         connections_[msg.receiverID()]->send(std::move(msg));
     }
     return 0;

@@ -2,8 +2,8 @@
 
 namespace AdaptiveDiffusion {
     bool floodAndPrune = false;
-    size_t Eta = 3;
-    size_t maxDepth = 4;
+    size_t Eta = 4;
+    size_t maxDepth = 10;
     size_t RTT = 200;
 
     double p(uint16_t s, uint16_t h) {

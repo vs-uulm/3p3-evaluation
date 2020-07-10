@@ -690,7 +690,7 @@ int FairnessProtocol::proofKnowledge() {
                 CryptoPP::ECPPoint zr_GsigmaG = curve_.GetCurve().Add(zr_G,
                                                                       sigmaStorage[wBroadcast.senderID()][slot][slice]);
 
-                // now validate that (z*r')H + sigmaH = wH
+                // now validate that (z*r')G + sigmaG = wG
                 if (((wG.x != zr_GsigmaG.x) || (wG.y != zr_GsigmaG.y))) {
                     std::cout << "Invalid Commitment detected" << std::endl;
                     return -1;

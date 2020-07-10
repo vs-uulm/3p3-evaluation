@@ -44,7 +44,7 @@ void UnsecuredP2PConnection::read() {
                             [this, received_msg](const boost::system::error_code &error, size_t) {
                                 if (!error) {
                                     received_msg->resizeBody();
-                                    // read the
+                                    // read the message body
                                     boost::asio::async_read(socket_,
                                                             boost::asio::buffer(received_msg->body()),
                                                             [this, received_msg](const boost::system::error_code &error,
@@ -101,9 +101,12 @@ void UnsecuredP2PConnection::async_send(bool handler) {
                                  if (!error) {
                                      async_send(true);
                                  } else if (error == boost::asio::error::eof
-                                            || error == boost::asio::error::operation_aborted) {
+                                            || error == boost::asio::error::operation_aborted ||
+                                               error == boost::asio::error::bad_descriptor ||
+                                               error == boost::asio::error::broken_pipe) {
                                      return;
                                  } else {
+                                     std::cerr << error.message() << std::endl;
                                      std::cout << "Write error" << std::endl;
                                  }
                              });

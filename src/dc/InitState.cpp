@@ -4,6 +4,8 @@
 #include "InitState.h"
 #include "ReadyState.h"
 #include "../datastruct/MessageType.h"
+#include "SecuredInitialRound.h"
+#include "UnsecuredInitialRound.h"
 
 InitState::InitState(DCNetwork& DCNet) : DCNetwork_(DCNet) {
     //std::cout << "Init State" << std::endl;
@@ -27,5 +29,11 @@ std::unique_ptr<DCState> InitState::executeTask() {
         DCNetwork_.members().insert(std::make_pair(receivedMessage.senderID(), member));
     }
     // perform a state transition
-    return std::make_unique<ReadyState>(DCNetwork_);
+    //return std::make_unique<ReadyState>(DCNetwork_);
+
+    // perform a state transition
+    if(DCNetwork_.securityLevel() == Secured || DCNetwork_.securityLevel() == ProofOfFairness)
+        return std::make_unique<SecuredInitialRound>(DCNetwork_);
+    else
+        return std::make_unique<UnsecuredInitialRound>(DCNetwork_);
 }

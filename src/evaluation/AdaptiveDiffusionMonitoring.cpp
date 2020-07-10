@@ -13,7 +13,6 @@
 #include "../dc/DCNetwork.h"
 #include "../datastruct/MessageType.h"
 #include "../utils/Utils.h"
-#include "../ad/VirtualSource.h"
 #include "../network/UnsecuredNetworkManager.h"
 #include "../ad/AdaptiveDiffusion.h"
 
@@ -21,15 +20,21 @@ std::mutex logging_mutex;
 
 const uint32_t INSTANCES = 100;
 
+std::vector<std::vector<uint32_t>> topology;
+
 std::unordered_map<uint32_t, Node> nodes;
 
 std::unordered_map<std::string, std::chrono::system_clock::time_point> startTimes;
 std::unordered_map<std::string, std::vector<double>> sharedArrivalTimes;
 
-std::vector<std::vector<uint32_t>> getTopology() {
-    std::string file("/home/ubuntu/three-phase-protocol-implementation/sample_topologies/Graph_100Nodes_8Degree.csv");
-
-    std::ifstream in(file.c_str());
+std::vector<std::vector<uint32_t>> getTopology(uint32_t graphIndex) {
+    std::stringstream fileName;
+    fileName << "/home/ubuntu/three-phase-protocol-implementation/sample_topologies/";
+    fileName << INSTANCES;
+    fileName << "Nodes/Graph";
+    fileName << graphIndex;
+    fileName << ".csv";
+    std::ifstream in(fileName.str().c_str());
     if (!in.is_open()) {
         std::cerr << "Error: could not open file" << std::endl;
         exit(1);
@@ -62,8 +67,14 @@ void instance(int ID) {
     MessageQueue<std::vector<uint8_t>> outboxFinal;
 
     io_context io_context_;
-    uint16_t port_ = 5555 + ID;
-    uint32_t nodeID_ = ID;
+
+    uint16_t port_;
+    uint32_t nodeID_;
+    {
+        std::lock_guard<std::mutex> lock(logging_mutex);
+        port_ = nodes[ID].port();
+        nodeID_ = nodes[ID].nodeID();
+    }
 
     UnsecuredNetworkManager networkManager(io_context_, port_, inboxThreePP);
     // Run the io_context which handles the network manager
@@ -71,12 +82,15 @@ void instance(int ID) {
         io_context_.run();
     });
 
-    std::vector<std::vector<uint32_t>> topology = getTopology();
     // Add neighbors
     for (uint32_t nodeID : topology[nodeID_]) {
         if (nodeID > nodeID_) {
-            std::lock_guard<std::mutex> lock(logging_mutex);
-            uint32_t connectionID = networkManager.addNeighbor(nodes[nodeID]);
+            Node neighbour;
+            {
+                std::lock_guard<std::mutex> lock(logging_mutex);
+                neighbour = nodes[nodeID];
+            }
+            uint32_t connectionID = networkManager.addNeighbor(neighbour);
             if (connectionID < 0) {
                 std::cout << "Error: could not add neighbour" << std::endl;
                 continue;
@@ -85,9 +99,11 @@ void instance(int ID) {
     }
 
     // wait until all nodes are connected
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    if(nodeID_ == 0)
+        std::cout << "First Wait" << std::endl;
+    std::this_thread::sleep_for(std::chrono::seconds(5));
 
-    std::vector<uint32_t> neighbors = networkManager.neighbors();
+    std::vector<uint32_t>& neighbors = networkManager.neighbors();
 
     // start the message handler in a separate thread
     MessageHandler messageHandler(nodeID_, neighbors, inboxThreePP, inboxDC, outboxThreePP, outboxFinal, 100, 128);
@@ -100,74 +116,78 @@ void instance(int ID) {
         for (;;) {
             auto message = outboxThreePP.pop();
             if (message.msgType() != TerminateMessage) {
-                if (networkManager.sendMessage(message) < 0) {
-                    std::cout << "Error: could not send message" << std::endl;
-                }
+                if(networkManager.sendMessage(message) < 0)
+                    std::cerr << "Could not send the message" << std::endl;
             } else {
                 break;
             }
         }
     });
 
-    std::this_thread::sleep_for(std::chrono::seconds(5));
-
     std::unordered_map<std::string, std::chrono::system_clock::time_point> arrivalTimes;
     // start the read thread
     std::thread readThread([&]() {
         for (;;) {
             std::vector<uint8_t> receivedMessage = outboxFinal.pop();
-            if(receivedMessage.size() == 0)
+            if (receivedMessage.size() == 0)
                 break;
             std::chrono::system_clock::time_point arrivalTime = std::chrono::system_clock::now();
             std::string msgHash = utils::sha256(receivedMessage);
 
-            if(arrivalTimes.count(msgHash) == 0)
+            if (arrivalTimes.count(msgHash) == 0)
                 arrivalTimes.insert(std::pair(msgHash, arrivalTime));
         }
     });
 
-    uint32_t iterations = 5;
+    if(nodeID_ == 0)
+        std::cout << "Second Wait" << std::endl;
+    std::this_thread::sleep_for(std::chrono::seconds(5));
+
+    uint32_t iterations = 1;
     if (nodeID_ == 0) {
         for (uint32_t i = 0; i < iterations; i++) {
-            std::thread virtualSourceThread([&]() {
-                // generate a random message
-                std::vector<uint8_t> message(512);
-                PRNG.GenerateBlock(message.data(), 512);
-                std::string msgHash = utils::sha256(message);
 
-                // prepare the arrivalTimeSlot
-                std::vector<double> arrivalTimeVector(INSTANCES);
-                {
-                    std::lock_guard<std::mutex> lock(logging_mutex);
-                    sharedArrivalTimes.insert(std::pair(msgHash, std::move(arrivalTimeVector)));
-                }
+            std::vector<uint8_t> message(512);
+            PRNG.GenerateBlock(message.data(), 512);
+            std::string msgHash = utils::sha256(message);
 
-                // check the current time
-                std::chrono::system_clock::time_point startTime = std::chrono::system_clock::now();
-                {
-                    std::lock_guard<std::mutex> lock(logging_mutex);
-                    startTimes.insert(std::pair(msgHash, startTime));
-                }
+            // prepare the arrivalTimeSlot
+            std::vector<double> arrivalTimeVector(INSTANCES);
+            {
+                std::lock_guard<std::mutex> lock(logging_mutex);
+                sharedArrivalTimes.insert(std::pair(msgHash, std::move(arrivalTimeVector)));
+            }
 
-                // trick the message handler
-                outboxFinal.push(message);
+            // check the current time
+            std::chrono::system_clock::time_point startTime = std::chrono::system_clock::now();
+            {
+                std::lock_guard<std::mutex> lock(logging_mutex);
+                startTimes.insert(std::pair(msgHash, startTime));
+            }
 
-                ReceivedMessage msg(0, AdaptiveDiffusionMessage, SELF, message);
-                msg.timestamp(std::chrono::system_clock::now());
-                inboxThreePP.push(std::move(msg));
+            // circumvent the message handler
+            outboxFinal.push(message);
+            ReceivedMessage msg(0, AdaptiveDiffusionMessage, SELF, message);
+            msg.timestamp(std::chrono::system_clock::now());
+            inboxThreePP.push(std::move(msg));
 
-                VirtualSource virtualSource(nodeID_, neighbors, outboxThreePP, inboxThreePP, message);
-                virtualSource.executeTask();
-            });
-            virtualSourceThread.detach();
-            std::cout << std::dec << i+1 << ". message submitted" << std::endl;
-            if(i < iterations-1)
-                std::this_thread::sleep_for(std::chrono::seconds(5));
+            uint32_t v_next = PRNG.GenerateWord32(0, neighbors.size() - 1);
+
+            OutgoingMessage initialADMessage(v_next, AdaptiveDiffusionMessage, nodeID_, message);
+            outboxThreePP.push(initialADMessage);
+
+            std::vector<uint8_t> VSToken = AdaptiveDiffusion::generateVSToken(1, 1, message);
+            OutgoingMessage vsForward(v_next, VirtualSourceToken, nodeID_, VSToken);
+            outboxThreePP.push(vsForward);
+
+            std::cout << std::dec << i + 1 << ". message submitted" << std::endl;
+            if (i < iterations)
+                std::this_thread::sleep_for(std::chrono::seconds(2));
         }
     }
 
-    if(nodeID_ != 0)
-        std::this_thread::sleep_for(std::chrono::seconds(5 * iterations));
+    if (nodeID_ != 0)
+        std::this_thread::sleep_for(std::chrono::seconds(2 * iterations));
 
     for (auto t : arrivalTimes) {
         std::lock_guard<std::mutex> lock(logging_mutex);
@@ -175,6 +195,7 @@ void instance(int ID) {
         sharedArrivalTimes[t.first][nodeID_] = timeDifference.count();
     }
 
+    std::this_thread::sleep_for(std::chrono::seconds(2));
     // clean up
     networkManager.terminate();
     io_context_.stop();
@@ -193,26 +214,44 @@ void instance(int ID) {
 }
 
 int main() {
-    for(uint32_t i = 0; i < INSTANCES; i++) {
-        Node node(i, 5555 + i, ip::address_v4::from_string("127.0.0.1"));
-        std::lock_guard<std::mutex> lock(logging_mutex);
-        nodes.insert(std::pair(i, node));
-    }
+    uint16_t port = 5555;
+    for(uint32_t graph = 0; graph < 10; graph++) {
+        topology = getTopology(graph);
+        for (uint32_t i = 0; i < INSTANCES; i++) {
+            for(;;) {
+                boost::asio::io_context ioc;
+                boost::asio::ip::tcp::acceptor acceptor_(ioc);
 
-    std::list<std::thread> threads;
-    for (int i = 0; i < INSTANCES; i++) {
-        std::thread t(instance, i);
-        threads.push_back(std::move(t));
-    }
+                boost::system::error_code ec;
+                acceptor_.open(tcp::v4(), ec) || acceptor_.bind({ tcp::v4(), port }, ec);
 
-    for (auto it = threads.begin(); it != threads.end(); it++) {
-        it->join();
+                if(!(ec == error::address_in_use)) {
+                    port++;
+                    break;
+                }
+                port++;
+            }
+
+            Node node(i, port, ip::address_v4::from_string("127.0.0.1"));
+            std::lock_guard<std::mutex> lock(logging_mutex);
+            nodes.insert(std::pair(i, node));
+        }
+
+        std::list<std::thread> threads;
+        for (int i = 0; i < INSTANCES; i++) {
+            std::thread t(instance, i);
+            threads.push_back(std::move(t));
+        }
+
+        for (auto it = threads.begin(); it != threads.end(); it++) {
+            it->join();
+        }
     }
 
     // log the runtimes
     // create the log file
     time_t now = time(0);
-    tm* timeStamp = localtime(&now);
+    tm *timeStamp = localtime(&now);
     std::string months[12] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
     std::stringstream fileName;
     fileName << "/home/ubuntu/evaluation/ADLog_" << INSTANCES << "Nodes_";
@@ -236,7 +275,7 @@ int main() {
         double maxDelay = 0;
         for (uint32_t i = 0; i < INSTANCES; i++) {
             // check how many nodes have been reached
-            if(t.second[i] > 0)
+            if (t.second[i] > 0)
                 nodesReached++;
             // calculate the max delay
             maxDelay = t.second[i] > maxDelay ? t.second[i] : maxDelay;

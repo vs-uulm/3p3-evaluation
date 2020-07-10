@@ -33,32 +33,19 @@ int main() {
     CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> ec_group;
     ec_group.Initialize(CryptoPP::ASN1::secp256k1());
 
-    std::string data("RandomGraph.csv");
-
-    std::ifstream in(data.c_str());
-    if (!in.is_open()) {
-        std::cerr << "Error: could not open file" << std::endl;
-        return 1;
+    auto start = std::chrono::high_resolution_clock::now();
+    std::vector<CryptoPP::ECPPoint> test;
+    test.reserve(10000);
+    for(uint32_t i = 0; i < 8864; i++) {
+        CryptoPP::Integer exponent(PRNG, CryptoPP::Integer::One(), ec_group.GetMaxExponent());
+        CryptoPP::ECPPoint testPoint = ec_group.GetCurve().ScalarMultiply(G, exponent);
+        test.push_back(std::move(testPoint));
     }
+    auto finish = std::chrono::high_resolution_clock::now();
 
-    //std::vector<std::string> vec;
-    std::vector<std::vector<uint32_t>> graph;
-    graph.reserve(100);
+    std::chrono::duration<double> duration = finish - start;
 
-    std::string line;
-    for(uint32_t i = 0; i < 100; i++) {
-        if(!getline(in, line))
-            break;
-
-        boost::tokenizer<boost::escaped_list_separator<char>> tokenizer(line);
-        std::vector<uint32_t> neighbors;
-        for(auto it = tokenizer.begin(); it != tokenizer.end(); it++) {
-            if(it != tokenizer.begin())
-                neighbors.push_back(std::atoi((*it).c_str()));
-        }
-        graph.push_back(neighbors);
-    }
-    std::cout << "Finished" << std::endl;
+    std::cout << "Duration: " << duration.count() << std::endl;
     /*
     for(;;) {
         CryptoPP::Integer d(PRNG, CryptoPP::Integer::One(), ec_group.GetMaxExponent());

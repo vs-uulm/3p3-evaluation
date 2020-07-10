@@ -10,7 +10,7 @@ DCNetwork::DCNetwork(DCMember self, size_t k, SecurityLevel securityLevel, Crypt
   interval_(interval), logging_(logging) {
     members_.insert(std::pair(nodeID_, self));
 
-    if(preparedCommitments)
+    if(preparedCommitments && (securityLevel_ == Secured))
         prepareCommitments();
 }
 

@@ -168,8 +168,8 @@ int main(int argc, char **argv) {
 
     // start the DCNetwork
     DCMember self(nodeID_, SELF, publicKey);
-    DCNetwork DCNetwork_(self, numNodes + 1, securityLevel, privateKey, numThreads, nodes, inboxDC, outboxThreePP,
-                         true);
+    DCNetwork DCNetwork_(self, numNodes + 1, securityLevel, privateKey, numThreads, nodes, inboxDC, outboxThreePP, 0,
+                         true, true);
 
     std::thread DCThread([&]() {
         DCNetwork_.run();
@@ -179,7 +179,6 @@ int main(int argc, char **argv) {
     // submit more messages to the DCNetwork
     for (uint32_t i = 0; i < iterations; i++) {
         if (nodeID_ < numSenders) {
-            //uint16_t length = PRNG.GenerateWord32(512, 1024);
             std::vector<uint8_t> message(messageLength);
             PRNG.GenerateBlock(message.data(), messageLength);
             DCNetwork_.submitMessage(message);
