@@ -34,15 +34,15 @@ void MessageHandler::run() {
                 DCMembers_.insert(receivedMessage.connectionID());
                 inboxDCNet_.push(std::move(receivedMessage));
                 break;
-            case ReadyMessage:
-            case StartDCRound:
             case RoundOneCommitments:
             case RoundOneSharingOne:
             case RoundOneSharingTwo:
+            case RoundOneFinished:
             case RoundTwoCommitments:
             case RoundTwoSharingOne:
             case RoundTwoSharingTwo:
-            case BlameMessage:
+            case RoundTwoFinished:
+            case InvalidShare:
             case ZeroKnowledgeCommitments:
             case ZeroKnowledgeCoinCommitments:
             case ZeroKnowledgeCoinSharingOne:

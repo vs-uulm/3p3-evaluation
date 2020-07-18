@@ -1,7 +1,7 @@
 #include "AdaptiveDiffusion.h"
 
 namespace AdaptiveDiffusion {
-    bool floodAndPrune = false;
+    bool floodAndPrune = true;
     size_t Eta = 4;
     size_t maxDepth = 10;
     size_t RTT = 200;

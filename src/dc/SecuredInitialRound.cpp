@@ -656,7 +656,7 @@ std::vector<std::vector<uint8_t>> SecuredInitialRound::resultComputation() {
                         S[slot][slice] += S_;
                     }
 
-                } else if (rsBroadcast.msgType() == BlameMessage) {
+                } else if (rsBroadcast.msgType() == InvalidShare) {
                     SecuredInitialRound::handleBlameMessage(rsBroadcast);
                     std::cout << "Blame message received" << std::endl;
                     return -1;
@@ -675,6 +675,35 @@ std::vector<std::vector<uint8_t>> SecuredInitialRound::resultComputation() {
     for (auto &f : futures_)
         if (f.get() < 0)
             return std::vector<std::vector<uint8_t>>();
+
+
+    // notify the other nodes that the execution was successful
+    auto position = DCNetwork_.members().find(DCNetwork_.nodeID());
+    for (uint32_t member = 0; member < k_ - 1; member++) {
+        position++;
+        if (position == DCNetwork_.members().end())
+            position = DCNetwork_.members().begin();
+
+        OutgoingMessage finishedBroadcast(position->second.connectionID(), RoundOneFinished,
+                                    DCNetwork_.nodeID());
+        DCNetwork_.outbox().push(std::move(finishedBroadcast));
+    }
+
+    // wait for the remaining nodes to finish the second sharing phase and catch potential blame messages
+    uint32_t remainingNodes = k_-1;
+    while(remainingNodes > 0) {
+        auto message = DCNetwork_.inbox().pop();
+        if(message.msgType() == RoundOneFinished) {
+            remainingNodes--;
+        } else if(message.msgType() == InvalidShare){
+            SecuredInitialRound::handleBlameMessage(message);
+            std::cout << "Blame message received" << std::endl;
+            return std::vector<std::vector<uint8_t>>();
+        } else {
+            DCNetwork_.inbox().push(message);
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        }
+    }
 
     // reconstruct the original message
     std::vector<std::vector<uint8_t>> finalMessageSlots;
@@ -739,7 +768,7 @@ void SecuredInitialRound::injectBlameMessage(uint32_t suspectID, uint32_t slot, 
 
     for (auto &member : DCNetwork_.members()) {
         if (member.second.connectionID() != SELF) {
-            OutgoingMessage blameMessage(member.second.connectionID(), BlameMessage, DCNetwork_.nodeID(), messageBody);
+            OutgoingMessage blameMessage(member.second.connectionID(), InvalidShare, DCNetwork_.nodeID(), messageBody);
             DCNetwork_.outbox().push(std::move(blameMessage));
         }
     }

@@ -21,7 +21,6 @@ add_executable(
         src/utils/Utils.cpp
         src/dc/DCNetwork.cpp
         src/dc/InitState.cpp
-        src/dc/ReadyState.cpp
         src/datastruct/MessageType.h
         src/dc/DCState.h
         src/datastruct/NetworkMessage.cpp
@@ -62,7 +61,6 @@ add_executable(
         src/utils/Utils.cpp
         src/dc/DCNetwork.cpp
         src/dc/InitState.cpp
-        src/dc/ReadyState.cpp
         src/datastruct/MessageType.h
         src/dc/DCState.h
         src/datastruct/NetworkMessage.cpp

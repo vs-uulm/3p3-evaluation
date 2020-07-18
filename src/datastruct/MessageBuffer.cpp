@@ -1,4 +1,5 @@
 #include "MessageBuffer.h"
+#include "MessageType.h"
 #include "../utils/Utils.h"
 
 MessageBuffer::MessageBuffer(size_t maxCapacity) : maxCapacity_(maxCapacity) {}
@@ -26,6 +27,9 @@ int MessageBuffer::insert(ReceivedMessage msg) {
 
         FIFOBuffer_.push(msgHash);
         indexBuffer_.insert(std::pair(msgHash, std::pair(msg, std::set<uint32_t>())));
+    } else if(position->second.first.msgType() == AdaptiveDiffusionMessage) {
+        // update the message type
+        position->second.first.updateMsgType(FloodAndPrune);
     }
     return 0;
 }

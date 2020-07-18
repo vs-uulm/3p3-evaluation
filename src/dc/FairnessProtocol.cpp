@@ -1,8 +1,8 @@
 #include <numeric>
+#include "DCNetwork.h"
 #include <cryptopp/oids.h>
 #include <iomanip>
 #include "FairnessProtocol.h"
-#include "ReadyState.h"
 #include "../datastruct/MessageType.h"
 #include "SecuredInitialRound.h"
 #include "InitState.h"
@@ -77,7 +77,7 @@ std::unique_ptr<DCState> FairnessProtocol::executeTask() {
 
 
     if(DCNetwork_.securityLevel() == Secured)
-        return std::make_unique<ReadyState>(DCNetwork_);
+        return std::make_unique<SecuredInitialRound>(DCNetwork_);
     else
         return std::make_unique<FairnessProtocol>(DCNetwork_, numSlices_, slotIndex_, rValues_, commitments_);
 }

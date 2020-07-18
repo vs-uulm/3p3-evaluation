@@ -60,7 +60,8 @@ void VirtualSource::executeTask() {
         if (s >= AdaptiveDiffusion::maxDepth) {
             ReceivedMessage floodMessage(SELF, FloodAndPrune, nodeID_, std::move(message_));
             inboxThreePP_.push(std::move(floodMessage));
-        } else {
+        } /*
+        else {
             // otherwise: sleep until the maximum number of steps has been reached
             // and inject the message in the own inbox
             size_t maxTime = AdaptiveDiffusion::RTT * AdaptiveDiffusion::maxRemainingSteps(s);
@@ -69,5 +70,6 @@ void VirtualSource::executeTask() {
             ReceivedMessage floodMessage(SELF, FloodAndPrune, nodeID_, std::move(message_));
             inboxThreePP_.push(std::move(floodMessage));
         }
+        */
     }
 }

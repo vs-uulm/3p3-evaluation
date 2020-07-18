@@ -1,15 +1,12 @@
-#include <iostream>
+
 #include <thread>
 #include "DCNetwork.h"
 #include "InitState.h"
-#include "ReadyState.h"
 #include "../datastruct/MessageType.h"
 #include "SecuredInitialRound.h"
 #include "UnsecuredInitialRound.h"
 
-InitState::InitState(DCNetwork& DCNet) : DCNetwork_(DCNet) {
-    //std::cout << "Init State" << std::endl;
-}
+InitState::InitState(DCNetwork& DCNet) : DCNetwork_(DCNet) {}
 
 InitState::~InitState() {}
 
@@ -28,8 +25,6 @@ std::unique_ptr<DCState> InitState::executeTask() {
         DCMember member(nodeID, receivedMessage.connectionID(), DCNetwork_.neighbors()[nodeID].publicKey());
         DCNetwork_.members().insert(std::make_pair(receivedMessage.senderID(), member));
     }
-    // perform a state transition
-    //return std::make_unique<ReadyState>(DCNetwork_);
 
     // perform a state transition
     if(DCNetwork_.securityLevel() == Secured || DCNetwork_.securityLevel() == ProofOfFairness)

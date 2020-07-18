@@ -29,3 +29,7 @@ void ReceivedMessage::timestamp(Timestamp timestamp) {
 Timestamp ReceivedMessage::timestamp() {
     return timestamp_;
 }
+
+void ReceivedMessage::updateMsgType(uint8_t msgType) {
+    header_[0] = msgType;
+}

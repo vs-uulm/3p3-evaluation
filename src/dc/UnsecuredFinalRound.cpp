@@ -1,12 +1,10 @@
 #include <iomanip>
 #include "UnsecuredFinalRound.h"
 #include "DCNetwork.h"
-#include "ReadyState.h"
 #include "../datastruct/MessageType.h"
 #include "SecuredInitialRound.h"
 #include "../utils/Utils.h"
 #include "UnsecuredInitialRound.h"
-#include "BlameProtocol.h"
 
 UnsecuredFinalRound::UnsecuredFinalRound(DCNetwork &DCNet, int slotIndex, std::vector<uint16_t> slots)
         : DCNetwork_(DCNet), k_(DCNetwork_.k()), slotIndex_(slotIndex), slots_(std::move(slots)) {
@@ -123,7 +121,6 @@ std::unique_ptr<DCState> UnsecuredFinalRound::executeTask() {
         bool valid = CRC32_.Verify(slot.data());
         if(!valid) {
             // Switch to the secured version
-            std::cerr << "Test" << std::endl;
             return std::make_unique<SecuredInitialRound>(DCNetwork_);
         }
     }

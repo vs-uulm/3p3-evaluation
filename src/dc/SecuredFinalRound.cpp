@@ -6,7 +6,6 @@
 #include "InitState.h"
 #include "../datastruct/MessageType.h"
 #include "SecuredInitialRound.h"
-#include "ReadyState.h"
 #include "../utils/Utils.h"
 #include "BlameProtocol.h"
 
@@ -280,7 +279,7 @@ std::unique_ptr<DCState> SecuredFinalRound::executeTask() {
         DCNetwork_.outbox().push(std::move(finalMessage));
     }
 
-    return std::make_unique<ReadyState>(DCNetwork_);
+    return std::make_unique<SecuredInitialRound>(DCNetwork_);
 }
 
 void SecuredFinalRound::sharingPartOne(std::vector<std::vector<std::vector<CryptoPP::Integer>>> &shares) {
@@ -645,7 +644,6 @@ std::vector<std::vector<uint8_t>> SecuredFinalRound::resultComputation() {
                     uint32_t memberIndex = std::distance(DCNetwork_.members().begin(),
                                                          DCNetwork_.members().find(rsBroadcast.senderID()));
 
-
                     uint32_t slot = (rsBroadcast.body()[0] << 8) | rsBroadcast.body()[1];
                     size_t numSlices = S[slot].size();
                     for (uint32_t slice = 0, offset = 2; slice < numSlices; slice++, offset += 64) {
@@ -680,7 +678,7 @@ std::vector<std::vector<uint8_t>> SecuredFinalRound::resultComputation() {
                         S[slot][slice] += S_;
                     }
 
-                } else if (rsBroadcast.msgType() == BlameMessage) {
+                } else if (rsBroadcast.msgType() == InvalidShare) {
                     SecuredFinalRound::handleBlameMessage(rsBroadcast);
                     std::cout << "Blame message received" << std::endl;
                     return -1;
@@ -700,6 +698,34 @@ std::vector<std::vector<uint8_t>> SecuredFinalRound::resultComputation() {
     for (auto &f : futures_)
         if (f.get() < 0)
             return std::vector<std::vector<uint8_t>>();
+
+    // notify the other nodes that the execution was successful
+    auto position = DCNetwork_.members().find(DCNetwork_.nodeID());
+    for (uint32_t member = 0; member < k_ - 1; member++) {
+        position++;
+        if (position == DCNetwork_.members().end())
+            position = DCNetwork_.members().begin();
+
+        OutgoingMessage finishedBroadcast(position->second.connectionID(), RoundTwoFinished,
+                                          DCNetwork_.nodeID());
+        DCNetwork_.outbox().push(std::move(finishedBroadcast));
+    }
+
+    // wait for the remaining nodes to finish the second sharing phase and catch potential blame messages
+    uint32_t remainingNodes = k_-1;
+    while(remainingNodes > 0) {
+        auto message = DCNetwork_.inbox().pop();
+        if(message.msgType() == RoundTwoFinished) {
+            remainingNodes--;
+        } else if(message.msgType() == InvalidShare){
+            SecuredFinalRound::handleBlameMessage(message);
+            std::cout << "Blame message received" << std::endl;
+            return std::vector<std::vector<uint8_t>>();
+        } else {
+            DCNetwork_.inbox().push(message);
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        }
+    }
 
     // reconstruct the original message
     std::vector<std::vector<uint8_t>> reconstructedMessageSlots(numSlots);
@@ -742,7 +768,7 @@ void SecuredFinalRound::injectBlameMessage(uint32_t suspectID, uint32_t slot, ui
 
     for (auto &member : DCNetwork_.members()) {
         if (member.second.connectionID() != SELF) {
-            OutgoingMessage blameMessage(member.second.connectionID(), BlameMessage, DCNetwork_.nodeID(), messageBody);
+            OutgoingMessage blameMessage(member.second.connectionID(), InvalidShare, DCNetwork_.nodeID(), messageBody);
             DCNetwork_.outbox().push(blameMessage);
         }
     }

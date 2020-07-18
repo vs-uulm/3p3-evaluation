@@ -25,6 +25,8 @@ public:
     void timestamp(Timestamp timestamp);
 
     Timestamp timestamp();
+
+    void updateMsgType(uint8_t msgType);
 private:
     uint32_t connectionID_;
 

@@ -474,7 +474,7 @@ std::vector<std::vector<uint8_t>> BlameProtocol::resultComputation() {
             }
 
             remainingShares--;
-        } else if (rsBroadcast.msgType() == BlameMessage) {
+        } else if (rsBroadcast.msgType() == InvalidShare) {
             BlameProtocol::handleBlameMessage(rsBroadcast);
             std::cout << "Blame message received" << std::endl;
 
@@ -540,7 +540,7 @@ void BlameProtocol::injectBlameMessage(uint32_t suspectID, uint32_t slot, uint32
 
     for (auto &member : DCNetwork_.members()) {
         if (member.second.connectionID() != SELF) {
-            OutgoingMessage blameMessage(member.second.connectionID(), BlameMessage, DCNetwork_.nodeID(), messageBody);
+            OutgoingMessage blameMessage(member.second.connectionID(), InvalidShare, DCNetwork_.nodeID(), messageBody);
             DCNetwork_.outbox().push(std::move(blameMessage));
         }
     }

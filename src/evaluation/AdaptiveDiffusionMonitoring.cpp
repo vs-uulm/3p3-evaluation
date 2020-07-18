@@ -29,7 +29,8 @@ std::unordered_map<std::string, std::vector<double>> sharedArrivalTimes;
 
 std::vector<std::vector<uint32_t>> getTopology(uint32_t graphIndex) {
     std::stringstream fileName;
-    fileName << "/home/ubuntu/three-phase-protocol-implementation/sample_topologies/";
+    //fileName << "/home/ubuntu/three-phase-protocol-implementation/sample_topologies/";
+    fileName << "/Users/Alex/three-phase-protocol-implementation/sample_topologies/";
     fileName << INSTANCES;
     fileName << "Nodes/Graph";
     fileName << graphIndex;
@@ -116,8 +117,10 @@ void instance(int ID) {
         for (;;) {
             auto message = outboxThreePP.pop();
             if (message.msgType() != TerminateMessage) {
-                if(networkManager.sendMessage(message) < 0)
-                    std::cerr << "Could not send the message" << std::endl;
+                if(networkManager.sendMessage(message) < 0) {
+                    std::cerr << "Node " << nodeID_ << ": could not send the message" << std::endl;
+                    std::cerr << "Neigbours " << neighbors.size() << std::endl;
+                }
             } else {
                 break;
             }
@@ -143,7 +146,7 @@ void instance(int ID) {
         std::cout << "Second Wait" << std::endl;
     std::this_thread::sleep_for(std::chrono::seconds(5));
 
-    uint32_t iterations = 1;
+    uint32_t iterations = 10;
     if (nodeID_ == 0) {
         for (uint32_t i = 0; i < iterations; i++) {
 
@@ -171,7 +174,7 @@ void instance(int ID) {
             msg.timestamp(std::chrono::system_clock::now());
             inboxThreePP.push(std::move(msg));
 
-            uint32_t v_next = PRNG.GenerateWord32(0, neighbors.size() - 1);
+            uint32_t v_next = PRNG.GenerateWord32(2, neighbors.size() - 1);
 
             OutgoingMessage initialADMessage(v_next, AdaptiveDiffusionMessage, nodeID_, message);
             outboxThreePP.push(initialADMessage);
@@ -254,7 +257,8 @@ int main() {
     tm *timeStamp = localtime(&now);
     std::string months[12] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
     std::stringstream fileName;
-    fileName << "/home/ubuntu/evaluation/ADLog_" << INSTANCES << "Nodes_";
+    //fileName << "/home/ubuntu/evaluation/ADLog_" << INSTANCES << "Nodes_";
+    fileName << "/Users/Alex/Desktop/ADLog_" << INSTANCES << "Nodes_";
     fileName << AdaptiveDiffusion::Eta << "Eta_" << AdaptiveDiffusion::maxDepth << "Depth_";
     fileName << months[timeStamp->tm_mon];
     fileName << std::setw(2) << std::setfill('0') << timeStamp->tm_mday << "__";

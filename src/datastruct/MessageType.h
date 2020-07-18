@@ -10,18 +10,19 @@ enum MessageType {
     // DC-Network messages
     HelloMessage,
     HelloResponse,
-    ReadyMessage,
-    StartDCRound,
 
     RoundOneCommitments,
     RoundOneSharingOne,
     RoundOneSharingTwo,
+    RoundOneFinished,
 
     RoundTwoCommitments,
     RoundTwoSharingOne,
     RoundTwoSharingTwo,
+    RoundTwoFinished,
 
-    BlameMessage,
+    InvalidShare,
+
     BlameProtocolCommitments,
     BlameProtocolSharingOne,
     BlameProtocolSharingTwo,
