@@ -205,8 +205,8 @@ std::unique_ptr<DCState> SecuredInitialRound::executeTask() {
         }
     }
 
-    if(invalidCRCs > k_) {
-        std::cout << "More than k invalid CRCs detected." << std::endl;
+    if(invalidCRCs > std::floor(k_/2)) {
+        std::cout << "More than k/2 invalid CRCs detected." << std::endl;
         std::cout << "Switching to Proof of Fairness Protocol" << std::endl;
         return std::make_unique<FairnessProtocol>(DCNetwork_, numSlices_, slotIndex_, std::move(rValues_),
                                                   std::move(commitments_));

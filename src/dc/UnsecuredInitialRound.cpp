@@ -96,7 +96,7 @@ std::unique_ptr<DCState> UnsecuredInitialRound::executeTask() {
     // collect and validate the final shares
     UnsecuredInitialRound::resultComputation();
 
-    // used for debugging
+    // used for debugging only
     //UnsecuredInitialRound::printSlots(S);
 
     // prepare round two
@@ -125,8 +125,8 @@ std::unique_ptr<DCState> UnsecuredInitialRound::executeTask() {
         }
     }
 
-    if(invalidCRCs > k_) {
-        std::cout << "More than k invalid CRCs detected." << std::endl;
+    if(invalidCRCs > std::floor(k_/2)) {
+        std::cout << "More than k/2 invalid CRCs detected." << std::endl;
         std::cout << "Switching to Proof of Fairness Protocol" << std::endl;
         return std::make_unique<SecuredInitialRound>(DCNetwork_);
     }

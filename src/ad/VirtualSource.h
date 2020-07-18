@@ -13,11 +13,18 @@
 class VirtualSource {
 public:
     VirtualSource(uint32_t nodeID, std::vector<uint32_t>& neighbors, MessageQueue<OutgoingMessage>& outboxThreePP,
-                  MessageQueue<ReceivedMessage>& inboxThreePP, std::vector<uint8_t> message, ReceivedMessage VSToken);
+                  MessageQueue<ReceivedMessage>& inboxThreePP, std::vector<uint8_t> message, ReceivedMessage VSToken,
+                  bool safetyMechanism = false);
 
     void executeTask();
 
     void spreadMessage();
+
+    double p(uint16_t s, uint16_t h);
+
+    size_t maxRemainingSteps();
+
+    static std::vector<uint8_t> generateVSToken(uint16_t s, uint16_t h, std::vector<uint8_t>& message);
 
 private:
     uint16_t s;
@@ -39,6 +46,8 @@ private:
     std::uniform_real_distribution<double> uniformDistribution_;
 
     CryptoPP::AutoSeededRandomPool PRNG;
+
+    bool safetyMechanism_;
 };
 
 

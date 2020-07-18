@@ -15,6 +15,7 @@
 #include "../utils/Utils.h"
 #include "../network/UnsecuredNetworkManager.h"
 #include "../ad/AdaptiveDiffusion.h"
+#include "../ad/VirtualSource.h"
 
 std::mutex logging_mutex;
 
@@ -29,8 +30,7 @@ std::unordered_map<std::string, std::vector<double>> sharedArrivalTimes;
 
 std::vector<std::vector<uint32_t>> getTopology(uint32_t graphIndex) {
     std::stringstream fileName;
-    //fileName << "/home/ubuntu/three-phase-protocol-implementation/sample_topologies/";
-    fileName << "/Users/Alex/three-phase-protocol-implementation/sample_topologies/";
+    fileName << "/home/ubuntu/three-phase-protocol-implementation/sample_topologies/";
     fileName << INSTANCES;
     fileName << "Nodes/Graph";
     fileName << graphIndex;
@@ -179,7 +179,7 @@ void instance(int ID) {
             OutgoingMessage initialADMessage(v_next, AdaptiveDiffusionMessage, nodeID_, message);
             outboxThreePP.push(initialADMessage);
 
-            std::vector<uint8_t> VSToken = AdaptiveDiffusion::generateVSToken(1, 1, message);
+            std::vector<uint8_t> VSToken = VirtualSource::generateVSToken(1, 1, message);
             OutgoingMessage vsForward(v_next, VirtualSourceToken, nodeID_, VSToken);
             outboxThreePP.push(vsForward);
 
@@ -257,8 +257,7 @@ int main() {
     tm *timeStamp = localtime(&now);
     std::string months[12] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
     std::stringstream fileName;
-    //fileName << "/home/ubuntu/evaluation/ADLog_" << INSTANCES << "Nodes_";
-    fileName << "/Users/Alex/Desktop/ADLog_" << INSTANCES << "Nodes_";
+    fileName << "/home/ubuntu/evaluation/ADLog_" << INSTANCES << "Nodes_";
     fileName << AdaptiveDiffusion::Eta << "Eta_" << AdaptiveDiffusion::maxDepth << "Depth_";
     fileName << months[timeStamp->tm_mon];
     fileName << std::setw(2) << std::setfill('0') << timeStamp->tm_mday << "__";

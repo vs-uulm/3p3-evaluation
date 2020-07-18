@@ -8,16 +8,10 @@
 #include "../utils/Utils.h"
 
 namespace AdaptiveDiffusion {
-    double p(uint16_t s, uint16_t h);
-
-    std::vector<uint8_t> generateVSToken(uint16_t s, uint16_t h, std::vector<uint8_t>& message);
-
-    size_t maxRemainingSteps(uint16_t s);
-
     extern bool floodAndPrune;
     extern size_t Eta;
     extern size_t maxDepth;
-    extern size_t RTT;
+    extern size_t propagationDelay;
 };
 
 
