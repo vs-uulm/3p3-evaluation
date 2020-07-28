@@ -151,7 +151,7 @@ void UnsecuredFinalRound::sharingPartOne(std::vector<std::vector<std::vector<uin
             share[0] = (slot & 0xFF00) >> 8;
             share[1] = (slot & 0x00FF);
             std::copy(shares[slot][memberIndex].begin(), shares[slot][memberIndex].end(), &share[2]);
-            OutgoingMessage sharingMessage(position->second.connectionID(), RoundTwoSharingOne, DCNetwork_.nodeID(),
+            OutgoingMessage sharingMessage(position->second.connectionID(), FinalRoundFirstSharing, DCNetwork_.nodeID(),
                                            share);
             DCNetwork_.outbox().push(std::move(sharingMessage));
         }
@@ -166,7 +166,7 @@ void UnsecuredFinalRound::sharingPartTwo() {
     while (remainingShares > 0) {
         auto sharingMessage = DCNetwork_.inbox().pop();
 
-        if (sharingMessage.msgType() == RoundTwoSharingOne) {
+        if (sharingMessage.msgType() == FinalRoundFirstSharing) {
 
             size_t slot = (sharingMessage.body()[0] << 8) | sharingMessage.body()[1];
             for (uint32_t p = 0; p < 4 + static_cast<uint32_t>(slots_[slot]); p++)
@@ -190,7 +190,7 @@ void UnsecuredFinalRound::sharingPartTwo() {
             addedShares[0] = (slot & 0xFF00) >> 8;
             addedShares[1] = (slot & 0x00FF);
             std::copy(S[slot].begin(), S[slot].end(), &addedShares[2]);
-            OutgoingMessage sharingMessage(position->second.connectionID(), RoundTwoSharingTwo, DCNetwork_.nodeID(),
+            OutgoingMessage sharingMessage(position->second.connectionID(), FinalRoundSecondSharing, DCNetwork_.nodeID(),
                                            addedShares);
             DCNetwork_.outbox().push(std::move(sharingMessage));
         }
@@ -204,7 +204,7 @@ void UnsecuredFinalRound::resultComputation() {
     while (remainingShares > 0) {
         auto sharingBroadcast = DCNetwork_.inbox().pop();
 
-        if (sharingBroadcast.msgType() == RoundTwoSharingTwo) {
+        if (sharingBroadcast.msgType() == FinalRoundSecondSharing) {
 
             size_t slot = (sharingBroadcast.body()[0]) | sharingBroadcast.body()[1];
 

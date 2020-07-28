@@ -12,7 +12,7 @@ int main(int argc, char** argv) {
         exit(1);
 
     uint32_t INSTANCES = atoi(argv[1]);
-
+    uint32_t iterations = 100;
     // wait for cleaner logging
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
@@ -82,167 +82,135 @@ int main(int argc, char** argv) {
         networkManager.sendMessage(nodeInfoMessage);
     }
 
-    // create the log file
+    std::vector<std::vector<std::pair<bool, std::vector<double>>>> runtimesInitialRound(INSTANCES);
+    for (auto &v : runtimesInitialRound)
+        v.reserve(iterations);
+
+    std::vector<std::vector<std::pair<bool, std::vector<double>>>> runtimesFinalRound(INSTANCES);
+    for (auto &v : runtimesFinalRound)
+        v.reserve(iterations);
+
+    bool secured;
+    uint32_t numThreads;
+    // collect log data
+    for (uint32_t i = 0; i < 2 * iterations * INSTANCES; i++) {
+        auto receivedMessage = inbox.pop();
+        if (receivedMessage.msgType() == DCLoggingMessage) {
+            std::pair<bool, std::vector<double>> nodeLog;
+            nodeLog.first = receivedMessage.body()[34];
+            std::vector<double> nodeRuntimes;
+            nodeRuntimes.push_back(*reinterpret_cast<double *>(&receivedMessage.body()[0]));
+            nodeRuntimes.push_back(*reinterpret_cast<double *>(&receivedMessage.body()[8]));
+            nodeRuntimes.push_back(*reinterpret_cast<double *>(&receivedMessage.body()[16]));
+            nodeRuntimes.push_back(*reinterpret_cast<double *>(&receivedMessage.body()[24]));
+            nodeLog.second = nodeRuntimes;
+            if (receivedMessage.body()[33] == 1)
+                runtimesInitialRound[receivedMessage.senderID()].push_back(nodeLog);
+            else
+                runtimesFinalRound[receivedMessage.senderID()].push_back(nodeLog);
+
+            if (i == 0) {
+                secured = receivedMessage.body()[32];
+                numThreads = receivedMessage.body()[35];
+            }
+        }
+    }
+    std::cout << "Saving logs" << std::endl;
+
+    // create the log files
     time_t now = time(0);
-    tm* timeStamp = localtime(&now);
+    tm *timeStamp = localtime(&now);
     std::string months[12] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
     std::stringstream fileName1;
+
     fileName1 << "/home/threePP/Log_";
     fileName1 << months[timeStamp->tm_mon];
-    fileName1 << std::setw(2) << std::setfill('0') << timeStamp->tm_mday << "__";
-    fileName1 << std::setw(2) << std::setfill('0') << timeStamp->tm_hour << "_";
-    fileName1 << std::setw(2) << std::setfill('0') << timeStamp->tm_min << "_";
-    fileName1 << std::setw(2) << std::setfill('0') << timeStamp->tm_sec << "_";
+    fileName1 << timeStamp->tm_mday << "__";
+    fileName1 << timeStamp->tm_hour << "_";
+    fileName1 << timeStamp->tm_min << "_";
+    fileName1 << timeStamp->tm_sec << "_";
+    fileName1 << (secured ? "Secured_" : "Unsecured_");
     fileName1 << INSTANCES << "Nodes_";
-    fileName1 << "Round1" << ".csv";
+    fileName1 << "Round1.csv";
 
     std::stringstream fileName2;
     fileName2 << "/home/threePP/Log_";
     fileName2 << months[timeStamp->tm_mon];
-    fileName2 << std::setw(2) << std::setfill('0') << timeStamp->tm_mday << "__";
-    fileName2 << std::setw(2) << std::setfill('0') << timeStamp->tm_hour << "_";
-    fileName2 << std::setw(2) << std::setfill('0') << timeStamp->tm_min << "_";
-    fileName2 << std::setw(2) << std::setfill('0') << timeStamp->tm_sec << "_";
+    fileName2 << timeStamp->tm_mday << "__";
+    fileName2 << timeStamp->tm_hour << "_";
+    fileName2 << timeStamp->tm_min << "_";
+    fileName2 << timeStamp->tm_sec << "_";
+    fileName2 << (secured ? "Secured_" : "Unsecured_");
     fileName2 << INSTANCES << "Nodes_";
     fileName2 << "Round2.csv";
 
-    std::stringstream fileName3;
-    fileName3 << "/home/threePP/Log_";
-    fileName3 << months[timeStamp->tm_mon];
-    fileName3 << std::setw(2) << std::setfill('0') << timeStamp->tm_mday << "__";
-    fileName3 << std::setw(2) << std::setfill('0') << timeStamp->tm_hour << "_";
-    fileName3 << std::setw(2) << std::setfill('0') << timeStamp->tm_min << "_";
-    fileName3 << std::setw(2) << std::setfill('0') << timeStamp->tm_sec << "_";
-    fileName3 << INSTANCES << "Nodes_";
-    fileName3 << "ProofOfFairness.csv";
-
     std::ofstream logFile1;
-    logFile1.open (fileName1.str());
+    logFile1.open(fileName1.str());
+
+    if (!logFile1.is_open()) {
+        std::cerr << "Error: could not open file" << std::endl;
+        exit(1);
+    }
 
     logFile1 << "Security,Threads,";
-    for(uint32_t i=0; i < INSTANCES; i++) {
+    for (uint32_t i = 0; i < INSTANCES; i++) {
         logFile1 << "Node" << i % INSTANCES << ",Preparation,SharingI,SharingII,Result,Total";
-        if(i < INSTANCES-1)
+        if (i < INSTANCES - 1)
             logFile1 << ",";
         else
             logFile1 << std::endl;
     }
 
     std::ofstream logFile2;
-    logFile2.open (fileName2.str());
+    logFile2.open(fileName2.str());
 
     logFile2 << "Security,Threads,";
-    for(uint32_t i=0; i < INSTANCES; i++) {
+    for (uint32_t i = 0; i < INSTANCES; i++) {
         logFile2 << "Node" << i % INSTANCES << ",Preparation,SharingI,SharingII,Result,Total";
-        if(i < INSTANCES-1)
+        if (i < INSTANCES - 1)
             logFile2 << ",";
         else
             logFile2 << std::endl;
     }
 
-    std::ofstream logFile3;
-    logFile3.open (fileName3.str());
 
-    logFile3 << "Outcome,";
-    for(uint32_t i=0; i < INSTANCES; i++) {
-        logFile3 << "Node" << i % INSTANCES << ",Commitments,CoinFlip,Proof,Total";
-        if(i < INSTANCES-1)
-            logFile3 << ",";
-        else
-            logFile3 << std::endl;
-    }
-
-    std::vector<std::pair<bool, std::vector<double>>> runtimes(INSTANCES);
-    uint32_t iterations = 100;
-    // collect log data
-    for(uint32_t i = 0; i < 2 * iterations * INSTANCES; i++) {
-        auto receivedMessage = inbox.pop();
-        if(receivedMessage.msgType() == DCLoggingMessage) {
-            runtimes[receivedMessage.senderID()].first = receivedMessage.body()[34];
-            std::vector<double> nodeRuntimes;
-            nodeRuntimes.push_back(*reinterpret_cast<double *>(&receivedMessage.body()[0]));
-            nodeRuntimes.push_back(*reinterpret_cast<double *>(&receivedMessage.body()[8]));
-            nodeRuntimes.push_back(*reinterpret_cast<double *>(&receivedMessage.body()[16]));
-            nodeRuntimes.push_back(*reinterpret_cast<double *>(&receivedMessage.body()[24]));
-            runtimes[receivedMessage.senderID()].second = nodeRuntimes;
-
-            if (((i + 1) % (2 * INSTANCES)) == 0) {
-                // set the security level for Round2
-                logFile2 << ((receivedMessage.body()[32] == 0) ? "unsecured" : "secured") << ",";
+    for (uint32_t i = 0; i < iterations; i++) {
+        for (uint32_t n = 0; n < INSTANCES; n++) {
+            // Final Round
+            if(n == 0) {
+                logFile2 << (secured ? "secured" : "unsecured") << ",";
                 // set the number of threads for Round2
-                logFile2 << (int) receivedMessage.body()[35] << ",";
-                // set runtimes and send flag
-                for (uint32_t j = 0; j < INSTANCES; j++) {
-                    if (runtimes[j].first)
-                        logFile2 << "sending,";
-                    else
-                        logFile2 << ",";
+                logFile2 << numThreads << ",";
+            }
+            // set runtimes and send flag
+            logFile2 << (runtimesFinalRound[n][i].first ? "sending," : ",");
 
-                    double total = 0;
-                    for (double runtime : runtimes[j].second) {
-                        total += runtime;
-                        logFile2 << runtime << ",";
-                    }
-                    logFile2 << total;
-                    if (j < INSTANCES - 1)
-                        logFile2 << ",";
-                    else
-                        logFile2 << std::endl;
-                }
-            } else if ((((i + 1) % INSTANCES) == 0)) {
-                // set the security level for Round1
-                logFile1 << ((receivedMessage.body()[32] == 0) ? "unsecured" : "secured") << ",";
+            double total = 0;
+            for (double runtime : runtimesFinalRound[n][i].second) {
+                total += runtime;
+                logFile2 << runtime << ",";
+            }
+            logFile2 << total << (n < INSTANCES-1 ? "," : "\n");
+
+            // Initial Round
+            if(n == 0) {
+                logFile1 << (secured ? "secured" : "unsecured") << ",";
                 // set the number of threads for Round1
-                logFile1 << (int) receivedMessage.body()[35] << ",";
-                // set runtimes and send flag
-                for (uint32_t j = 0; j < INSTANCES; j++) {
-                    if (runtimes[j].first)
-                        logFile1 << "sending,";
-                    else
-                        logFile1 << ",";
-
-                    double total = 0;
-                    for (double runtime : runtimes[j].second) {
-                        total += runtime;
-                        logFile1 << runtime << ",";
-                    }
-                    logFile1 << total;
-                    if (j < INSTANCES - 1)
-                        logFile1 << ",";
-                    else
-                        logFile1 << std::endl;
-                }
+                logFile1 << numThreads << ",";
             }
-        } else if(receivedMessage.msgType() == FairnessLoggingMessage) {
-            std::vector<double> nodeRuntimes;
-            nodeRuntimes.push_back(*reinterpret_cast<double *>(&receivedMessage.body()[0]));
-            nodeRuntimes.push_back(*reinterpret_cast<double *>(&receivedMessage.body()[8]));
-            nodeRuntimes.push_back(*reinterpret_cast<double *>(&receivedMessage.body()[16]));
-            runtimes[receivedMessage.senderID()].second = nodeRuntimes;
+            // set runtimes and send flag
+            logFile1 << (runtimesInitialRound[n][i].first ? "sending," : ",");
 
-            if ((((i + 1) % INSTANCES) == 0)) {
-                // set the outcome of the coin flip
-                logFile3 << ((receivedMessage.body()[24] == 0) ? "OpenCommitments" : "ProofOfKnowledge") << ",";
-                // set runtimes
-                for (uint32_t j = 0; j < INSTANCES; j++) {
-                    logFile3 << ",";
-                    double total = 0;
-                    for (double runtime : runtimes[j].second) {
-                        total += runtime;
-                        logFile3 << runtime << ",";
-                    }
-                    logFile3 << total;
-                    if (j < INSTANCES - 1)
-                        logFile3 << ",";
-                    else
-                        logFile3 << std::endl;
-                }
+            total = 0;
+            for (double runtime : runtimesInitialRound[n][i].second) {
+                total += runtime;
+                logFile1 << runtime << ",";
             }
+            logFile1 << total << (n < INSTANCES-1 ? "," : "\n");
         }
     }
     logFile1.close();
     logFile2.close();
-    logFile3.close();
     std::this_thread::sleep_for(std::chrono::seconds(1));
     exit(0);
 

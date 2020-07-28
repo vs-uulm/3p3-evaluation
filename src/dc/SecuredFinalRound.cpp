@@ -7,7 +7,7 @@
 #include "../datastruct/MessageType.h"
 #include "SecuredInitialRound.h"
 #include "../utils/Utils.h"
-#include "BlameProtocol.h"
+#include "BlameRound.h"
 
 std::mutex loggingMutex;
 
@@ -219,8 +219,8 @@ std::unique_ptr<DCState> SecuredFinalRound::executeTask() {
                         // validate the commitment
                         if ((C_.x != commitment.x) || (C_.y != commitment.y)) {
                             // Switch to the blame protocol as a victim
-                            return std::make_unique<BlameProtocol>(DCNetwork_, slotIndex_, slice, it->first,
-                                                                   seedPrivateKeys_[memberIndex], commitments_);
+                            return std::make_unique<BlameRound>(DCNetwork_, slotIndex_, slice, it->first,
+                                                                seedPrivateKeys_[memberIndex], commitments_);
                         }
                     }
                 }
@@ -228,7 +228,7 @@ std::unique_ptr<DCState> SecuredFinalRound::executeTask() {
         }
         if (!valid) {
             // Switch to the blame protocol as a witness
-            return std::make_unique<BlameProtocol>(DCNetwork_, commitments_);
+            return std::make_unique<BlameRound>(DCNetwork_, commitments_);
         }
     }
 
@@ -345,7 +345,7 @@ void SecuredFinalRound::sharingPartOne(std::vector<std::vector<std::vector<Crypt
                     if (position == DCNetwork_.members().end())
                         position = DCNetwork_.members().begin();
 
-                    OutgoingMessage commitBroadcast(position->second.connectionID(), RoundTwoCommitments,
+                    OutgoingMessage commitBroadcast(position->second.connectionID(), FinalRoundCommitments,
                                                     DCNetwork_.nodeID(), encodedCommitments);
                     DCNetwork_.outbox().push(std::move(commitBroadcast));
                 }
@@ -386,7 +386,7 @@ void SecuredFinalRound::sharingPartOne(std::vector<std::vector<std::vector<Crypt
                 }
                 auto commitBroadcast = DCNetwork_.inbox().pop();
 
-                if (commitBroadcast.msgType() == RoundTwoCommitments) {
+                if (commitBroadcast.msgType() == FinalRoundCommitments) {
                     std::vector<std::vector<CryptoPP::ECPPoint>> commitmentMatrix;
                     commitmentMatrix.reserve(k_);
 
@@ -457,7 +457,7 @@ void SecuredFinalRound::sharingPartOne(std::vector<std::vector<std::vector<Crypt
                         shares[slot][memberIndex][slice].Encode(&sharingMessage[offset + 32], 32);
                     }
 
-                    OutgoingMessage rsMessage(position->second.connectionID(), RoundTwoSharingOne, DCNetwork_.nodeID(),
+                    OutgoingMessage rsMessage(position->second.connectionID(), FinalRoundFirstSharing, DCNetwork_.nodeID(),
                                               sharingMessage);
                     DCNetwork_.outbox().push(std::move(rsMessage));
                 }
@@ -504,7 +504,7 @@ int SecuredFinalRound::sharingPartTwo() {
                 }
                 auto sharingMessage = DCNetwork_.inbox().pop();
 
-                if (sharingMessage.msgType() == RoundTwoSharingOne) {
+                if (sharingMessage.msgType() == FinalRoundFirstSharing) {
 
                     uint32_t slot = (sharingMessage.body()[0] << 8) | sharingMessage.body()[1];
                     size_t numSlices = S[slot].size();
@@ -593,7 +593,7 @@ int SecuredFinalRound::sharingPartTwo() {
                     if (position == DCNetwork_.members().end())
                         position = DCNetwork_.members().begin();
 
-                    OutgoingMessage rsBroadcast(position->second.connectionID(), RoundTwoSharingTwo,
+                    OutgoingMessage rsBroadcast(position->second.connectionID(), FinalRoundSecondSharing,
                                                 DCNetwork_.nodeID(),
                                                 broadcastSlot);
                     DCNetwork_.outbox().push(std::move(rsBroadcast));
@@ -640,7 +640,7 @@ std::vector<std::vector<uint8_t>> SecuredFinalRound::resultComputation() {
                 }
                 auto rsBroadcast = DCNetwork_.inbox().pop();
 
-                if (rsBroadcast.msgType() == RoundTwoSharingTwo) {
+                if (rsBroadcast.msgType() == FinalRoundSecondSharing) {
                     uint32_t memberIndex = std::distance(DCNetwork_.members().begin(),
                                                          DCNetwork_.members().find(rsBroadcast.senderID()));
 
@@ -706,7 +706,7 @@ std::vector<std::vector<uint8_t>> SecuredFinalRound::resultComputation() {
         if (position == DCNetwork_.members().end())
             position = DCNetwork_.members().begin();
 
-        OutgoingMessage finishedBroadcast(position->second.connectionID(), RoundTwoFinished,
+        OutgoingMessage finishedBroadcast(position->second.connectionID(), FinalRoundFinished,
                                           DCNetwork_.nodeID());
         DCNetwork_.outbox().push(std::move(finishedBroadcast));
     }
@@ -715,7 +715,7 @@ std::vector<std::vector<uint8_t>> SecuredFinalRound::resultComputation() {
     uint32_t remainingNodes = k_-1;
     while(remainingNodes > 0) {
         auto message = DCNetwork_.inbox().pop();
-        if(message.msgType() == RoundTwoFinished) {
+        if(message.msgType() == FinalRoundFinished) {
             remainingNodes--;
         } else if(message.msgType() == InvalidShare){
             SecuredFinalRound::handleBlameMessage(message);

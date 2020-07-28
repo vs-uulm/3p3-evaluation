@@ -1,10 +1,10 @@
 #include <cryptopp/oids.h>
-#include "BlameProtocol.h"
+#include "BlameRound.h"
 #include "FairnessProtocol.h"
 #include "InitState.h"
 #include "../datastruct/MessageType.h"
 
-BlameProtocol::BlameProtocol(DCNetwork &DCNet, std::unordered_map<uint32_t, std::vector<std::vector<std::vector<CryptoPP::ECPPoint>>>> oldCommitments)
+BlameRound::BlameRound(DCNetwork &DCNet, std::unordered_map<uint32_t, std::vector<std::vector<std::vector<CryptoPP::ECPPoint>>>> oldCommitments)
 : DCNetwork_(DCNet), k_(DCNetwork_.k()), slotIndex_(-1) {
 
     curve_.Initialize(CryptoPP::ASN1::secp256k1());
@@ -14,8 +14,8 @@ BlameProtocol::BlameProtocol(DCNetwork &DCNet, std::unordered_map<uint32_t, std:
 
 }
 
-BlameProtocol::BlameProtocol(DCNetwork &DCNet, int slotIndex, uint16_t sliceIndex, uint32_t suspiciousMember, CryptoPP::Integer seedPrivateKey,
-        std::unordered_map<uint32_t, std::vector<std::vector<std::vector<CryptoPP::ECPPoint>>>> oldCommitments)
+BlameRound::BlameRound(DCNetwork &DCNet, int slotIndex, uint16_t sliceIndex, uint32_t suspiciousMember, CryptoPP::Integer seedPrivateKey,
+                       std::unordered_map<uint32_t, std::vector<std::vector<std::vector<CryptoPP::ECPPoint>>>> oldCommitments)
         : DCNetwork_(DCNet), k_(DCNetwork_.k()), slotIndex_(slotIndex), sliceIndex_(sliceIndex), suspiciousMember_(suspiciousMember),
           seedPrivateKey_(seedPrivateKey), oldCommitments_(oldCommitments) {
 
@@ -26,10 +26,10 @@ BlameProtocol::BlameProtocol(DCNetwork &DCNet, int slotIndex, uint16_t sliceInde
 
 }
 
-BlameProtocol::~BlameProtocol() {}
+BlameRound::~BlameRound() {}
 
 
-std::unique_ptr<DCState> BlameProtocol::executeTask() {
+std::unique_ptr<DCState> BlameRound::executeTask() {
     size_t slotSize = 44;
     size_t numSlices = 2;
 
@@ -116,10 +116,10 @@ std::unique_ptr<DCState> BlameProtocol::executeTask() {
     }
 
     // generate and broadcast the commitments for the first round
-    BlameProtocol::sharingPartOne(shares);
+    BlameRound::sharingPartOne(shares);
 
     // collect and validate the shares
-    int result = BlameProtocol::sharingPartTwo();
+    int result = BlameRound::sharingPartTwo();
     //std::cout << "Sharing part two finished" << std::endl;
     // a blame message has been received
     if (result < 0) {
@@ -130,7 +130,7 @@ std::unique_ptr<DCState> BlameProtocol::executeTask() {
     }
 
     // collect and validate the final shares
-    std::vector<std::vector<uint8_t>> finalMessageVector = BlameProtocol::resultComputation();
+    std::vector<std::vector<uint8_t>> finalMessageVector = BlameRound::resultComputation();
     // Check if the protocol's execution has been interrupted by a blame message
     if (finalMessageVector.size() == 0) {
         // a blame message indicates that a member may have been excluded from the group
@@ -214,14 +214,14 @@ std::unique_ptr<DCState> BlameProtocol::executeTask() {
     if(invalidCRC) {
         std::cout << "Invalid CRC detected." << std::endl;
         std::cout << "Restarting Blame Protocol." << std::endl;
-        return std::make_unique<BlameProtocol>(DCNetwork_, slotIndex_, sliceIndex_, suspiciousMember_,
-                                               std::move(seedPrivateKey_), std::move(commitments_));
+        return std::make_unique<BlameRound>(DCNetwork_, slotIndex_, sliceIndex_, suspiciousMember_,
+                                            std::move(seedPrivateKey_), std::move(commitments_));
     }
 
     return std::make_unique<InitState>(DCNetwork_);
 }
 
-void BlameProtocol::sharingPartOne(std::vector<std::vector<std::vector<CryptoPP::Integer>>>& shares) {
+void BlameRound::sharingPartOne(std::vector<std::vector<std::vector<CryptoPP::Integer>>>& shares) {
     size_t numSlices = 2;
 
     rValues_.resize(2 * k_);
@@ -290,7 +290,7 @@ void BlameProtocol::sharingPartOne(std::vector<std::vector<std::vector<CryptoPP:
             position = DCNetwork_.members().begin();
 
         for (uint32_t slot = 0; slot < 2 * k_; slot++) {
-            OutgoingMessage commitBroadcast(position->second.connectionID(), BlameProtocolCommitments,
+            OutgoingMessage commitBroadcast(position->second.connectionID(), BlameRoundCommitments,
                                             DCNetwork_.nodeID(), encodedCommitments[slot]);
             DCNetwork_.outbox().push(std::move(commitBroadcast));
         }
@@ -309,7 +309,7 @@ void BlameProtocol::sharingPartOne(std::vector<std::vector<std::vector<CryptoPP:
     while (remainingCommitments > 0) {
         auto commitBroadcast = DCNetwork_.inbox().pop();
 
-        if (commitBroadcast.msgType() == BlameProtocolCommitments) {
+        if (commitBroadcast.msgType() == BlameRoundCommitments) {
 
             std::vector<std::vector<CryptoPP::ECPPoint>> commitmentMatrix;
             commitmentMatrix.reserve(k_);
@@ -357,21 +357,21 @@ void BlameProtocol::sharingPartOne(std::vector<std::vector<std::vector<CryptoPP:
                 shares[slot][memberIndex][slice].Encode(&sharingMessage[offset + 32], 32);
             }
 
-            OutgoingMessage rsMessage(position->second.connectionID(), BlameProtocolSharingOne, DCNetwork_.nodeID(),
+            OutgoingMessage rsMessage(position->second.connectionID(), BlameRoundFirstSharing, DCNetwork_.nodeID(),
                                       sharingMessage);
             DCNetwork_.outbox().push(std::move(rsMessage));
         }
     }
 }
 
-int BlameProtocol::sharingPartTwo() {
+int BlameRound::sharingPartTwo() {
     size_t numSlices = 2;
     // collect the shares from the other k-1 members and validate them using the broadcasted commitments
     uint32_t remainingShares = 2 * k_ * (k_ - 1);
     while (remainingShares > 0) {
         auto sharingMessage = DCNetwork_.inbox().pop();
 
-        if (sharingMessage.msgType() == BlameProtocolSharingOne) {
+        if (sharingMessage.msgType() == BlameRoundFirstSharing) {
 
             uint32_t slot = (sharingMessage.body()[0] << 8) | sharingMessage.body()[1];
 
@@ -385,7 +385,7 @@ int BlameProtocol::sharingPartTwo() {
                 if ((commitment.x != commitments_[sharingMessage.senderID()][slot][DCNetwork_.nodeID()][slice].x)
                     || (commitment.y != commitments_[sharingMessage.senderID()][slot][DCNetwork_.nodeID()][slice].y)) {
 
-                    BlameProtocol::injectBlameMessage(sharingMessage.senderID(), slot, slice, r, s);
+                    BlameRound::injectBlameMessage(sharingMessage.senderID(), slot, slice, r, s);
                     std::cout << "Invalid commitment detected 1" << std::endl;
                     return -1;
                 }
@@ -429,7 +429,7 @@ int BlameProtocol::sharingPartTwo() {
             position = DCNetwork_.members().begin();
 
         for (uint32_t slot = 0; slot < 2 * k_; slot++) {
-            OutgoingMessage rsBroadcast(position->second.connectionID(), BlameProtocolSharingTwo, DCNetwork_.nodeID(),
+            OutgoingMessage rsBroadcast(position->second.connectionID(), BlameRoundSecondSharing, DCNetwork_.nodeID(),
                                         sharingBroadcast[slot]);
             DCNetwork_.outbox().push(std::move(rsBroadcast));
         }
@@ -438,14 +438,14 @@ int BlameProtocol::sharingPartTwo() {
     return 0;
 }
 
-std::vector<std::vector<uint8_t>> BlameProtocol::resultComputation() {
+std::vector<std::vector<uint8_t>> BlameRound::resultComputation() {
     size_t numSlices = 2;
     // collect the added shares from the other k-1 members and validate them by adding the corresponding commitments
     uint32_t remainingShares = 2 * k_ * (k_ - 1);
     while (remainingShares > 0) {
         auto rsBroadcast = DCNetwork_.inbox().pop();
 
-        if (rsBroadcast.msgType() == BlameProtocolSharingTwo) {
+        if (rsBroadcast.msgType() == BlameRoundSecondSharing) {
             uint32_t memberIndex = std::distance(DCNetwork_.members().begin(),
                                                  DCNetwork_.members().find(rsBroadcast.senderID()));
 
@@ -466,7 +466,7 @@ std::vector<std::vector<uint8_t>> BlameProtocol::resultComputation() {
                 if ((commitment.x != addedCommitments.x) || (commitment.y != addedCommitments.y)) {
                     // broadcast a blame message which contains the invalid share along with the corresponding r values
                     std::cout << "Invalid commitment detected" << std::endl;
-                    BlameProtocol::injectBlameMessage(rsBroadcast.senderID(), slot, slice, R_, S_);
+                    BlameRound::injectBlameMessage(rsBroadcast.senderID(), slot, slice, R_, S_);
                     return std::vector<std::vector<uint8_t>>();
                 }
                 R[slot][slice] += R_;
@@ -475,7 +475,7 @@ std::vector<std::vector<uint8_t>> BlameProtocol::resultComputation() {
 
             remainingShares--;
         } else if (rsBroadcast.msgType() == InvalidShare) {
-            BlameProtocol::handleBlameMessage(rsBroadcast);
+            BlameRound::handleBlameMessage(rsBroadcast);
             std::cout << "Blame message received" << std::endl;
 
             return std::vector<std::vector<uint8_t>>();
@@ -485,18 +485,31 @@ std::vector<std::vector<uint8_t>> BlameProtocol::resultComputation() {
         }
     }
 
-    // validate the final commitments
-    for (uint32_t slot = 0; slot < 2 * k_; slot++) {
-        for (uint32_t slice = 0; slice < numSlices; slice++) {
-            R[slot][slice] = R[slot][slice].Modulo(curve_.GetGroupOrder());
-            S[slot][slice] = S[slot][slice].Modulo(curve_.GetGroupOrder());
+    // notify the other nodes that the execution was successful
+    auto position = DCNetwork_.members().find(DCNetwork_.nodeID());
+    for (uint32_t member = 0; member < k_ - 1; member++) {
+        position++;
+        if (position == DCNetwork_.members().end())
+            position = DCNetwork_.members().begin();
 
-            CryptoPP::ECPPoint commitment = commit(R[slot][slice], S[slot][slice]);
+        OutgoingMessage finishedBroadcast(position->second.connectionID(), BlameRoundFinished,
+                                          DCNetwork_.nodeID());
+        DCNetwork_.outbox().push(std::move(finishedBroadcast));
+    }
 
-            if ((C[slot][slice].x != commitment.x) || (C[slot][slice].y != commitment.y)) {
-                std::cout << "Final commitment invalid" << std::endl;
-                return std::vector<std::vector<uint8_t>>();
-            }
+    // wait for the remaining nodes to finish the second sharing phase and catch potential blame messages
+    uint32_t remainingNodes = k_-1;
+    while(remainingNodes > 0) {
+        auto message = DCNetwork_.inbox().pop();
+        if(message.msgType() == BlameRoundFinished) {
+            remainingNodes--;
+        } else if(message.msgType() == InvalidShare){
+            BlameRound::handleBlameMessage(message);
+            std::cout << "Blame message received" << std::endl;
+            return std::vector<std::vector<uint8_t>>();
+        } else {
+            DCNetwork_.inbox().push(message);
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
         }
     }
 
@@ -514,7 +527,7 @@ std::vector<std::vector<uint8_t>> BlameProtocol::resultComputation() {
     return finalMessageSlots;
 }
 
-void BlameProtocol::injectBlameMessage(uint32_t suspectID, uint32_t slot, uint32_t slice, CryptoPP::Integer &r, CryptoPP::Integer &s) {
+void BlameRound::injectBlameMessage(uint32_t suspectID, uint32_t slot, uint32_t slice, CryptoPP::Integer &r, CryptoPP::Integer &s) {
     std::vector<uint8_t> messageBody(76);
     // set the suspect's ID
     messageBody[0] = (suspectID & 0xFF000000) >> 24;
@@ -546,7 +559,7 @@ void BlameProtocol::injectBlameMessage(uint32_t suspectID, uint32_t slot, uint32
     }
 }
 
-void BlameProtocol::handleBlameMessage(ReceivedMessage &blameMessage) {
+void BlameRound::handleBlameMessage(ReceivedMessage &blameMessage) {
     std::vector<uint8_t> &body = blameMessage.body();
     // check which node is addressed by the blame message
     uint32_t suspectID = (body[0] << 24) | (body[1] << 16) | (body[2] << 8) | body[3];
@@ -579,7 +592,7 @@ void BlameProtocol::handleBlameMessage(ReceivedMessage &blameMessage) {
     }
 }
 
-CryptoPP::ECPPoint BlameProtocol::commit(CryptoPP::Integer &r, CryptoPP::Integer &s) {
+CryptoPP::ECPPoint BlameRound::commit(CryptoPP::Integer &r, CryptoPP::Integer &s) {
     CryptoPP::ECPPoint rG = curve_.GetCurve().ScalarMultiply(G, r);
     CryptoPP::ECPPoint sH = curve_.GetCurve().ScalarMultiply(H, s);
     CryptoPP::ECPPoint commitment = curve_.GetCurve().Add(rG, sH);

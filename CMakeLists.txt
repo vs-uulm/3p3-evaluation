@@ -32,7 +32,7 @@ add_executable(
         src/dc/FairnessProtocol.cpp
         src/network/UnsecuredP2PConnection.cpp
         src/network/UnsecuredNetworkManager.cpp
-        src/dc/BlameProtocol.cpp
+        src/dc/BlameRound.cpp
         src/ad/VirtualSource.cpp
         src/ad/AdaptiveDiffusion.cpp)
 
@@ -70,7 +70,7 @@ add_executable(
         src/dc/UnsecuredInitialRound.cpp
         src/dc/UnsecuredFinalRound.cpp
         src/dc/FairnessProtocol.cpp
-        src/dc/BlameProtocol.cpp
+        src/dc/BlameRound.cpp
         src/ad/VirtualSource.cpp
         src/ad/AdaptiveDiffusion.cpp
 )

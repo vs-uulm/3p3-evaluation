@@ -1,19 +1,19 @@
-#ifndef THREEPP_BLAMEPROTOCOL_H
-#define THREEPP_BLAMEPROTOCOL_H
+#ifndef THREEPP_BLAMEROUND_H
+#define THREEPP_BLAMEROUND_H
 
 #include <cryptopp/crc.h>
 #include <cryptopp/modes.h>
 #include "DCNetwork.h"
 #include "DCState.h"
 
-class BlameProtocol : public DCState {
+class BlameRound : public DCState {
 public:
-    BlameProtocol(DCNetwork& DCNet, std::unordered_map<uint32_t, std::vector<std::vector<std::vector<CryptoPP::ECPPoint>>>> oldCommitments);
+    BlameRound(DCNetwork& DCNet, std::unordered_map<uint32_t, std::vector<std::vector<std::vector<CryptoPP::ECPPoint>>>> oldCommitments);
 
-    BlameProtocol(DCNetwork& DCNet, int slot, uint16_t slice, uint32_t suspiciousMember_, CryptoPP::Integer seedPrivateKey,
-                  std::unordered_map<uint32_t, std::vector<std::vector<std::vector<CryptoPP::ECPPoint>>>> oldCommitments);
+    BlameRound(DCNetwork& DCNet, int slot, uint16_t slice, uint32_t suspiciousMember_, CryptoPP::Integer seedPrivateKey,
+               std::unordered_map<uint32_t, std::vector<std::vector<std::vector<CryptoPP::ECPPoint>>>> oldCommitments);
 
-    virtual ~BlameProtocol();
+    virtual ~BlameRound();
 
     virtual std::unique_ptr<DCState> executeTask();
 
@@ -72,4 +72,4 @@ private:
 };
 
 
-#endif //THREEPP_BLAMEPROTOCOL_H
+#endif //THREEPP_BLAMEROUND_H

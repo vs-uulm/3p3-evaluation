@@ -333,7 +333,7 @@ void SecuredInitialRound::sharingPartOne(std::vector<std::vector<std::vector<Cry
                     if (position == DCNetwork_.members().end())
                         position = DCNetwork_.members().begin();
 
-                    OutgoingMessage commitBroadcast(position->second.connectionID(), RoundOneCommitments,
+                    OutgoingMessage commitBroadcast(position->second.connectionID(), InitialRoundCommitments,
                                                     DCNetwork_.nodeID(), encodedCommitments);
                     DCNetwork_.outbox().push(std::move(commitBroadcast));
                 }
@@ -343,7 +343,6 @@ void SecuredInitialRound::sharingPartOne(std::vector<std::vector<std::vector<Cry
     }
 
     // prepare the commitment storage
-
     commitments_.reserve(k_);
     for (auto member = DCNetwork_.members().begin(); member != DCNetwork_.members().end(); member++) {
         if (member->first != DCNetwork_.nodeID()) {
@@ -375,7 +374,7 @@ void SecuredInitialRound::sharingPartOne(std::vector<std::vector<std::vector<Cry
                         break;
                 }
                 auto commitBroadcast = DCNetwork_.inbox().pop();
-                if (commitBroadcast.msgType() == RoundOneCommitments) {
+                if (commitBroadcast.msgType() == InitialRoundCommitments) {
 
                     std::vector<std::vector<CryptoPP::ECPPoint>> commitmentMatrix;
                     commitmentMatrix.resize(k_);
@@ -441,7 +440,7 @@ void SecuredInitialRound::sharingPartOne(std::vector<std::vector<std::vector<Cry
                         shares[slot][memberIndex][slice].Encode(&sharingMessage[offset + 32], 32);
                     }
 
-                    OutgoingMessage rsMessage(position->second.connectionID(), RoundOneSharingOne, DCNetwork_.nodeID(),
+                    OutgoingMessage rsMessage(position->second.connectionID(), InitialRoundFirstSharing, DCNetwork_.nodeID(),
                                               sharingMessage);
                     DCNetwork_.outbox().push(std::move(rsMessage));
                 }
@@ -485,7 +484,7 @@ int SecuredInitialRound::sharingPartTwo() {
                         break;
                 }
                 auto sharingMessage = DCNetwork_.inbox().pop();
-                if (sharingMessage.msgType() == RoundOneSharingOne) {
+                if (sharingMessage.msgType() == InitialRoundFirstSharing) {
 
                     uint32_t slot = (sharingMessage.body()[0] << 8) | sharingMessage.body()[1];
 
@@ -574,7 +573,7 @@ int SecuredInitialRound::sharingPartTwo() {
                     if (position == DCNetwork_.members().end())
                         position = DCNetwork_.members().begin();
 
-                    OutgoingMessage rsBroadcast(position->second.connectionID(), RoundOneSharingTwo,
+                    OutgoingMessage rsBroadcast(position->second.connectionID(), InitialRoundSecondSharing,
                                                 DCNetwork_.nodeID(),
                                                 broadcastSlot);
                     DCNetwork_.outbox().push(std::move(rsBroadcast));
@@ -621,7 +620,7 @@ std::vector<std::vector<uint8_t>> SecuredInitialRound::resultComputation() {
 
                 auto rsBroadcast = DCNetwork_.inbox().pop();
 
-                if (rsBroadcast.msgType() == RoundOneSharingTwo) {
+                if (rsBroadcast.msgType() == InitialRoundSecondSharing) {
                     uint32_t memberIndex = std::distance(DCNetwork_.members().begin(),
                                                          DCNetwork_.members().find(rsBroadcast.senderID()));
 
@@ -684,8 +683,8 @@ std::vector<std::vector<uint8_t>> SecuredInitialRound::resultComputation() {
         if (position == DCNetwork_.members().end())
             position = DCNetwork_.members().begin();
 
-        OutgoingMessage finishedBroadcast(position->second.connectionID(), RoundOneFinished,
-                                    DCNetwork_.nodeID());
+        OutgoingMessage finishedBroadcast(position->second.connectionID(), InitialRoundFinished,
+                                          DCNetwork_.nodeID());
         DCNetwork_.outbox().push(std::move(finishedBroadcast));
     }
 
@@ -693,7 +692,7 @@ std::vector<std::vector<uint8_t>> SecuredInitialRound::resultComputation() {
     uint32_t remainingNodes = k_-1;
     while(remainingNodes > 0) {
         auto message = DCNetwork_.inbox().pop();
-        if(message.msgType() == RoundOneFinished) {
+        if(message.msgType() == InitialRoundFinished) {
             remainingNodes--;
         } else if(message.msgType() == InvalidShare){
             SecuredInitialRound::handleBlameMessage(message);

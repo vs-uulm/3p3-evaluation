@@ -11,21 +11,22 @@ enum MessageType {
     HelloMessage,
     HelloResponse,
 
-    RoundOneCommitments,
-    RoundOneSharingOne,
-    RoundOneSharingTwo,
-    RoundOneFinished,
+    InitialRoundCommitments,
+    InitialRoundFirstSharing,
+    InitialRoundSecondSharing,
+    InitialRoundFinished,
 
-    RoundTwoCommitments,
-    RoundTwoSharingOne,
-    RoundTwoSharingTwo,
-    RoundTwoFinished,
+    FinalRoundCommitments,
+    FinalRoundFirstSharing,
+    FinalRoundSecondSharing,
+    FinalRoundFinished,
 
     InvalidShare,
 
-    BlameProtocolCommitments,
-    BlameProtocolSharingOne,
-    BlameProtocolSharingTwo,
+    BlameRoundCommitments,
+    BlameRoundFirstSharing,
+    BlameRoundSecondSharing,
+    BlameRoundFinished,
 
     ZeroKnowledgeCommitments,
     ZeroKnowledgeCoinCommitments,
