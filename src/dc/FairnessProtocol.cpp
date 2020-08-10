@@ -37,7 +37,6 @@ std::unique_ptr<DCState> FairnessProtocol::executeTask() {
 
     int result = FairnessProtocol::coinFlip();
     if (result < 0) {
-        // TODO clean up the inbox
         return std::make_unique<InitState>(DCNetwork_);
     }
 
@@ -53,7 +52,6 @@ std::unique_ptr<DCState> FairnessProtocol::executeTask() {
         result = FairnessProtocol::proofKnowledge();
 
     if (result < 0) {
-        // TODO clean up the inbox
         return std::make_unique<InitState>(DCNetwork_);
     }
 
@@ -71,7 +69,7 @@ std::unique_ptr<DCState> FairnessProtocol::executeTask() {
         // Outcome
         log[3 * sizeof(double)] = (outcome_ == OpenCommitments) ? 0 : 1;
 
-        OutgoingMessage logMessage(CENTRAL, FairnessLoggingMessage, DCNetwork_.nodeID(), std::move(log));
+        OutgoingMessage logMessage(CENTRAL, FairnessLogging, DCNetwork_.nodeID(), std::move(log));
         DCNetwork_.outbox().push(std::move(logMessage));
     }
 
@@ -117,7 +115,7 @@ int FairnessProtocol::coinFlip() {
         if (position == DCNetwork_.members().end())
             position = DCNetwork_.members().begin();
 
-        OutgoingMessage commitBroadcast(position->second.connectionID(), ZeroKnowledgeCoinCommitments,
+        OutgoingMessage commitBroadcast(position->second.connectionID(), MultipartyCoinFlipCommitments,
                                         DCNetwork_.nodeID(), encodedCommitments);
         DCNetwork_.outbox().push(std::move(commitBroadcast));
     }
@@ -133,7 +131,7 @@ int FairnessProtocol::coinFlip() {
     while (remainingCommitments > 0) {
         auto commitBroadcast = DCNetwork_.inbox().pop();
 
-        if (commitBroadcast.msgType() == ZeroKnowledgeCoinCommitments) {
+        if (commitBroadcast.msgType() == MultipartyCoinFlipCommitments) {
 
             std::vector<CryptoPP::ECPPoint> commitmentVector;
             commitmentVector.reserve(k_);
@@ -167,8 +165,8 @@ int FairnessProtocol::coinFlip() {
         rValues[memberIndex].Encode(&encodedShare[0], 32);
         shares[memberIndex].Encode(&encodedShare[32],32);
 
-        OutgoingMessage sharingMessage(position->second.connectionID(), ZeroKnowledgeCoinSharingOne,
-                                        DCNetwork_.nodeID(), encodedShare);
+        OutgoingMessage sharingMessage(position->second.connectionID(), MultipartyCoinFlipFirstSharing,
+                                       DCNetwork_.nodeID(), encodedShare);
         DCNetwork_.outbox().push(std::move(sharingMessage));
     }
 
@@ -177,7 +175,7 @@ int FairnessProtocol::coinFlip() {
     while (remainingShares > 0) {
         auto sharingMessage = DCNetwork_.inbox().pop();
 
-        if (sharingMessage.msgType() == ZeroKnowledgeCoinSharingOne) {
+        if (sharingMessage.msgType() == MultipartyCoinFlipFirstSharing) {
 
             CryptoPP::Integer r(&sharingMessage.body()[0], 32);
             CryptoPP::Integer s(&sharingMessage.body()[32], 32);
@@ -216,7 +214,7 @@ int FairnessProtocol::coinFlip() {
         if (position == DCNetwork_.members().end())
             position = DCNetwork_.members().begin();
 
-        OutgoingMessage sharingMessage(position->second.connectionID(), ZeroKnowledgeCoinSharingTwo,
+        OutgoingMessage sharingMessage(position->second.connectionID(), MultipartyCoinFlipSecondSharing,
                                        DCNetwork_.nodeID(), encodedShare);
         DCNetwork_.outbox().push(std::move(sharingMessage));
     }
@@ -225,7 +223,7 @@ int FairnessProtocol::coinFlip() {
     while (remainingShares > 0) {
         auto sharingMessage = DCNetwork_.inbox().pop();
 
-        if (sharingMessage.msgType() == ZeroKnowledgeCoinSharingTwo) {
+        if (sharingMessage.msgType() == MultipartyCoinFlipSecondSharing) {
 
             CryptoPP::Integer r(&sharingMessage.body()[0], 32);
             CryptoPP::Integer s(&sharingMessage.body()[32], 32);
@@ -323,7 +321,7 @@ void FairnessProtocol::distributeCommitments() {
             position = DCNetwork_.members().begin();
 
         for (uint32_t slot = 0; slot < 2 * k_; slot++) {
-            OutgoingMessage commitBroadcast(position->second.connectionID(), ZeroKnowledgeCommitments,
+            OutgoingMessage commitBroadcast(position->second.connectionID(), ProofOfFairnessCommitments,
                                             DCNetwork_.nodeID(), encodedCommitments[slot]);
             DCNetwork_.outbox().push(std::move(commitBroadcast));
         }
@@ -342,7 +340,7 @@ void FairnessProtocol::distributeCommitments() {
     while (remainingCommitments > 0) {
         auto commitBroadcast = DCNetwork_.inbox().pop();
 
-        if (commitBroadcast.msgType() == ZeroKnowledgeCommitments) {
+        if (commitBroadcast.msgType() == ProofOfFairnessCommitments) {
 
             std::vector<CryptoPP::ECPPoint> commitmentVector;
             commitmentVector.reserve(numSlices_);
@@ -392,7 +390,7 @@ int FairnessProtocol::openCommitments() {
             position = DCNetwork_.members().begin();
 
         for (uint32_t slot = 0; slot < 2 * k_ - 1; slot++) {
-            OutgoingMessage commitBroadcast(position->second.connectionID(), ZeroKnowledgeOpenCommitments,
+            OutgoingMessage commitBroadcast(position->second.connectionID(), ProofOfFairnessOpenCommitments,
                                             DCNetwork_.nodeID(), encodedRhoMatrix[slot]);
             DCNetwork_.outbox().push(std::move(commitBroadcast));
         }
@@ -403,7 +401,7 @@ int FairnessProtocol::openCommitments() {
     while (remainingValidations > 0) {
         auto receivedMessage = DCNetwork_.inbox().pop();
 
-        if (receivedMessage.msgType() == ZeroKnowledgeOpenCommitments) {
+        if (receivedMessage.msgType() == ProofOfFairnessOpenCommitments) {
             uint32_t slot = (receivedMessage.body()[0] << 8) | receivedMessage.body()[1];
 
             for (uint32_t slice = 0, offset = 2; slice < numSlices_; slice++, offset += 32) {
@@ -480,7 +478,7 @@ int FairnessProtocol::proofKnowledge() {
             position = DCNetwork_.members().begin();
 
         for (uint32_t slot = 0; slot < 2 * k_; slot++) {
-            OutgoingMessage sigmaBroadcast(position->second.connectionID(), ZeroKnowledgeSigmaExchange,
+            OutgoingMessage sigmaBroadcast(position->second.connectionID(), ProofOfFairnessSigmaExchange,
                                            DCNetwork_.nodeID(), encodedSigmas[slot]);
             DCNetwork_.outbox().push(std::move(sigmaBroadcast));
         }
@@ -506,7 +504,7 @@ int FairnessProtocol::proofKnowledge() {
     while (remainingMessages > 0) {
         auto sigmaBroadcast = DCNetwork_.inbox().pop();
 
-        if (sigmaBroadcast.msgType() == ZeroKnowledgeSigmaExchange) {
+        if (sigmaBroadcast.msgType() == ProofOfFairnessSigmaExchange) {
 
             std::vector<CryptoPP::ECPPoint> sigmaVector;
             sigmaVector.reserve(numSlices_);
@@ -564,7 +562,7 @@ int FairnessProtocol::proofKnowledge() {
             position = DCNetwork_.members().begin();
 
         for (uint32_t slot = 0; slot < 2 * k_; slot++) {
-            OutgoingMessage zBroadcast(position->second.connectionID(), ZeroKnowledgeSigmaResponse,
+            OutgoingMessage zBroadcast(position->second.connectionID(), ProofOfFairnessSigmaResponse,
                                        DCNetwork_.nodeID(), zEncoded[slot]);
             DCNetwork_.outbox().push(std::move(zBroadcast));
         }
@@ -582,7 +580,7 @@ int FairnessProtocol::proofKnowledge() {
     while (remainingMessages > 0) {
         auto zBroadcast = DCNetwork_.inbox().pop();
 
-        if (zBroadcast.msgType() == ZeroKnowledgeSigmaResponse) {
+        if (zBroadcast.msgType() == ProofOfFairnessSigmaResponse) {
 
             std::vector<CryptoPP::Integer> zVector;
             zVector.reserve(numSlices_);
@@ -656,7 +654,7 @@ int FairnessProtocol::proofKnowledge() {
             position = DCNetwork_.members().begin();
 
         for (uint32_t slot = 0; slot < 2 * k_; slot++) {
-            OutgoingMessage wBroadcast(position->second.connectionID(), ZeroKnowledgeSigmaProof,
+            OutgoingMessage wBroadcast(position->second.connectionID(), ProofOfFairnessZeroKnowledgeProof,
                                        DCNetwork_.nodeID(), wEncoded[position->first][slot]);
             DCNetwork_.outbox().push(std::move(wBroadcast));
         }
@@ -667,7 +665,7 @@ int FairnessProtocol::proofKnowledge() {
     while (remainingValidations > 0) {
         auto wBroadcast = DCNetwork_.inbox().pop();
 
-        if (wBroadcast.msgType() == ZeroKnowledgeSigmaProof) {
+        if (wBroadcast.msgType() == ProofOfFairnessZeroKnowledgeProof) {
 
             uint32_t slot = (wBroadcast.body()[0] << 8) | wBroadcast.body()[1];
 

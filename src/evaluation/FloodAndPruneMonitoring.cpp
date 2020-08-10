@@ -8,12 +8,12 @@
 #include <boost/tokenizer.hpp>
 
 #include "../network/P2PConnection.h"
-#include "../network/NetworkManager.h"
+#include "../network/SecuredNetworkManager.h"
 #include "../network/MessageHandler.h"
 #include "../dc/DCNetwork.h"
 #include "../datastruct/MessageType.h"
 #include "../utils/Utils.h"
-#include "../network/UnsecuredNetworkManager.h"
+#include "../network/NetworkManager.h"
 
 std::mutex logging_mutex;
 
@@ -75,7 +75,7 @@ void instance(int ID) {
         nodeID_ = nodes[ID].nodeID();
     }
 
-    UnsecuredNetworkManager networkManager(io_context_, port_, inboxThreePP);
+    NetworkManager networkManager(io_context_, port_, inboxThreePP);
     // Run the io_context which handles the network manager
     std::thread networkThread([&io_context_]() {
         io_context_.run();

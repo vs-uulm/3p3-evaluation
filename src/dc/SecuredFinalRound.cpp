@@ -48,101 +48,23 @@ SecuredFinalRound::~SecuredFinalRound() {}
 std::unique_ptr<DCState> SecuredFinalRound::executeTask() {
     std::vector<double> runtimes;
     auto start = std::chrono::high_resolution_clock::now();
+    // generate the shares
+    SecuredFinalRound::preparation();
 
-    size_t numSlots = slots_.size();
-
-    std::vector<size_t> numSlices;
-    numSlices.reserve(numSlots);
-    // determine the number of slices for each slot individually
-    for (uint32_t i = 0; i < numSlots; i++)
-        numSlices.push_back(std::ceil((4 + slots_[i]) / 31.0));
-
-    std::vector<CryptoPP::Integer> messageSlices;
-
-    if (slotIndex_ > -1) {
-        std::vector<uint8_t> submittedMessage = DCNetwork_.submittedMessages().front();
-        DCNetwork_.submittedMessages().pop();
-
-        // Split the submitted message into slices of 31 Bytes
-        messageSlices.reserve(numSlices[slotIndex_]);
-
-        std::vector<uint8_t> messageSlot(4 + slots_[slotIndex_]);
-        // Calculate the CRC
-        CRC32_.Update(submittedMessage.data(), slots_[slotIndex_]);
-        CRC32_.Final(messageSlot.data());
-
-        std::copy(submittedMessage.begin(), submittedMessage.end(), &messageSlot[4]);
-
-        for (uint32_t i = 0; i < numSlices[slotIndex_]; i++) {
-            size_t sliceSize = ((messageSlot.size() - 31 * i > 31) ? 31 : messageSlot.size() - 31 * i);
-            CryptoPP::Integer slice(&messageSlot[31 * i], sliceSize);
-            messageSlices.push_back(std::move(slice));
-        }
-    }
-
-    std::vector<std::vector<std::vector<CryptoPP::Integer>>> shares;
-    shares.resize(numSlots);
-    for (uint32_t slot = 0; slot < numSlots; slot++) {
-        shares[slot].resize(k_);
-
-        // initialize the slices of the k-th share with zeroes
-        // except the slices of the own message slot
-        if (static_cast<uint32_t>(slotIndex_) == slot) {
-            for (uint32_t slice = 0; slice < numSlices[slot]; slice++)
-                shares[slot][k_ - 1].push_back(messageSlices[slice]);
-        } else {
-            for (uint32_t slice = 0; slice < numSlices[slot]; slice++)
-                shares[slot][k_ - 1].push_back(CryptoPP::Integer::Zero());
-        }
-
-        // fill the first slices of the first k-1 shares with random values
-        // and subtract the values from the corresponding slices in the k-th share
-        for (uint32_t share = 0; share < k_ - 1; share++) {
-            shares[slot][share].reserve(numSlices[slot]);
-
-            for (uint32_t slice = 0; slice < numSlices[slot]; slice++) {
-                CryptoPP::Integer r(PRNG, CryptoPP::Integer::One(), curve.GetMaxExponent());
-                // subtract the value from the corresponding slice in the k-th share
-                shares[slot][k_ - 1][slice] -= r;
-                // store the random value in the slice of this share
-                shares[slot][share].push_back(std::move(r));
-            }
-        }
-
-        // reduce the slices in the k-th share
-        for (uint32_t slice = 0; slice < numSlices[slot]; slice++)
-            shares[slot][k_ - 1][slice] = shares[slot][k_ - 1][slice].Modulo(curve.GetGroupOrder());
-    }
-
-    // initialize the slices in the slots of the final share with the slices of the own share
-    S.resize(numSlots);
-
-    for (uint32_t slot = 0; slot < numSlots; slot++) {
-        S[slot].reserve(numSlices[slot]);
-
-        for (uint32_t slice = 0; slice < numSlices[slot]; slice++)
-            S[slot].push_back(shares[slot][nodeIndex_][slice]);
-    }
-
-    // determine the total number of slices
-    size_t totalNumSlices = 0;
-    for (auto &slot : shares)
-        totalNumSlices += slot[0].size();
-
-    // logging
     auto finished = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = finished - start;
     runtimes.push_back(elapsed.count());
+
     start = std::chrono::high_resolution_clock::now();
+    // generate and distribute the commitments and shares
+    SecuredFinalRound::sharingPartOne();
 
-    SecuredFinalRound::sharingPartOne(shares);
-
-    // logging
     finished = std::chrono::high_resolution_clock::now();
     elapsed = finished - start;
     runtimes.push_back(elapsed.count());
-    start = std::chrono::high_resolution_clock::now();
 
+    start = std::chrono::high_resolution_clock::now();
+    // collect and validate the shares
     int result = SecuredFinalRound::sharingPartTwo();
     // a blame message has been received
     if (result < 0) {
@@ -151,14 +73,14 @@ std::unique_ptr<DCState> SecuredFinalRound::executeTask() {
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
         return std::make_unique<InitState>(DCNetwork_);
     }
-
-    // logging
     finished = std::chrono::high_resolution_clock::now();
     elapsed = finished - start;
     runtimes.push_back(elapsed.count());
-    start = std::chrono::high_resolution_clock::now();
 
+    start = std::chrono::high_resolution_clock::now();
+    // collect and validate the final shares
     std::vector<std::vector<uint8_t>> finalMessages = SecuredFinalRound::resultComputation();
+
     if (finalMessages.size() == 0) {
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
         DCNetwork_.inbox().clear();
@@ -253,7 +175,7 @@ std::unique_ptr<DCState> SecuredFinalRound::executeTask() {
         //numThreads
         log[4 * sizeof(double) + 3] = DCNetwork_.numThreads();
 
-        OutgoingMessage logMessage(CENTRAL, DCLoggingMessage, DCNetwork_.nodeID(), std::move(log));
+        OutgoingMessage logMessage(CENTRAL, DCNetworkLogging, DCNetwork_.nodeID(), std::move(log));
         DCNetwork_.outbox().push(std::move(logMessage));
     }
 
@@ -275,14 +197,90 @@ std::unique_ptr<DCState> SecuredFinalRound::executeTask() {
     // pass the final message through the message handler to store it in the message buffer
     for (auto &slot : finalMessages) {
         std::vector<uint8_t> message(slot.begin() + 4, slot.end());
-        OutgoingMessage finalMessage(SELF, FinalDCMessage, SELF, std::move(message));
+        OutgoingMessage finalMessage(SELF, DCNetworkReceived, SELF, std::move(message));
         DCNetwork_.outbox().push(std::move(finalMessage));
     }
 
     return std::make_unique<SecuredInitialRound>(DCNetwork_);
 }
 
-void SecuredFinalRound::sharingPartOne(std::vector<std::vector<std::vector<CryptoPP::Integer>>> &shares) {
+void SecuredFinalRound::preparation() {
+    size_t numSlots = slots_.size();
+
+    std::vector<size_t> numSlices;
+    numSlices.reserve(numSlots);
+    // determine the number of slices for each slot individually
+    for (uint32_t i = 0; i < numSlots; i++)
+        numSlices.push_back(std::ceil((4 + slots_[i]) / 31.0));
+
+    std::vector<CryptoPP::Integer> messageSlices;
+
+    if (slotIndex_ > -1) {
+        std::vector<uint8_t> submittedMessage = DCNetwork_.submittedMessages().front();
+        DCNetwork_.submittedMessages().pop();
+
+        // Split the submitted message into slices of 31 Bytes
+        messageSlices.reserve(numSlices[slotIndex_]);
+
+        std::vector<uint8_t> messageSlot(4 + slots_[slotIndex_]);
+        // Calculate the CRC
+        CRC32_.Update(submittedMessage.data(), slots_[slotIndex_]);
+        CRC32_.Final(messageSlot.data());
+
+        std::copy(submittedMessage.begin(), submittedMessage.end(), &messageSlot[4]);
+
+        for (uint32_t i = 0; i < numSlices[slotIndex_]; i++) {
+            size_t sliceSize = ((messageSlot.size() - 31 * i > 31) ? 31 : messageSlot.size() - 31 * i);
+            CryptoPP::Integer slice(&messageSlot[31 * i], sliceSize);
+            messageSlices.push_back(std::move(slice));
+        }
+    }
+
+    shares_.resize(numSlots);
+    for (uint32_t slot = 0; slot < numSlots; slot++) {
+        shares_[slot].resize(k_);
+
+        // initialize the slices of the k-th share with zeroes
+        // except the slices of the own message slot
+        if (static_cast<uint32_t>(slotIndex_) == slot) {
+            for (uint32_t slice = 0; slice < numSlices[slot]; slice++)
+                shares_[slot][k_ - 1].push_back(messageSlices[slice]);
+        } else {
+            for (uint32_t slice = 0; slice < numSlices[slot]; slice++)
+                shares_[slot][k_ - 1].push_back(CryptoPP::Integer::Zero());
+        }
+
+        // fill the first slices of the first k-1 shares with random values
+        // and subtract the values from the corresponding slices in the k-th share
+        for (uint32_t share = 0; share < k_ - 1; share++) {
+            shares_[slot][share].reserve(numSlices[slot]);
+
+            for (uint32_t slice = 0; slice < numSlices[slot]; slice++) {
+                CryptoPP::Integer r(PRNG, CryptoPP::Integer::One(), curve.GetMaxExponent());
+                // subtract the value from the corresponding slice in the k-th share
+                shares_[slot][k_ - 1][slice] -= r;
+                // store the random value in the slice of this share
+                shares_[slot][share].push_back(std::move(r));
+            }
+        }
+
+        // reduce the slices in the k-th share
+        for (uint32_t slice = 0; slice < numSlices[slot]; slice++)
+            shares_[slot][k_ - 1][slice] = shares_[slot][k_ - 1][slice].Modulo(curve.GetGroupOrder());
+    }
+
+    // initialize the slices in the slots of the final share with the slices of the own share
+    S.resize(numSlots);
+
+    for (uint32_t slot = 0; slot < numSlots; slot++) {
+        S[slot].reserve(numSlices[slot]);
+
+        for (uint32_t slice = 0; slice < numSlices[slot]; slice++)
+            S[slot].push_back(shares_[slot][nodeIndex_][slice]);
+    }
+}
+
+void SecuredFinalRound::sharingPartOne() {
     size_t numSlots = slots_.size();
 
     size_t encodedPointSize = curve.GetCurve().EncodedPointSize(true);
@@ -325,7 +323,7 @@ void SecuredFinalRound::sharingPartOne(std::vector<std::vector<std::vector<Crypt
 
                         // generate the commitment for the j-th slice of the i-th share
                         CryptoPP::ECPPoint rG = threadCurve.GetCurve().ScalarMultiply(G, rValues_[slot][share][slice]);
-                        CryptoPP::ECPPoint sH = threadCurve.GetCurve().ScalarMultiply(H, shares[slot][share][slice]);
+                        CryptoPP::ECPPoint sH = threadCurve.GetCurve().ScalarMultiply(H, shares_[slot][share][slice]);
                         CryptoPP::ECPPoint commitment = threadCurve.GetCurve().Add(rG, sH);
 
                         // store the commitment
@@ -454,7 +452,7 @@ void SecuredFinalRound::sharingPartOne(std::vector<std::vector<std::vector<Crypt
 
                     for (uint32_t slice = 0, offset = 2; slice < numSlices; slice++, offset += 64) {
                         rValues_[slot][memberIndex][slice].Encode(&sharingMessage[offset], 32);
-                        shares[slot][memberIndex][slice].Encode(&sharingMessage[offset + 32], 32);
+                        shares_[slot][memberIndex][slice].Encode(&sharingMessage[offset + 32], 32);
                     }
 
                     OutgoingMessage rsMessage(position->second.connectionID(), FinalRoundFirstSharing, DCNetwork_.nodeID(),

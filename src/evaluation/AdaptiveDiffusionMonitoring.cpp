@@ -8,12 +8,12 @@
 #include <boost/tokenizer.hpp>
 
 #include "../network/P2PConnection.h"
-#include "../network/NetworkManager.h"
+#include "../network/SecuredNetworkManager.h"
 #include "../network/MessageHandler.h"
 #include "../dc/DCNetwork.h"
 #include "../datastruct/MessageType.h"
 #include "../utils/Utils.h"
-#include "../network/UnsecuredNetworkManager.h"
+#include "../network/NetworkManager.h"
 #include "../ad/AdaptiveDiffusion.h"
 #include "../ad/VirtualSource.h"
 
@@ -31,8 +31,7 @@ std::unordered_map<std::string, std::vector<double>> sharedArrivalTimes;
 
 std::vector<std::vector<uint32_t>> getTopology(uint32_t graphIndex) {
     std::stringstream fileName;
-    fileName << "/Users/Alex/three-phase-protocol-implementation/sample_topologies/";
-    //fileName << "/home/ubuntu/three-phase-protocol-implementation/sample_topologies/";
+    fileName << "/home/ubuntu/three-phase-protocol-implementation/sample_topologies/";
     fileName << INSTANCES;
     fileName << "Nodes/Graph";
     fileName << graphIndex;
@@ -79,7 +78,7 @@ void instance(int ID) {
         nodeID_ = nodes[ID].nodeID();
     }
 
-    UnsecuredNetworkManager networkManager(io_context_, port_, inboxThreePP);
+    NetworkManager networkManager(io_context_, port_, inboxThreePP);
     // Run the io_context which handles the network manager
     std::thread networkThread([&io_context_]() {
         io_context_.run();
@@ -106,7 +105,7 @@ void instance(int ID) {
         std::cout << "First Wait" << std::endl;
     std::this_thread::sleep_for(std::chrono::seconds(5));
 
-    std::vector<uint32_t>& neighbors = networkManager.neighbors();
+    std::vector<uint32_t> neighbors = networkManager.neighbors();
 
     // start the message handler in a separate thread
     MessageHandler messageHandler(nodeID_, neighbors, inboxThreePP, inboxDC, outboxThreePP, outboxFinal, 100, 128);
@@ -171,13 +170,13 @@ void instance(int ID) {
 
             // circumvent the message handler
             outboxFinal.push(message);
-            ReceivedMessage msg(0, AdaptiveDiffusionMessage, SELF, message);
+            ReceivedMessage msg(0, AdaptiveDiffusionForward, SELF, message);
             msg.timestamp(std::chrono::system_clock::now());
             inboxThreePP.push(std::move(msg));
 
             uint32_t v_next = PRNG.GenerateWord32(2, neighbors.size() - 1);
 
-            OutgoingMessage initialADMessage(v_next, AdaptiveDiffusionMessage, nodeID_, message);
+            OutgoingMessage initialADMessage(v_next, AdaptiveDiffusionForward, nodeID_, message);
             outboxThreePP.push(initialADMessage);
 
             std::vector<uint8_t> VSToken = VirtualSource::generateVSToken(1, 1, message);
@@ -200,7 +199,8 @@ void instance(int ID) {
     }
 
     std::this_thread::sleep_for(std::chrono::seconds(5));
-    // clean up
+
+    /* Clean Up */
     networkManager.terminate();
     io_context_.stop();
     networkThread.join();
@@ -258,8 +258,7 @@ int main() {
     tm *timeStamp = localtime(&now);
     std::string months[12] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
     std::stringstream fileName;
-    fileName << "/Users/Alex/Desktop/ADLog_" << INSTANCES << "Nodes_";
-    //fileName << "/home/ubuntu/evaluation/ADLog_" << INSTANCES << "Nodes_";
+    fileName << "/home/ubuntu/evaluation/ADLog_" << INSTANCES << "Nodes_";
     fileName << AdaptiveDiffusion::Eta << "Eta_" << AdaptiveDiffusion::maxDepth << "Depth_";
     fileName << months[timeStamp->tm_mon];
     fileName << std::setw(2) << std::setfill('0') << timeStamp->tm_mday << "__";

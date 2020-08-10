@@ -10,11 +10,11 @@ include_directories(/usr/local/include)
 # local test
 add_executable(
         threePP
-        src/test/mainTest.cpp
+        src/test/ThreePP.cpp
         src/network/Node.cpp
         src/network/P2PConnection.cpp
         src/datastruct/OutgoingMessage.cpp
-        src/network/NetworkManager.cpp
+        src/network/SecuredNetworkManager.cpp
         src/datastruct/MessageBuffer.cpp
         src/network/MessageHandler.cpp
         src/datastruct/ReceivedMessage.cpp
@@ -31,7 +31,7 @@ add_executable(
         src/dc/UnsecuredFinalRound.cpp
         src/dc/FairnessProtocol.cpp
         src/network/UnsecuredP2PConnection.cpp
-        src/network/UnsecuredNetworkManager.cpp
+        src/network/NetworkManager.cpp
         src/dc/BlameRound.cpp
         src/ad/VirtualSource.cpp
         src/ad/AdaptiveDiffusion.cpp)
@@ -52,9 +52,9 @@ add_executable(
         src/network/Node.cpp
         src/network/P2PConnection.cpp
         src/datastruct/OutgoingMessage.cpp
-        src/network/NetworkManager.cpp
+        src/network/SecuredNetworkManager.cpp
         src/network/UnsecuredP2PConnection.cpp
-        src/network/UnsecuredNetworkManager.cpp
+        src/network/NetworkManager.cpp
         src/datastruct/MessageBuffer.cpp
         src/network/MessageHandler.cpp
         src/datastruct/ReceivedMessage.cpp
@@ -90,9 +90,9 @@ add_executable(
         src/network/Node.cpp
         src/network/P2PConnection.cpp
         src/datastruct/OutgoingMessage.cpp
-        src/network/NetworkManager.cpp
+        src/network/SecuredNetworkManager.cpp
         src/network/UnsecuredP2PConnection.cpp
-        src/network/UnsecuredNetworkManager.cpp
+        src/network/NetworkManager.cpp
         src/datastruct/ReceivedMessage.cpp
         src/datastruct/NetworkMessage.cpp
 )
@@ -128,14 +128,14 @@ add_executable(
         src/network/Node.cpp
         src/network/P2PConnection.cpp
         src/datastruct/OutgoingMessage.cpp
-        src/network/NetworkManager.cpp
+        src/network/SecuredNetworkManager.cpp
         src/datastruct/MessageBuffer.cpp
         src/network/MessageHandler.cpp
         src/datastruct/ReceivedMessage.cpp
         src/datastruct/MessageType.h
         src/datastruct/NetworkMessage.cpp
         src/network/UnsecuredP2PConnection.cpp
-        src/network/UnsecuredNetworkManager.cpp
+        src/network/NetworkManager.cpp
         src/utils/Utils.cpp
         src/ad/VirtualSource.cpp
         src/ad/AdaptiveDiffusion.cpp
@@ -156,7 +156,7 @@ add_executable(
         src/network/Node.cpp
         src/network/P2PConnection.cpp
         src/datastruct/OutgoingMessage.cpp
-        src/network/NetworkManager.cpp
+        src/network/SecuredNetworkManager.cpp
         src/datastruct/MessageBuffer.cpp
         src/network/MessageHandler.cpp
         src/datastruct/ReceivedMessage.cpp
@@ -165,7 +165,7 @@ add_executable(
         src/datastruct/NetworkMessage.cpp
         src/ad/AdaptiveDiffusion.cpp
         src/network/UnsecuredP2PConnection.cpp
-        src/network/UnsecuredNetworkManager.cpp
+        src/network/NetworkManager.cpp
         src/ad/VirtualSource.cpp
         src/ad/AdaptiveDiffusion.cpp
 )
@@ -185,7 +185,7 @@ add_executable(
         src/network/Node.cpp
         src/network/P2PConnection.cpp
         src/datastruct/OutgoingMessage.cpp
-        src/network/NetworkManager.cpp
+        src/network/SecuredNetworkManager.cpp
         src/datastruct/MessageBuffer.cpp
         src/network/MessageHandler.cpp
         src/datastruct/ReceivedMessage.cpp
@@ -195,7 +195,7 @@ add_executable(
         src/ad/VirtualSource.cpp
         src/ad/AdaptiveDiffusion.cpp
         src/network/UnsecuredP2PConnection.cpp
-        src/network/UnsecuredNetworkManager.cpp
+        src/network/NetworkManager.cpp
 )
 
 target_link_libraries(

@@ -14,7 +14,9 @@ public:
     virtual std::unique_ptr<DCState> executeTask();
 
 private:
-    void sharingPartOne(std::vector<std::vector<std::vector<uint8_t>>>& shares);
+    void preparation();
+
+    void sharingPartOne();
 
     void sharingPartTwo();
 
@@ -32,6 +34,8 @@ private:
     int slotIndex_;
 
     std::vector<uint16_t> slots_;
+
+    std::vector<std::vector<std::vector<uint8_t>>> shares_;
 
     // sum of all shares
     std::vector<std::vector<uint8_t>> S;

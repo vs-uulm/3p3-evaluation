@@ -3,17 +3,18 @@
 
 enum MessageType {
     // Setup messages
-    RegisterMessage,
+    Register,
     RegisterResponse,
-    NodeInfoMessage,
+    NodeInfo,
 
     // DC-Network messages
-    HelloMessage,
-    HelloResponse,
+    DCConnect,
+    DCConnectResponse,
 
     InitialRoundCommitments,
     InitialRoundFirstSharing,
     InitialRoundSecondSharing,
+    InvalidShare,
     InitialRoundFinished,
 
     FinalRoundCommitments,
@@ -21,37 +22,33 @@ enum MessageType {
     FinalRoundSecondSharing,
     FinalRoundFinished,
 
-    InvalidShare,
+    DCNetworkReceived,
 
     BlameRoundCommitments,
     BlameRoundFirstSharing,
     BlameRoundSecondSharing,
     BlameRoundFinished,
 
-    ZeroKnowledgeCommitments,
-    ZeroKnowledgeCoinCommitments,
-    ZeroKnowledgeCoinSharingOne,
-    ZeroKnowledgeCoinSharingTwo,
-    ZeroKnowledgeOpenCommitments,
-    ZeroKnowledgeSigmaExchange,
-    ZeroKnowledgeSigmaResponse,
-    ZeroKnowledgeSigmaProof,
-
-    FinalDCMessage,
+    ProofOfFairnessCommitments,
+    MultipartyCoinFlipCommitments,
+    MultipartyCoinFlipFirstSharing,
+    MultipartyCoinFlipSecondSharing,
+    ProofOfFairnessOpenCommitments,
+    ProofOfFairnessSigmaExchange,
+    ProofOfFairnessSigmaResponse,
+    ProofOfFairnessZeroKnowledgeProof,
 
     // Adaptive Diffusion messages
-    AdaptiveDiffusionMessage,
+    AdaptiveDiffusionForward,
     VirtualSourceToken,
 
     // Flood and Prune
     FloodAndPrune,
 
     // Evaluation
-    DCLoggingMessage,
-    FairnessLoggingMessage,
-
-    // Control Mesage
-    TerminateMessage
+    DCNetworkLogging,
+    TerminateMessage,
+    FairnessLogging
 };
 
 #endif //THREEPP_MESSAGETYPE_H

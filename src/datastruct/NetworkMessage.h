@@ -6,11 +6,9 @@
 
 const uint32_t BROADCAST  = 0xFFFFFFFF;
 
-const uint32_t DC_NETWORK = 0xFFFFFFFE;
+const uint32_t SELF       = 0xFFFFFFFE;
 
-const uint32_t SELF       = 0xFFFFFFFD;
-
-const uint32_t CENTRAL    = 0xFFFFFFFC;
+const uint32_t CENTRAL    = 0xFFFFFFFD;
 
 class NetworkMessage {
 public:

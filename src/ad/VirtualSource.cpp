@@ -27,7 +27,7 @@ VirtualSource::VirtualSource(uint32_t nodeID, std::vector<uint32_t>& neighbors,
 
 void VirtualSource::spreadMessage() {
     for(uint32_t neighbor : neighbors_) {
-        OutgoingMessage adForward(neighbor, AdaptiveDiffusionMessage, nodeID_, message_);
+        OutgoingMessage adForward(neighbor, AdaptiveDiffusionForward, nodeID_, message_);
         outboxThreePP_.push(std::move(adForward));
     }
 }

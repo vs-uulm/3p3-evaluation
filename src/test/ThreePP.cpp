@@ -7,14 +7,12 @@
 #include <cryptopp/oids.h>
 
 #include "../network/P2PConnection.h"
-#include "../network/NetworkManager.h"
+#include "../network/SecuredNetworkManager.h"
 #include "../network/MessageHandler.h"
 #include "../dc/DCNetwork.h"
 #include "../datastruct/MessageType.h"
 #include "../utils/Utils.h"
-#include "../network/UnsecuredNetworkManager.h"
-
-std::mutex cout_mutex;
+#include "../network/NetworkManager.h"
 
 const uint32_t iterations = 10;
 const uint32_t INSTANCES = 6;
@@ -35,7 +33,7 @@ void instance(int ID) {
 
     ip::address_v4 ip_address(ip::address_v4::from_string("127.0.0.1"));
 
-    UnsecuredNetworkManager networkManager(io_context_, port_, inboxThreePP);
+    NetworkManager networkManager(io_context_, port_, inboxThreePP);
     // Run the io_context which handles the network manager
     std::thread networkThread([&io_context_]() {
         io_context_.run();
@@ -43,7 +41,6 @@ void instance(int ID) {
 
     // connect to the central node authority
     networkManager.connectToCA("127.0.0.1", 7777);
-
 
     // generate an EC keypair
     CryptoPP::Integer privateKey(PRNG, CryptoPP::Integer::One(), curve.GetMaxExponent());
@@ -60,7 +57,7 @@ void instance(int ID) {
     // set the compressed public key
     curve.GetCurve().EncodePoint(messageBody.data() + 6, publicKey, true);
 
-    OutgoingMessage registerMessage(CENTRAL, RegisterMessage, SELF, messageBody);
+    OutgoingMessage registerMessage(CENTRAL, Register, SELF, messageBody);
     networkManager.sendMessage(registerMessage);
     auto registerResponse = inboxThreePP.pop();
 
@@ -76,7 +73,7 @@ void instance(int ID) {
 
     // wait until the nodeInfo message arrives
     auto nodeInfo = inboxThreePP.pop();
-    while (nodeInfo.msgType() != NodeInfoMessage) {
+    while (nodeInfo.msgType() != NodeInfo) {
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
         inboxThreePP.push(nodeInfo);
         nodeInfo = inboxThreePP.pop();
@@ -120,13 +117,13 @@ void instance(int ID) {
         }
 
         // Add the node as a member of the DC-Network
-        OutgoingMessage helloMessage(connectionID, HelloMessage, nodeID_);
+        OutgoingMessage helloMessage(connectionID, DCConnect, nodeID_);
         networkManager.sendMessage(helloMessage);
     }
 
     // wait until all nodes are connected
     std::this_thread::sleep_for(std::chrono::seconds(1));
-    std::vector<uint32_t> &neighbors = networkManager.neighbors();
+    std::vector<uint32_t> neighbors = networkManager.neighbors();
 
     // start the message handler in a separate thread
     MessageHandler messageHandler(nodeID_, neighbors, inboxThreePP, inboxDC, outboxThreePP, outboxFinal, 100);
@@ -147,7 +144,7 @@ void instance(int ID) {
 
     // start the DCNetwork
     DCMember self(nodeID_, SELF, publicKey);
-    DCNetwork DCNet(self, INSTANCES, Secured, privateKey, 2, nodes, inboxDC, outboxThreePP, 0, true, false);
+    DCNetwork DCNet(self, INSTANCES, Secured, privateKey, 2, nodes, inboxDC, outboxThreePP, 0, false, false);
 
     // submit messages to the DCNetwork
     for (uint32_t i = 0; i < iterations; i++) {
@@ -181,16 +178,14 @@ void nodeAuthority() {
     CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> curve;
     curve.Initialize(CryptoPP::ASN1::secp256k1());
 
-    typedef std::vector<uint8_t> NodeInfo;
-
-    std::unordered_map<uint32_t, std::pair<uint32_t, NodeInfo>> registeredNodes;
+    std::unordered_map<uint32_t, std::pair<uint32_t, std::vector<uint8_t>>> registeredNodes;
 
     MessageQueue<ReceivedMessage> inbox;
 
     io_context io_context_;
     uint16_t port = 7777;
 
-    UnsecuredNetworkManager networkManager(io_context_, port, inbox);
+    NetworkManager networkManager(io_context_, port, inbox);
     // Run the io_context which handles the network manager
     std::thread networkThread([&io_context_]() {
         io_context_.run();
@@ -235,7 +230,7 @@ void nodeAuthority() {
             }
         }
 
-        OutgoingMessage nodeInfoMessage(node.second.first, NodeInfoMessage, 0, nodeInfo);
+        OutgoingMessage nodeInfoMessage(node.second.first, NodeInfo, 0, nodeInfo);
         networkManager.sendMessage(nodeInfoMessage);
     }
 
@@ -252,7 +247,7 @@ void nodeAuthority() {
     // collect log data
     for (uint32_t i = 0; i < 2 * iterations * INSTANCES; i++) {
         auto receivedMessage = inbox.pop();
-        if (receivedMessage.msgType() == DCLoggingMessage) {
+        if (receivedMessage.msgType() == DCNetworkLogging) {
             std::pair<bool, std::vector<double>> nodeLog;
             nodeLog.first = receivedMessage.body()[34];
             std::vector<double> nodeRuntimes;

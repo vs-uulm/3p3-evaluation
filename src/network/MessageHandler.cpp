@@ -23,17 +23,11 @@ void MessageHandler::run() {
             std::this_thread::sleep_for(std::chrono::milliseconds(delay.count()));
 
         switch (receivedMessage.msgType()) {
-            case HelloMessage: {
-                inboxDCNet_.push(receivedMessage);
-                OutgoingMessage response(receivedMessage.connectionID(), HelloResponse, nodeID_);
+            case DCConnect: {
+                OutgoingMessage response(receivedMessage.connectionID(), DCConnectResponse, nodeID_);
                 outboxThreePP_.push(std::move(response));
-                DCMembers_.insert(receivedMessage.connectionID());
-                break;
             }
-            case HelloResponse:
-                DCMembers_.insert(receivedMessage.connectionID());
-                inboxDCNet_.push(std::move(receivedMessage));
-                break;
+            case DCConnectResponse:
             case InitialRoundCommitments:
             case InitialRoundFirstSharing:
             case InitialRoundSecondSharing:
@@ -47,21 +41,21 @@ void MessageHandler::run() {
             case BlameRoundFirstSharing:
             case BlameRoundSecondSharing:
             case BlameRoundFinished:
-            case ZeroKnowledgeCommitments:
-            case ZeroKnowledgeCoinCommitments:
-            case ZeroKnowledgeCoinSharingOne:
-            case ZeroKnowledgeCoinSharingTwo:
-            case ZeroKnowledgeOpenCommitments:
-            case ZeroKnowledgeSigmaExchange:
-            case ZeroKnowledgeSigmaResponse:
-            case ZeroKnowledgeSigmaProof:
+            case ProofOfFairnessCommitments:
+            case MultipartyCoinFlipCommitments:
+            case MultipartyCoinFlipFirstSharing:
+            case MultipartyCoinFlipSecondSharing:
+            case ProofOfFairnessOpenCommitments:
+            case ProofOfFairnessSigmaExchange:
+            case ProofOfFairnessSigmaResponse:
+            case ProofOfFairnessZeroKnowledgeProof:
                 inboxDCNet_.push(std::move(receivedMessage));
                 break;
-            case FinalDCMessage:
+            case DCNetworkReceived:
                 msgBuffer.insert(receivedMessage);
                 outboxFinal_.push(receivedMessage.body());
                 break;
-            case AdaptiveDiffusionMessage:
+            case AdaptiveDiffusionForward:
                 if(!msgBuffer.contains(receivedMessage)) {
                     std::set<uint32_t> neighborSubset;
                     while(neighborSubset.size() < std::min(AdaptiveDiffusion::Eta, neighbors_.size()-1)) {
@@ -74,7 +68,7 @@ void MessageHandler::run() {
                 } else if(receivedMessage.senderID() == msgBuffer.getSenderID(receivedMessage)) {
                     std::set<uint32_t> neighborSubset = msgBuffer.getSelectedNeighbors(receivedMessage);
                     for(uint32_t neighbor : neighborSubset) {
-                        OutgoingMessage adForward(neighbor, AdaptiveDiffusionMessage, nodeID_, receivedMessage.body());
+                        OutgoingMessage adForward(neighbor, AdaptiveDiffusionForward, nodeID_, receivedMessage.body());
                         outboxThreePP_.push(std::move(adForward));
                     }
                 }

@@ -2,8 +2,8 @@
 #include <boost/asio/io_service.hpp>
 #include <boost/asio.hpp>
 #include "../datastruct/ReceivedMessage.h"
+#include "../network/SecuredNetworkManager.h"
 #include "../network/NetworkManager.h"
-#include "../network/UnsecuredNetworkManager.h"
 
 int main() {
     using namespace boost::asio;
@@ -16,7 +16,7 @@ int main() {
     uint16_t port1 = 8888;
     ip::address_v4 ip_address(ip::address_v4::from_string("127.0.0.1"));
 
-    NetworkManager networkManager1(io_context1, port1, inbox1);
+    SecuredNetworkManager networkManager1(io_context1, port1, inbox1);
     // Run the io_context which handles the network manager
     std::thread networkThread1([&io_context1]() {
         std::cout << "Thread 1 started" << std::endl;
@@ -26,7 +26,7 @@ int main() {
     io_context io_context2;
     uint16_t port2 = 9999;
 
-    NetworkManager networkManager2(io_context1, port2, inbox2);
+    SecuredNetworkManager networkManager2(io_context1, port2, inbox2);
     // Run the io_context which handles the network manager
     std::thread networkThread2([&io_context2]() {
         std::cout << "Thread 2 started" << std::endl;

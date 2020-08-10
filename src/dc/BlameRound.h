@@ -8,8 +8,10 @@
 
 class BlameRound : public DCState {
 public:
+    // constructor used by a witness
     BlameRound(DCNetwork& DCNet, std::unordered_map<uint32_t, std::vector<std::vector<std::vector<CryptoPP::ECPPoint>>>> oldCommitments);
 
+    // constructor used by a victim
     BlameRound(DCNetwork& DCNet, int slot, uint16_t slice, uint32_t suspiciousMember_, CryptoPP::Integer seedPrivateKey,
                std::unordered_map<uint32_t, std::vector<std::vector<std::vector<CryptoPP::ECPPoint>>>> oldCommitments);
 

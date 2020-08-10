@@ -14,7 +14,9 @@ public:
     virtual std::unique_ptr<DCState> executeTask();
 
 private:
-    void sharingPartOne(std::vector<std::vector<uint8_t>>& shares);
+    int preparation();
+
+    void sharingPartOne();
 
     void sharingPartTwo();
 
@@ -29,6 +31,8 @@ private:
 
     // the position in of the own nodeID in the ordered member list
     size_t nodeIndex_;
+
+    std::vector<std::vector<uint8_t>> shares_;
 
     // sum of all shares
     std::vector<uint8_t> S;

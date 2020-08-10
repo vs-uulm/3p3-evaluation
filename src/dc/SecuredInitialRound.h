@@ -19,7 +19,9 @@ public:
     virtual std::unique_ptr<DCState> executeTask();
 
 private:
-    void sharingPartOne(std::vector<std::vector<std::vector<CryptoPP::Integer>>>& shares);
+    void preparation();
+
+    void sharingPartOne();
 
     int sharingPartTwo();
 
@@ -40,6 +42,10 @@ private:
 
     // the position in of the own nodeID in the ordered member list
     size_t nodeIndex_;
+
+    std::vector<CryptoPP::Integer> seedPrivateKeys_;
+
+    std::vector<std::vector<std::vector<CryptoPP::Integer>>> shares_;
 
     std::vector<std::vector<std::vector<CryptoPP::Integer>>> rValues_;
 

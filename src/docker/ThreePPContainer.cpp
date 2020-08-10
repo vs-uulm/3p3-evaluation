@@ -7,11 +7,11 @@
 
 #include "../datastruct/ReceivedMessage.h"
 #include "../network/P2PConnection.h"
-#include "../network/NetworkManager.h"
+#include "../network/SecuredNetworkManager.h"
 #include "../network/MessageHandler.h"
 #include "../dc/DCNetwork.h"
 #include "../datastruct/MessageType.h"
-#include "../network/UnsecuredNetworkManager.h"
+#include "../network/NetworkManager.h"
 
 ip::address getIP() {
     boost::asio::io_service io_service;
@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
     ip::address ip_address = getIP();
 
     //NetworkManager networkManager(io_context_, port_, inboxThreePP);
-    UnsecuredNetworkManager networkManager(io_context_, port_, inboxThreePP);
+    NetworkManager networkManager(io_context_, port_, inboxThreePP);
     // Run the io_context which handles the network manager
     std::thread networkThread1([&io_context_]() {
         io_context_.run();
@@ -83,7 +83,7 @@ int main(int argc, char **argv) {
     // set the compressed public key
     curve.GetCurve().EncodePoint(messageBody.data() + 6, publicKey, true);
 
-    OutgoingMessage registerMessage(CENTRAL, RegisterMessage, SELF, messageBody);
+    OutgoingMessage registerMessage(CENTRAL, Register, SELF, messageBody);
     networkManager.sendMessage(registerMessage);
 
     auto registerResponse = inboxThreePP.pop();
@@ -96,7 +96,7 @@ int main(int argc, char **argv) {
 
     // wait until the nodeInfo message arrives
     auto nodeInfo = inboxThreePP.pop();
-    if (nodeInfo.msgType() != NodeInfoMessage)
+    if (nodeInfo.msgType() != NodeInfo)
         exit(1);
 
     // First determine the number of nodes received
@@ -140,7 +140,7 @@ int main(int argc, char **argv) {
             continue;
         }
         // Add the node as a member of the DC-Network
-        OutgoingMessage helloMessage(connectionID, HelloMessage, nodeID_);
+        OutgoingMessage helloMessage(connectionID, DCConnect, nodeID_);
         networkManager.sendMessage(helloMessage);
     }
 

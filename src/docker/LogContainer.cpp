@@ -2,10 +2,10 @@
 #include <iomanip>
 #include <cryptopp/oids.h>
 #include "../network/P2PConnection.h"
-#include "../network/NetworkManager.h"
+#include "../network/SecuredNetworkManager.h"
 #include "../dc/DCNetwork.h"
 #include "../datastruct/MessageType.h"
-#include "../network/UnsecuredNetworkManager.h"
+#include "../network/NetworkManager.h"
 
 int main(int argc, char** argv) {
     if(argc != 2)
@@ -19,9 +19,7 @@ int main(int argc, char** argv) {
     CryptoPP::DL_GroupParameters_EC<CryptoPP::ECP> curve;
     curve.Initialize(CryptoPP::ASN1::secp256k1());
 
-    typedef std::vector<uint8_t> NodeInfo;
-
-    std::unordered_map<uint32_t, std::pair<uint32_t, NodeInfo>> registeredNodes;
+    std::unordered_map<uint32_t, std::pair<uint32_t, std::vector<uint8_t>>> registeredNodes;
 
     MessageQueue<ReceivedMessage> inbox;
 
@@ -29,7 +27,7 @@ int main(int argc, char** argv) {
     uint16_t port = 7777;
 
     //NetworkManager networkManager(io_context_, port, inbox);
-    UnsecuredNetworkManager networkManager(io_context_, port, inbox);
+    NetworkManager networkManager(io_context_, port, inbox);
 
     // Run the io_context which handles the network manager
     std::thread networkThread([&io_context_]() {
@@ -39,7 +37,7 @@ int main(int argc, char** argv) {
     // accept register messages until the threshold of nodes is reached
     for(uint32_t nodeID = 0; nodeID < INSTANCES; nodeID++) {
         auto receivedMessage = inbox.pop();
-        if(receivedMessage.msgType() != RegisterMessage) {
+        if(receivedMessage.msgType() != Register) {
             std::cout << "Unknown message type received: " << (int) receivedMessage.msgType() << std::endl;
             continue;
         }
@@ -78,7 +76,7 @@ int main(int argc, char** argv) {
             }
         }
 
-        OutgoingMessage nodeInfoMessage(node.second.first, NodeInfoMessage, 0, nodeInfo);
+        OutgoingMessage nodeInfoMessage(node.second.first, NodeInfo, 0, nodeInfo);
         networkManager.sendMessage(nodeInfoMessage);
     }
 
@@ -95,7 +93,7 @@ int main(int argc, char** argv) {
     // collect log data
     for (uint32_t i = 0; i < 2 * iterations * INSTANCES; i++) {
         auto receivedMessage = inbox.pop();
-        if (receivedMessage.msgType() == DCLoggingMessage) {
+        if (receivedMessage.msgType() == DCNetworkLogging) {
             std::pair<bool, std::vector<double>> nodeLog;
             nodeLog.first = receivedMessage.body()[34];
             std::vector<double> nodeRuntimes;

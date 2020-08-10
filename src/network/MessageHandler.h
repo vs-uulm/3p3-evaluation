@@ -34,8 +34,6 @@ private:
 
     std::vector<uint32_t>& neighbors_;
 
-    std::set<uint32_t> DCMembers_;
-
     CryptoPP::AutoSeededRandomPool PRNG;
 };
 

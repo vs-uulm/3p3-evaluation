@@ -27,7 +27,7 @@ int MessageBuffer::insert(ReceivedMessage msg) {
 
         FIFOBuffer_.push(msgHash);
         indexBuffer_.insert(std::pair(msgHash, std::pair(msg, std::set<uint32_t>())));
-    } else if(position->second.first.msgType() == AdaptiveDiffusionMessage) {
+    } else if(position->second.first.msgType() == AdaptiveDiffusionForward) {
         // update the message type
         position->second.first.updateMsgType(FloodAndPrune);
     }

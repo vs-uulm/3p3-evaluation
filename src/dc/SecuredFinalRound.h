@@ -22,7 +22,9 @@ public:
     virtual std::unique_ptr<DCState> executeTask();
 
 private:
-    void sharingPartOne(std::vector<std::vector<std::vector<CryptoPP::Integer>>>& shares);
+    void preparation();
+
+    void sharingPartOne();
 
     int sharingPartTwo();
 
@@ -48,6 +50,8 @@ private:
     std::vector<CryptoPP::Integer> seedPrivateKeys_;
 
     std::vector<std::array<uint8_t, 32>> seeds_;
+
+    std::vector<std::vector<std::vector<CryptoPP::Integer>>> shares_;
 
     // pseudo random values for the commitments
     std::vector<std::vector<std::vector<CryptoPP::Integer>>> rValues_;

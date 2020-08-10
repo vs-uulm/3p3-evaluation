@@ -1,17 +1,20 @@
-#ifndef THREEPP_NETWORKMANAGER_H
-#define THREEPP_NETWORKMANAGER_H
+#ifndef THREEPP_SECUREDNETWORKMANAGER_H
+#define THREEPP_SECUREDNETWORKMANAGER_H
 
+#include <list>
 #include <unordered_map>
+#include <boost/asio.hpp>
+
+#include "P2PConnection.h"
 #include "Node.h"
 #include "../datastruct/OutgoingMessage.h"
 #include "../datastruct/MessageBuffer.h"
-#include "UnsecuredP2PConnection.h"
 
 using namespace boost::asio;
 
-class NetworkManager {
+class SecuredNetworkManager {
 public:
-    NetworkManager(io_context& io_context, uint16_t port, MessageQueue<ReceivedMessage>& inbox);
+    SecuredNetworkManager(io_context& io_context_, uint16_t port_, MessageQueue<ReceivedMessage>& inbox);
 
     int addNeighbor(const Node& node);
 
@@ -19,26 +22,28 @@ public:
 
     int sendMessage(OutgoingMessage msg);
 
-    void start_accept();
-
     std::vector<uint32_t> neighbors();
+
+    void start_accept();
 
     void terminate();
 
 private:
-    void accept_handler(const boost::system::error_code& e, std::shared_ptr<UnsecuredP2PConnection> connection);
+    void accept_handler(const boost::system::error_code& e, std::shared_ptr<P2PConnection> connection);
 
     uint32_t getConnectionID();
 
     void storeNeighbor(uint32_t connectionID);
 
-    void storeConnection(std::shared_ptr<UnsecuredP2PConnection> connection);
+    void storeConnection(std::shared_ptr<P2PConnection> connection);
 
     std::mutex connectionMutex_;
 
     std::mutex neighborMutex_;
 
     io_context& io_context_;
+
+    ssl::context ssl_context_;
 
     tcp::acceptor acceptor_;
 
@@ -48,11 +53,11 @@ private:
 
     std::vector<uint32_t> neighbors_;
 
-    std::shared_ptr<UnsecuredP2PConnection> centralInstance_;
+    std::shared_ptr<P2PConnection> centralInstance_;
 
-    std::unordered_map<uint32_t, std::shared_ptr<UnsecuredP2PConnection>> connections_;
+    std::unordered_map<uint32_t, std::shared_ptr<P2PConnection>> connections_;
 
 };
 
 
-#endif //THREEPP_NETWORKMANAGER_H
+#endif //THREEPP_SECUREDNETWORKMANAGER_H
