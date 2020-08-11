@@ -31,7 +31,7 @@ class DCNetwork {
 public:
     DCNetwork(DCMember self, size_t k, SecurityLevel securityLevel, CryptoPP::Integer privateKey, uint32_t numThreads,
             std::unordered_map<uint32_t, Node>& neighbors, MessageQueue<ReceivedMessage>& inboxDC,
-            MessageQueue<OutgoingMessage>& outboxThreePP, uint32_t interval = 0, bool logging = false,
+            MessageQueue<OutgoingMessage>& outboxThreePP, uint32_t interval = 0, bool fullProtocol = true, bool logging = false,
             bool preparedCommitments = false);
 
     std::map<uint32_t, DCMember>& members();
@@ -55,6 +55,8 @@ public:
     CryptoPP::Integer& privateKey();
 
     uint32_t interval();
+
+    bool fullProtocol();
 
     bool logging();
 
@@ -90,7 +92,11 @@ private:
     // current state of the DC network
     std::unique_ptr<DCState> state_;
 
+    // time to wait between the rounds
     uint32_t interval_;
+
+    // determines whether the Adaptive Diffusion algorithm is started after each run
+    bool fullProtocol_;
 
     bool logging_;
 

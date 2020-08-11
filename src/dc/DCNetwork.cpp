@@ -2,12 +2,13 @@
 #include "DCNetwork.h"
 #include "InitState.h"
 
-DCNetwork::DCNetwork(DCMember self, size_t k, SecurityLevel securityLevel, CryptoPP::Integer privateKey, uint32_t numThreads,
-        std::unordered_map<uint32_t, Node>& neigbors, MessageQueue<ReceivedMessage>& inboxDC,
-        MessageQueue<OutgoingMessage>& outboxThreePP, uint32_t interval, bool logging, bool preparedCommitments)
+DCNetwork::DCNetwork(DCMember self, size_t k, SecurityLevel securityLevel, CryptoPP::Integer privateKey,
+        uint32_t numThreads, std::unordered_map<uint32_t, Node>& neigbors, MessageQueue<ReceivedMessage>& inboxDC,
+        MessageQueue<OutgoingMessage>& outboxThreePP, uint32_t interval, bool fullProtocol, bool logging,
+        bool preparedCommitments)
 : nodeID_(self.nodeID()), k_(k), securityLevel_(securityLevel), privateKey_(privateKey), numThreads_(numThreads), neighbors_(neigbors),
   inboxDC_(inboxDC), outboxThreePP_(outboxThreePP), state_(std::make_unique<InitState>(*this)),
-  interval_(interval), logging_(logging) {
+  interval_(interval), fullProtocol_(fullProtocol), logging_(logging) {
     members_.insert(std::pair(nodeID_, self));
 
     if(preparedCommitments && (securityLevel_ == Secured))
@@ -66,6 +67,10 @@ SecurityLevel DCNetwork::securityLevel() {
 
 uint32_t DCNetwork::interval() {
     return interval_;
+}
+
+bool DCNetwork::fullProtocol() {
+    return fullProtocol_;
 }
 
 bool DCNetwork::logging() {

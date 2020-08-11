@@ -5,8 +5,9 @@
 #include "SecuredInitialRound.h"
 #include "../utils/Utils.h"
 #include "UnsecuredInitialRound.h"
+#include "../ad/VirtualSource.h"
 
-UnsecuredFinalRound::UnsecuredFinalRound(DCNetwork &DCNet, int slotIndex, std::vector<uint16_t> slots)
+UnsecuredFinalRound::UnsecuredFinalRound(DCNetwork &DCNet, int slotIndex, std::vector<std::pair<uint16_t, uint16_t>> slots)
         : DCNetwork_(DCNet), k_(DCNetwork_.k()), slotIndex_(slotIndex), slots_(std::move(slots)) {
 
     // determine the index of the own nodeID in the ordered member list
@@ -94,10 +95,18 @@ std::unique_ptr<DCState> UnsecuredFinalRound::executeTask() {
     }
 
     // hand the messages to upper level
-    for(auto& slot : S) {
-        std::vector<uint8_t> message(slot.begin() + 4, slot.end());
+    for(uint32_t t = 0; t < S.size(); t++) {
+        std::vector<uint8_t> message(S[t].begin() + 4, S[t].end());
         OutgoingMessage finalMessage(SELF, DCNetworkReceived, SELF, std::move(message));
         DCNetwork_.outbox().push(std::move(finalMessage));
+
+        // check if a VS Token has to be generated for this message by this node
+        if(DCNetwork_.fullProtocol() && (slots_[t].second >= nodeIndex_*65535/k_) && (slots_[t].second < (nodeIndex_+1)*65535/k_)) {
+            std::cout << "Node " << nodeIndex_ << "Generating VS Token for slot " << t << std::endl;
+            std::vector<uint8_t> VSToken = VirtualSource::generateVSToken(0, 0, message);
+            OutgoingMessage vsForward(SELF, VirtualSourceToken, DCNetwork_.nodeID(), VSToken);
+            DCNetwork_.outbox().push(vsForward);
+        }
     }
     std::this_thread::sleep_for(std::chrono::seconds(DCNetwork_.interval()));
     return std::make_unique<UnsecuredInitialRound>(DCNetwork_);
@@ -120,7 +129,7 @@ void UnsecuredFinalRound::preparation() {
     for (uint32_t slot = 0; slot < numSlots; slot++) {
         shares_[slot].resize(k_);
 
-        shares_[slot][k_ - 1].resize(4 + slots_[slot]);
+        shares_[slot][k_ - 1].resize(4 + slots_[slot].first);
         if (static_cast<uint32_t>(slotIndex_) == slot) {
             // Calculate the CRC
             CRC32_.Update(submittedMessage.data(), submittedMessage.size());
@@ -130,11 +139,11 @@ void UnsecuredFinalRound::preparation() {
         }
 
         for (uint32_t share = 0; share < k_ - 1; share++) {
-            shares_[slot][share].resize(4 + slots_[slot]);
-            PRNG.GenerateBlock(shares_[slot][share].data(), 4 + slots_[slot]);
+            shares_[slot][share].resize(4 + slots_[slot].first);
+            PRNG.GenerateBlock(shares_[slot][share].data(), 4 + slots_[slot].first);
 
             // XOR The value to the final share
-            for (uint32_t p = 0; p < 4 + static_cast<uint32_t>(slots_[slot]); p++)
+            for (uint32_t p = 0; p < 4 + static_cast<uint32_t>(slots_[slot].first); p++)
                 shares_[slot][k_ - 1][p] ^= shares_[slot][share][p];
         }
 
@@ -153,7 +162,7 @@ void UnsecuredFinalRound::sharingPartOne() {
 
         uint32_t memberIndex = std::distance(DCNetwork_.members().begin(), position);
         for (uint32_t slot = 0; slot < numSlots; slot++) {
-            std::vector<uint8_t> share(6 + slots_[slot]);
+            std::vector<uint8_t> share(6 + slots_[slot].first);
             share[0] = (slot & 0xFF00) >> 8;
             share[1] = (slot & 0x00FF);
             std::copy(shares_[slot][memberIndex].begin(), shares_[slot][memberIndex].end(), &share[2]);
@@ -174,7 +183,7 @@ void UnsecuredFinalRound::sharingPartTwo() {
 
         if (sharingMessage.msgType() == FinalRoundFirstSharing) {
             size_t slot = (sharingMessage.body()[0] << 8) | sharingMessage.body()[1];
-            for (uint32_t p = 0; p < 4 + static_cast<uint32_t>(slots_[slot]); p++)
+            for (uint32_t p = 0; p < 4 + static_cast<uint32_t>(slots_[slot].first); p++)
                 S[slot][p] ^= sharingMessage.body()[p+2];
 
             remainingShares--;
@@ -191,7 +200,7 @@ void UnsecuredFinalRound::sharingPartTwo() {
             position = DCNetwork_.members().begin();
 
         for (uint32_t slot = 0; slot < numSlots; slot++) {
-            std::vector<uint8_t> addedShares(6 + slots_[slot]);
+            std::vector<uint8_t> addedShares(6 + slots_[slot].first);
             addedShares[0] = (slot & 0xFF00) >> 8;
             addedShares[1] = (slot & 0x00FF);
             std::copy(S[slot].begin(), S[slot].end(), &addedShares[2]);
@@ -212,7 +221,7 @@ void UnsecuredFinalRound::resultComputation() {
         if (sharingBroadcast.msgType() == FinalRoundSecondSharing) {
             size_t slot = (sharingBroadcast.body()[0]) | sharingBroadcast.body()[1];
 
-            for (uint32_t p = 0; p < 4 + static_cast<uint32_t>(slots_[slot]); p++)
+            for (uint32_t p = 0; p < 4 + static_cast<uint32_t>(slots_[slot].first); p++)
                 S[slot][p] ^= sharingBroadcast.body()[p+2];
 
             remainingShares--;

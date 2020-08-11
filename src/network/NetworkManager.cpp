@@ -99,10 +99,6 @@ void NetworkManager::storeNeighbor(uint32_t connectionID) {
 
 void NetworkManager::storeConnection(std::shared_ptr<UnsecuredP2PConnection> connection) {
     std::lock_guard<std::mutex> lock(connectionMutex_);
-    if(connections_.count(connection->connectionID()) > 0) {
-        std::cerr << "Error Neighbour already inserted" << std::endl;
-        exit(1);
-    }
     connections_.insert(std::pair(connection->connectionID(), connection));
 }
 

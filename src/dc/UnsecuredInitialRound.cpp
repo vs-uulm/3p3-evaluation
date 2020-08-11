@@ -47,13 +47,14 @@ std::unique_ptr<DCState> UnsecuredInitialRound::executeTask() {
     UnsecuredInitialRound::resultComputation();
 
     // prepare round two
-    std::vector<uint16_t> slots;
+    std::vector<std::pair<uint16_t, uint16_t>> slots;
 
     // determine the non-empty slots in the message vector
     // and calculate the index of the own slot if present
     int finalSlotIndex = -1;
     uint32_t invalidCRCs = 0;
     for (uint32_t slot = 0; slot < 2 * k_; slot++) {
+        uint16_t round_identifier = (S[slot * 8 + 4] << 8) | S[slot * 8 + 5];
         uint16_t slotSize = (S[slot * 8 + 6] << 8) | S[slot * 8 + 7];
         if (slotSize > 0) {
             // verify the CRC
@@ -66,8 +67,8 @@ std::unique_ptr<DCState> UnsecuredInitialRound::executeTask() {
             } else {
                 if(static_cast<uint32_t>(slotIndex) == slot)
                     finalSlotIndex = slots.size();
-                // store the size of the slot
-                slots.push_back(slotSize);
+                // store the size of the slot and the corresponding round identifier
+                slots.push_back(std::pair(slotSize, round_identifier));
             }
         }
     }
@@ -178,7 +179,7 @@ void UnsecuredInitialRound::sharingPartOne() {
 
         uint32_t memberIndex = std::distance(DCNetwork_.members().begin(), position);
 
-
+        // distribute the tuples
         OutgoingMessage rsMessage(position->second.connectionID(), InitialRoundFirstSharing, DCNetwork_.nodeID(),
                                   shares_[memberIndex]);
         DCNetwork_.outbox().push(std::move(rsMessage));
@@ -223,7 +224,7 @@ void UnsecuredInitialRound::resultComputation() {
         auto sharingBroadcast = DCNetwork_.inbox().pop();
 
         if (sharingBroadcast.msgType() == InitialRoundSecondSharing) {
-
+            // XOR the received shares
             for (uint32_t p = 0; p < 16 * k_; p++)
                 S[p] ^= sharingBroadcast.body()[p];
 

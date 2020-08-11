@@ -7,7 +7,7 @@
 
 class UnsecuredFinalRound : public DCState {
 public:
-    UnsecuredFinalRound(DCNetwork& DCNet, int slotIndex, std::vector<uint16_t> slots);
+    UnsecuredFinalRound(DCNetwork& DCNet, int slotIndex, std::vector<std::pair<uint16_t, uint16_t>> slots);
 
     virtual ~UnsecuredFinalRound();
 
@@ -33,7 +33,7 @@ private:
     // index of the slot in the message vector
     int slotIndex_;
 
-    std::vector<uint16_t> slots_;
+    std::vector<std::pair<uint16_t, uint16_t>> slots_;
 
     std::vector<std::vector<std::vector<uint8_t>>> shares_;
 

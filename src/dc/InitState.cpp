@@ -14,7 +14,6 @@ std::unique_ptr<DCState> InitState::executeTask() {
     while (DCNetwork_.members().size() < DCNetwork_.k()) {
         auto receivedMessage = DCNetwork_.inbox().pop();
 
-        // skip early arriving ready messages
         while((receivedMessage.msgType() != DCConnect) && (receivedMessage.msgType() != DCConnectResponse)) {
             DCNetwork_.inbox().push(receivedMessage);
             std::this_thread::sleep_for(std::chrono::milliseconds(5));

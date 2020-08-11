@@ -74,7 +74,6 @@ void MessageHandler::run() {
                 }
                 break;
             case VirtualSourceToken: {
-                std::cout << "Virtual Source Token received" << std::endl;
                 std::string msgHash(&receivedMessage.body()[4], &receivedMessage.body()[36]);
                 std::vector<uint8_t> message = msgBuffer.getMessage(msgHash).body();
                 std::thread virtualSourceThread([=]() {

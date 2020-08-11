@@ -144,7 +144,8 @@ void instance(int ID) {
 
     // start the DCNetwork
     DCMember self(nodeID_, SELF, publicKey);
-    DCNetwork DCNet(self, INSTANCES, Secured, privateKey, 2, nodes, inboxDC, outboxThreePP, 0, false, false);
+    DCNetwork DCNet(self, INSTANCES, Secured, privateKey, 2, nodes, inboxDC,
+            outboxThreePP, 0, true,false, false);
 
     // submit messages to the DCNetwork
     for (uint32_t i = 0; i < iterations; i++) {

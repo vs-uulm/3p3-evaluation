@@ -67,25 +67,41 @@ size_t VirtualSource::maxRemainingSteps() {
 }
 
 void VirtualSource::executeTask() {
-    VirtualSource::spreadMessage();
+    if(s == 0) {
+        // Create the initial VS Token
+        // select a random neighbor
+        uint32_t r = PRNG.GenerateWord32(0, neighbors_.size() - 1);
+        uint32_t v_next = *std::next(neighbors_.begin(), r);
 
-    if((s < AdaptiveDiffusion::maxDepth) && (s > 1))
+        // first forward the message
+        OutgoingMessage adForward(v_next, AdaptiveDiffusionForward, nodeID_, message_);
+        outboxThreePP_.push(std::move(adForward));
+        // the forward the VS Token
+        std::vector<uint8_t> VSToken = generateVSToken(1, 1, message_);
+        OutgoingMessage vsForward(v_next, VirtualSourceToken, nodeID_, std::move(VSToken));
+        outboxThreePP_.push(std::move(vsForward));
+    } else {
+        // otherwise further process a received VS Token
         VirtualSource::spreadMessage();
 
-    h += 1;
-    s += 2;
-
-    while(s <= AdaptiveDiffusion::maxDepth) {
-        s += 1;
-        if(p(s,h) <= uniformDistribution_(randomEngine_)) {
+        if ((s < AdaptiveDiffusion::maxDepth) && (s > 1))
             VirtualSource::spreadMessage();
-        } else {
-            uint32_t r = PRNG.GenerateWord32(0, neighbors_.size()-1);
-            uint32_t v_next = *std::next(neighbors_.begin(), r);
-            std::vector<uint8_t> VSToken = generateVSToken(s, h, message_);
-            OutgoingMessage vsForward(v_next, VirtualSourceToken, nodeID_, std::move(VSToken));
-            outboxThreePP_.push(std::move(vsForward));
-            break;
+
+        h += 1;
+        s += 2;
+
+        while (s <= AdaptiveDiffusion::maxDepth) {
+            s += 1;
+            if (p(s, h) <= uniformDistribution_(randomEngine_)) {
+                VirtualSource::spreadMessage();
+            } else {
+                uint32_t r = PRNG.GenerateWord32(0, neighbors_.size() - 1);
+                uint32_t v_next = *std::next(neighbors_.begin(), r);
+                std::vector<uint8_t> VSToken = generateVSToken(s, h, message_);
+                OutgoingMessage vsForward(v_next, VirtualSourceToken, nodeID_, std::move(VSToken));
+                outboxThreePP_.push(std::move(vsForward));
+                break;
+            }
         }
     }
 

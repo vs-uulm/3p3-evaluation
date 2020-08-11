@@ -169,7 +169,7 @@ int main(int argc, char **argv) {
     // start the DCNetwork
     DCMember self(nodeID_, SELF, publicKey);
     DCNetwork DCNetwork_(self, numNodes + 1, securityLevel, privateKey, numThreads, nodes, inboxDC, outboxThreePP, 0,
-                         true, true);
+                         false, true, true);
 
     std::thread DCThread([&]() {
         DCNetwork_.run();

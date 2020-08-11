@@ -70,7 +70,7 @@ std::unique_ptr<DCState> SecuredInitialRound::executeTask() {
     }
 
     // prepare the final round
-    std::vector<uint16_t> slots;
+    std::vector<std::pair<uint16_t, uint16_t>> slots;
     std::vector<std::array<uint8_t, 32>> receivedSeeds;
 
     // determine the non-empty slots in the message vector
@@ -78,6 +78,7 @@ std::unique_ptr<DCState> SecuredInitialRound::executeTask() {
     int finalSlotIndex = -1;
     uint32_t invalidCRCs = 0;
     for (uint32_t slot = 0; slot < 2 * k_; slot++) {
+        uint16_t round_identifier = (finalMessageVector[slot][4] << 8) | finalMessageVector[slot][5];
         uint16_t slotSize = (finalMessageVector[slot][6] << 8) | finalMessageVector[slot][7];
         if (slotSize > 0) {
             // verify the CRC
@@ -103,7 +104,7 @@ std::unique_ptr<DCState> SecuredInitialRound::executeTask() {
                 receivedSeeds.push_back(std::move(seed));
 
                 // store the size of the slot along with the seed
-                slots.push_back(slotSize);
+                slots.push_back(std::pair(slotSize, round_identifier));
             }
         }
     }

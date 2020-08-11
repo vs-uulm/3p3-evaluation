@@ -8,10 +8,11 @@
 #include "SecuredInitialRound.h"
 #include "../utils/Utils.h"
 #include "BlameRound.h"
+#include "../ad/VirtualSource.h"
 
 std::mutex loggingMutex;
 
-SecuredFinalRound::SecuredFinalRound(DCNetwork &DCNet, int slotIndex, std::vector<uint16_t> slots,
+SecuredFinalRound::SecuredFinalRound(DCNetwork &DCNet, int slotIndex, std::vector<std::pair<uint16_t, uint16_t>> slots,
                                      std::vector<CryptoPP::Integer> seedPrivateKeys,
                                      std::vector<std::array<uint8_t, 32>> receivedSeeds)
         : DCNetwork_(DCNet), k_(DCNetwork_.k()), slotIndex_(slotIndex), slots_(std::move(slots)),
@@ -27,7 +28,7 @@ SecuredFinalRound::SecuredFinalRound(DCNetwork &DCNet, int slotIndex, std::vecto
         rValues_[slot].resize(k_);
         DRNG.SetKeyWithIV(seeds_[slot].data(), 16, seeds_[slot].data() + 16, 16);
 
-        size_t numSlices = std::ceil((4 + slots_[slot]) / 31.0);
+        size_t numSlices = std::ceil((4 + slots_[slot].first) / 31.0);
         R[slot].resize(numSlices);
         for (uint32_t share = 0; share < k_; share++) {
             rValues_[slot][share].reserve(numSlices);
@@ -195,10 +196,19 @@ std::unique_ptr<DCState> SecuredFinalRound::executeTask() {
     }
 
     // pass the final message through the message handler to store it in the message buffer
-    for (auto &slot : finalMessages) {
-        std::vector<uint8_t> message(slot.begin() + 4, slot.end());
+    for (uint32_t t = 0; t < finalMessages.size(); t++) {
+        std::vector<uint8_t> message(finalMessages[t].begin() + 4, finalMessages[t].end());
         OutgoingMessage finalMessage(SELF, DCNetworkReceived, SELF, std::move(message));
         DCNetwork_.outbox().push(std::move(finalMessage));
+
+        // check if a VS Token has to be generated for this message by this node
+        if(DCNetwork_.fullProtocol() && (slots_[t].second >= nodeIndex_*65535/k_) && (slots_[t].second < (nodeIndex_+1)*65535/k_)) {
+            std::lock_guard<std::mutex> lock(loggingMutex);
+            std::cout << "Node " << nodeIndex_ << "Generating VS Token for slot " << t << std::endl;
+            std::vector<uint8_t> VSToken = VirtualSource::generateVSToken(0, 0, message);
+            OutgoingMessage vsForward(SELF, VirtualSourceToken, DCNetwork_.nodeID(), VSToken);
+            DCNetwork_.outbox().push(vsForward);
+        }
     }
 
     return std::make_unique<SecuredInitialRound>(DCNetwork_);
@@ -211,7 +221,7 @@ void SecuredFinalRound::preparation() {
     numSlices.reserve(numSlots);
     // determine the number of slices for each slot individually
     for (uint32_t i = 0; i < numSlots; i++)
-        numSlices.push_back(std::ceil((4 + slots_[i]) / 31.0));
+        numSlices.push_back(std::ceil((4 + slots_[i].first) / 31.0));
 
     std::vector<CryptoPP::Integer> messageSlices;
 
@@ -222,9 +232,9 @@ void SecuredFinalRound::preparation() {
         // Split the submitted message into slices of 31 Bytes
         messageSlices.reserve(numSlices[slotIndex_]);
 
-        std::vector<uint8_t> messageSlot(4 + slots_[slotIndex_]);
+        std::vector<uint8_t> messageSlot(4 + slots_[slotIndex_].first);
         // Calculate the CRC
-        CRC32_.Update(submittedMessage.data(), slots_[slotIndex_]);
+        CRC32_.Update(submittedMessage.data(), slots_[slotIndex_].first);
         CRC32_.Final(messageSlot.data());
 
         std::copy(submittedMessage.begin(), submittedMessage.end(), &messageSlot[4]);
@@ -728,10 +738,10 @@ std::vector<std::vector<uint8_t>> SecuredFinalRound::resultComputation() {
     // reconstruct the original message
     std::vector<std::vector<uint8_t>> reconstructedMessageSlots(numSlots);
     for (uint32_t slot = 0; slot < numSlots; slot++) {
-        reconstructedMessageSlots[slot].resize(4 + slots_[slot]);
+        reconstructedMessageSlots[slot].resize(4 + slots_[slot].first);
 
         for (uint32_t slice = 0; slice < S[slot].size(); slice++) {
-            size_t sliceSize = ((4 + slots_[slot] - 31 * slice > 31) ? 31 : 4 + slots_[slot] - 31 * slice);
+            size_t sliceSize = ((4 + slots_[slot].first - 31 * slice > 31) ? 31 : 4 + slots_[slot].first - 31 * slice);
             S[slot][slice] = S[slot][slice].Modulo(curve.GetGroupOrder());
             S[slot][slice].Encode(&reconstructedMessageSlots[slot][31 * slice], sliceSize);
         }

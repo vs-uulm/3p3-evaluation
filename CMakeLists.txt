@@ -7,7 +7,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GCC_COVERAGE_COMPILE_FLAGS}")
 
 include_directories(/usr/local/include)
 
-# local test
+# threePP
 add_executable(
         threePP
         src/test/ThreePP.cpp
@@ -150,6 +150,7 @@ target_link_libraries(
         -lcryptopp
 )
 
+# Flood and Prune Evaluation
 add_executable(
         floodAndPrune
         src/evaluation/FloodAndPruneMonitoring.cpp
@@ -179,6 +180,7 @@ target_link_libraries(
         -lcryptopp
 )
 
+# Adaptive Diffusion Evaluation
 add_executable(
         adaptiveDiffusion
         src/evaluation/AdaptiveDiffusionMonitoring.cpp

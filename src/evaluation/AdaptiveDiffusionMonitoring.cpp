@@ -19,7 +19,7 @@
 
 std::mutex logging_mutex;
 
-const uint32_t iterations = 1;
+const uint32_t iterations = 5;
 const uint32_t INSTANCES = 100;
 
 std::vector<std::vector<uint32_t>> topology;
@@ -179,8 +179,8 @@ void instance(int ID) {
             OutgoingMessage initialADMessage(v_next, AdaptiveDiffusionForward, nodeID_, message);
             outboxThreePP.push(initialADMessage);
 
-            std::vector<uint8_t> VSToken = VirtualSource::generateVSToken(1, 1, message);
-            OutgoingMessage vsForward(v_next, VirtualSourceToken, nodeID_, VSToken);
+            std::vector<uint8_t> VSToken = VirtualSource::generateVSToken(0, 0, message);
+            OutgoingMessage vsForward(SELF, VirtualSourceToken, nodeID_, VSToken);
             outboxThreePP.push(vsForward);
 
             std::cout << std::dec << i + 1 << ". message submitted" << std::endl;
@@ -218,7 +218,7 @@ void instance(int ID) {
 }
 
 int main() {
-    for(uint32_t graph = 0; graph < 1; graph++) {
+    for(uint32_t graph = 0; graph < 10; graph++) {
         uint16_t port = 5555;
         topology = getTopology(graph);
         for (uint32_t i = 0; i < INSTANCES; i++) {

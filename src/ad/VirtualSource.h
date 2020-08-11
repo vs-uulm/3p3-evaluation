@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <vector>
+#include <set>
 #include <random>
 #include <cryptopp/osrng.h>
 
