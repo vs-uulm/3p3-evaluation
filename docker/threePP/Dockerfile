@@ -21,9 +21,8 @@ COPY --from=three-phase-protocol-implementation_build-container /home/threePP/do
 #latency packets with higher latency get dropped
 #tc qdisc add dev eth0 root tbf rate 50mbit burst 100kb latency 1000ms
 
-CMD tc qdisc add dev eth0 root netem delay 100ms 10ms 25% \
-&& tc qdisc add dev eth0 root tbf rate 50mbit burst 100kb latency 1000ms \
-&& ./dockerInstance 0 1 2 512 0
+CMD tc qdisc add dev eth0 root tbf rate 50mbit burst 100kb latency 1000ms \
+&& ./dockerInstance 0 1 2 512 100
 
 # parameters: 0 1 2 512 100
 # 0 -> unsecured (1-> secured?)
