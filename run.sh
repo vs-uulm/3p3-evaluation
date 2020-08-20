@@ -1,5 +1,17 @@
 #!/bin/bash
 
+usage()
+{
+    echo "usage: run.sh [OPTIONS]"
+	echo "	-h --help				This help message"
+	echo "	-n --nodes		NUM		number of nodes (default: 8)"
+	echo "	-r --round		0|1		which round to call (default: 0)"
+	echo "	-t --threads	NUM		number of threads (default: 1)"
+	echo "	-s --senders	NUM		number of senders (default: 1)"
+	echo "	-m --msgsize	NUM		size of message in byte (default: 512)"
+	echo "	-d --delay		NUM		delay in ms (default: 100)"
+}
+
 export nodes=8
 export type=0
 export threads=1
@@ -13,7 +25,7 @@ while [ "$1" != "" ]; do
 								echo "rewrite nodes to $1"
                                 export nodes=$1
                                 ;;
-        -T | --type )           shift
+        -r | --round )           shift
 								echo "rewrite type to $1"
                                 export type=$1
                                 ;;
@@ -33,8 +45,11 @@ while [ "$1" != "" ]; do
 								echo "rewrite delay to $1"
                                 export delay=$1
                                 ;;
+        -h | --help) usage
+								exit
+                                ;;
     esac
     shift
 done
 
-#docker-compose up --build --scale three-pp-container=${nodes}
+docker-compose up --build --scale three-pp-container=${nodes}
