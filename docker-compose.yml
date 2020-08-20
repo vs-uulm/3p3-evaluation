@@ -29,10 +29,10 @@ services:
     cap_add:
       - NET_ADMIN
     environment:
-      - type=0
-      - threads=1
-      - senders=1
-      - msgsize=512
-      - delay=100
+      - type=$type
+      - threads=$threads
+      - senders=$senders
+      - msgsize=$msgsize
+      - delay=$delay
     networks:
       p2p-network:
