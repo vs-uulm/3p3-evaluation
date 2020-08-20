@@ -1,5 +1,5 @@
 FROM ubuntu:18.04
-RUN apt-get update && apt-get install openssl iproute2 -y
+RUN apt-get update && apt-get install openssl -y && apt-get install iproute2 -y
 
 WORKDIR /opt/threePP
 COPY --from=three-phase-protocol-implementation_build-container /home/threePP/dockerInstance .
