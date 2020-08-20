@@ -18,7 +18,7 @@ services:
       dockerfile: ./docker/central/Dockerfile
     volumes: ['./evaluation:/home/threePP']
     environment:
-      - nodes=8
+      - nodes=$nodes
     networks:
       p2p-network:
         ipv4_address: 172.28.1.1

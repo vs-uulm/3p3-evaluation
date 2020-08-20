@@ -29,12 +29,6 @@ COPY --from=three-phase-protocol-implementation_build-container /home/threePP/do
 # $msgsize 512 -> message size
 # $delay 100 -> delay in ms
 
-ENV type 0
-ENV threads 1
-ENV senders 1
-ENV msgsize 512
-ENV delay 100
-
 CMD tc qdisc add dev eth0 root tbf rate 50mbit burst 100kb latency 1000ms \
 && ./dockerInstance $type $threads $senders $msgsize $delay
 
