@@ -1,6 +1,10 @@
-# An Implementation of the Three Phase Protocol #
+# An Implementation of the Three Phase Protocol
 
-## Dependencies ##
+## usage
+
+`docker-compose --build --scale three-pp-container=24 up`
+
+## Dependencies
 * OpenSSL
-* Boost.Asio &nbsp;(version 1.72.0)
-* CryptoPP &nbsp;&nbsp; (version 8.2)
+* Boost.Asio (version 1.72.0)
+* CryptoPP (version 8.2)
