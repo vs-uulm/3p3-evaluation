@@ -21,13 +21,21 @@ COPY --from=three-phase-protocol-implementation_build-container /home/threePP/do
 #latency packets with higher latency get dropped
 #tc qdisc add dev eth0 root tbf rate 50mbit burst 100kb latency 1000ms
 
-CMD tc qdisc add dev eth0 root tbf rate 50mbit burst 100kb latency 1000ms \
-&& ./dockerInstance 0 1 2 512 100
-
+# ./dockerInstance 0 1 2 512 100
 # parameters: 0 1 2 512 100
-# 0 -> unsecured (1-> secured?)
-# 1 -> #thread for commitments
-# 2 -> #senders
-# 512 -> message size
-# 100 -> delay in ms
-#CMD ["/bin/sh", "-c", "./dockerInstance 0 1 2 512 100"]
+# $type 0 -> unsecured (1-> secured?)
+# $threads 1 -> #thread for commitments
+# $senders 2 -> #senders
+# $msgsize 512 -> message size
+# $delay 100 -> delay in ms
+
+ENV type 0
+ENV threads 1
+ENV senders 1
+ENV msgsize 512
+ENV delay 100
+
+CMD tc qdisc add dev eth0 root tbf rate 50mbit burst 100kb latency 1000ms \
+&& ./dockerInstance $type $threads $senders $msgsize $delay
+
+

@@ -17,6 +17,8 @@ services:
       context: .
       dockerfile: ./docker/central/Dockerfile
     volumes: ['./evaluation:/home/threePP']
+    environment:
+      - nodes=8
     networks:
       p2p-network:
         ipv4_address: 172.28.1.1
@@ -26,5 +28,11 @@ services:
       dockerfile: ./docker/threePP/Dockerfile
     cap_add:
       - NET_ADMIN
+    environment:
+      - type=0
+      - threads=1
+      - senders=1
+      - msgsize=512
+      - delay=100
     networks:
       p2p-network:
