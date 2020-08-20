@@ -24,5 +24,7 @@ services:
     build:
       context: .
       dockerfile: ./docker/threePP/Dockerfile
+    cap_add:
+      - NET_ADMIN
     networks:
       p2p-network:
