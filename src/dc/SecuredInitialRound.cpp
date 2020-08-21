@@ -178,7 +178,7 @@ void SecuredInitialRound::preparation() {
     if (l > 0) {
         std::vector<uint8_t> messageSlot(slotSize);
         uint16_t r = PRNG.GenerateWord32(0, USHRT_MAX);
-        slotIndex_ = PRNG.GenerateWord32(0, 2 * k_ - 1);
+        slotIndex_ = nodeIndex_; //PRNG.GenerateWord32(0, 2 * k_ - 1);
 
         // set the values in Big Endian format
         messageSlot[4] = static_cast<uint8_t>((r & 0xFF00) >> 8);

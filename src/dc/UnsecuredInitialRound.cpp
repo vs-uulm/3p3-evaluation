@@ -133,7 +133,7 @@ int UnsecuredInitialRound::preparation() {
     int slotIndex = -1;
     if (l > 0) {
         uint16_t r = PRNG.GenerateWord32(0, USHRT_MAX);
-        slotIndex = PRNG.GenerateWord32(0, 2 * k_ - 1);
+        slotIndex = nodeIndex_; //PRNG.GenerateWord32(0, 2 * k_ - 1);
 
         // set the values in Big Endian format
         slot[4] = (r & 0xFF00) >> 8;
