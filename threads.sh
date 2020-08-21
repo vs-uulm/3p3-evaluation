@@ -1,6 +1,6 @@
 #!/bin/bash
 
-for NODES in 8 10 12 14 16 18 20 22 24 26 28 30
+for NODES in 8 10 12 14 16 18 20 22 24
 do
 for THREADS in 1 2 4
 do
