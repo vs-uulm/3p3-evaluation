@@ -30,6 +30,15 @@ Obviously, these are for experimental use and not production use.
 
 Contains network topologies of certain sizes.
 
+## Results Evaluation
+
+Contains scripts to work with the logging results, example data and plot scripts used for displaying the data.
+
+The python script is used to aggregate the data produced by an experiment.
+There are a few parameters that need to be set inside the file.
+
+The example folder contains the result data aggregated from our evaluation runs, as well as matlab scripts to produce some evaluation plots.
+
 ## usage
 
 The experiments can be run in two different ways.
