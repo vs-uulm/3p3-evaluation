@@ -32,7 +32,7 @@ public:
     DCNetwork(DCMember self, size_t k, SecurityLevel securityLevel, CryptoPP::Integer privateKey, uint32_t numThreads,
             std::unordered_map<uint32_t, Node>& neighbors, MessageQueue<ReceivedMessage>& inboxDC,
             MessageQueue<OutgoingMessage>& outboxThreePP, uint32_t interval = 0, bool fullProtocol = true, bool logging = false,
-            bool preparedCommitments = false);
+            bool preparedCommitments = false, bool AD = false);
 
     std::map<uint32_t, DCMember>& members();
 
@@ -57,6 +57,8 @@ public:
     uint32_t interval();
 
     bool fullProtocol();
+
+    bool AD();
 
     bool logging();
 
@@ -99,6 +101,8 @@ private:
     bool fullProtocol_;
 
     bool logging_;
+
+    bool AD_;
 
     // currently used only for the evaluation
     std::vector<std::vector<std::vector<std::pair<CryptoPP::Integer, CryptoPP::ECPPoint>>>> preparedCommitments_;

@@ -16,7 +16,10 @@ SecuredFinalRound::SecuredFinalRound(DCNetwork &DCNet, int slotIndex, std::vecto
                                      std::vector<CryptoPP::Integer> seedPrivateKeys,
                                      std::vector<std::array<uint8_t, 32>> receivedSeeds)
         : DCNetwork_(DCNet), k_(DCNetwork_.k()), slotIndex_(slotIndex), slots_(std::move(slots)),
-          seedPrivateKeys_(seedPrivateKeys), seeds_(std::move(receivedSeeds)), rValues_(k_), delayedVerification_(true) {
+          seedPrivateKeys_(seedPrivateKeys), seeds_(std::move(receivedSeeds)), rValues_(k_) {
+
+    if(!DCNet.fullProtocol())
+        delayedVerification_ = true;
 
     curve.Initialize(CryptoPP::ASN1::secp256k1());
 
@@ -95,7 +98,7 @@ std::unique_ptr<DCState> SecuredFinalRound::executeTask() {
         bool valid = CRC32_.Verify(finalMessages[slot].data());
         // if there is a CRC error in the own slot,
         // check which commitments don't add up to zero
-        if(!valid && (slot == slotIndex_)) {
+        if(!valid && (static_cast<int>(slot) == slotIndex_)) {
             for (auto it = DCNetwork_.members().begin(); it != DCNetwork_.members().end(); it++) {
                 uint32_t memberIndex = std::distance(DCNetwork_.members().begin(), it);
 
@@ -202,7 +205,7 @@ std::unique_ptr<DCState> SecuredFinalRound::executeTask() {
         DCNetwork_.outbox().push(std::move(finalMessage));
 
         // check if a VS Token has to be generated for this message by this node
-        if(DCNetwork_.fullProtocol() && (slots_[t].second >= nodeIndex_*65535/k_) && (slots_[t].second < (nodeIndex_+1)*65535/k_)) {
+        if(DCNetwork_.AD() && (slots_[t].second >= nodeIndex_*65535/k_) && (slots_[t].second < (nodeIndex_+1)*65535/k_)) {
             std::lock_guard<std::mutex> lock(loggingMutex);
             std::cout << "Node " << nodeIndex_ << "Generating VS Token for slot " << t << std::endl;
             std::vector<uint8_t> VSToken = VirtualSource::generateVSToken(0, 0, message);

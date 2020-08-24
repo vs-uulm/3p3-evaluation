@@ -12,10 +12,11 @@
 #include "../utils/Utils.h"
 
 SecuredInitialRound::SecuredInitialRound(DCNetwork &DCNet)
-        : DCNetwork_(DCNet), k_(DCNetwork_.k()), numSlices_(std::ceil((8 + 33 * k_) / 31.0)), slotIndex_(-1),
-        delayedVerification_(true) {
+        : DCNetwork_(DCNet), k_(DCNetwork_.k()), numSlices_(std::ceil((8 + 33 * k_) / 31.0)), slotIndex_(-1) {
     curve_.Initialize(CryptoPP::ASN1::secp256k1());
 
+    if(!DCNet.fullProtocol())
+        delayedVerification_ = true;
     // determine the index of the own nodeID in the ordered member list
     nodeIndex_ = std::distance(DCNetwork_.members().begin(), DCNetwork_.members().find(DCNetwork_.nodeID()));
 }
@@ -302,7 +303,7 @@ void SecuredInitialRound::sharingPartOne() {
 
                     for (uint32_t slice = 0; slice < numSlices_; slice++, offset += encodedPointSize) {
 
-                        if(DCNetwork_.preparedCommitments().size() > 0 && (slot != slotIndex_)) {
+                        if(DCNetwork_.preparedCommitments().size() > 0 && (static_cast<int>(slot) != slotIndex_)) {
                             // use the prepared values
                             rValues_[slot][share].push_back(DCNetwork_.preparedCommitments()[slot][share][slice].first);
                             commitmentCube[slot][share].push_back(DCNetwork_.preparedCommitments()[slot][share][slice].second);

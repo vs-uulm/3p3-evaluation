@@ -25,12 +25,16 @@ ip::address getIP() {
 }
 
 int main(int argc, char **argv) {
-    if ((argc != 6) || (atoi(argv[1]) < 0) || (atoi(argv[1]) > 3)) {
-        std::cout << "usage: ./dockerInstance SecurityLevel numThreads numSenders messageLength propagationDelay" << std::endl;
-        std::cout << "SecurityLevel" << std::endl;
+    if ((argc < 6) || (atoi(argv[1]) < 0) || (atoi(argv[1]) > 3)) {
+        std::cout << "usage: ./dockerInstance securityLevel numThreads numSenders messageLength propagationDelay optimizationLevel" << std::endl;
+        std::cout << "securityLevel" << std::endl;
         std::cout << "0: unsecured" << std::endl;
         std::cout << "1: secured" << std::endl;
         std::cout << "2: adaptive" << std::endl;
+        std::cout << "optimizationLevel" << std::endl;
+        std::cout << "0: full Protocol" << std::endl;
+        std::cout << "1: no commitment validation" << std::endl;
+        std::cout << "2: no commitment validation and prepared Commitments" << std::endl;
         exit(0);
     }
 
@@ -39,6 +43,9 @@ int main(int argc, char **argv) {
     uint32_t numSenders = atoi(argv[3]);
     uint32_t messageLength = atoi(argv[4]);
     uint32_t propagationDelay = atoi(argv[5]);
+    uint32_t optimizationLevel = 2;
+    if(argc == 7)
+        optimizationLevel = atoi(argv[6]);
 
     // wait for cleaner logging
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
@@ -166,10 +173,16 @@ int main(int argc, char **argv) {
         }
     });
 
+    bool fullProtocol = true;
+    bool preparedCommitments = false;
+    if(optimizationLevel > 0)
+        fullProtocol = false;
+    if(optimizationLevel == 2)
+        preparedCommitments = true;
     // start the DCNetwork
     DCMember self(nodeID_, SELF, publicKey);
     DCNetwork DCNetwork_(self, numNodes + 1, securityLevel, privateKey, numThreads, nodes, inboxDC, outboxThreePP, 0,
-                         false, true, true);
+                         fullProtocol, true, preparedCommitments);
 
     std::thread DCThread([&]() {
         DCNetwork_.run();

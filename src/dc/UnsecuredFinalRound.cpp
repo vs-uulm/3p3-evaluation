@@ -101,7 +101,7 @@ std::unique_ptr<DCState> UnsecuredFinalRound::executeTask() {
         DCNetwork_.outbox().push(std::move(finalMessage));
 
         // check if a VS Token has to be generated for this message by this node
-        if(DCNetwork_.fullProtocol() && (slots_[t].second >= nodeIndex_*65535/k_) && (slots_[t].second < (nodeIndex_+1)*65535/k_)) {
+        if(DCNetwork_.AD() && (slots_[t].second >= nodeIndex_*65535/k_) && (slots_[t].second < (nodeIndex_+1)*65535/k_)) {
             std::cout << "Node " << nodeIndex_ << "Generating VS Token for slot " << t << std::endl;
             std::vector<uint8_t> VSToken = VirtualSource::generateVSToken(0, 0, message);
             OutgoingMessage vsForward(SELF, VirtualSourceToken, DCNetwork_.nodeID(), VSToken);
