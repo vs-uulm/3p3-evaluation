@@ -54,6 +54,12 @@ These files use a message size of 512 bytes and a delay of 100ms.
  * `nodes.sh`: Runs the protocol with a number of nodes of 8, 10, 12, ...., 24 in either secured or unsecured mode. (Uses 4 threads for the secured mode and 4 senders.)
  * `messages.sh`: Runs the protocol with 1 to 20 senders in either secured or unsecured mode. (It uses 20 nodes, 4 senders and 4 threas for the secured mode.)
 
+## Additional Parameters
+
+The prtocol has some non exposed parameters, which can be changed in the C++ implementation.
+The DC protocol can be run in a fully validating mode and without precomputed commitments by setting the respective parameters in 'src/docker/ThreePPContainer.cpp:171'.
+Documentation of these paramters can be found in the respective class file, DCNetwork.
+
 ## Dependencies
 * OpenSSL
 * Boost.Asio (version 1.72.0)
