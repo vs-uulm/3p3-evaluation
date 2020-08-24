@@ -1,14 +1,16 @@
 threads = readtable('./threads.csv', 'Format', '%C%f%f%f%f%f%f%f%f%f')
 
+threads = sortrows(threads, 3);
+
 cmap = [0.00,0.45,0.74; 0.85,0.33,0.10; 0.93,0.69,0.13]
 [group, id] = findgroups(threads.nodes);
 
-absolutefunc = @(nodes, threads,mind,medi,maxd) [nodes(1), min(medi), median(medi), max(medi)];
-absoluteresult = splitapply(absolutefunc, threads.nodes, threads.threads, threads.mind, threads.medi, threads.maxd, group);
+absolutefunc = @(nodes, medi) [nodes(1), medi'];
+absoluteresult = splitapply(absolutefunc, threads.nodes, threads.medi, group);
 aggregate = [[1*ones(9,1) absoluteresult(:,1) absoluteresult(:,2)]; [2*ones(9,1) absoluteresult(:,1) absoluteresult(:,3)]; [4*ones(9,1) absoluteresult(:,1) absoluteresult(:,4)]]
 
-speedupfunc = @(nodes, threads,mind,medi,maxd) [nodes(1), 1, median(medi)/min(medi), max(medi)/min(medi)];
-speedupresult = splitapply(speedupfunc, threads.nodes, threads.threads, threads.mind, threads.medi, threads.maxd, group)
+speedupfunc = @(n,t1,t2,t4) [n, 1, t1/t2, t1/t4];
+speedupresult = table2array(rowfun(speedupfunc, array2table(absoluteresult)))
 suag = [[1*ones(9,1) speedupresult(:,1) speedupresult(:,2)]; [2*ones(9,1) speedupresult(:,1) speedupresult(:,3)]; [4*ones(9,1) speedupresult(:,1) speedupresult(:,4)]]
 
 fig = figure;
